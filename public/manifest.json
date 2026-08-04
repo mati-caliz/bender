@@ -1,0 +1,68 @@
+{
+  "manifest_version": 3,
+  "name": "Bender",
+  "version": "1.0.0",
+  "description": "Doblale las requests al navegador: headers, cookies, storage, mocks, userscripts y logger de red en una sola extension.",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "webRequest",
+    "storage",
+    "cookies",
+    "scripting",
+    "userScripts",
+    "tabs",
+    "sidePanel"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "assets/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "index.html?surface=popup",
+    "default_title": "Bender",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "index.html?surface=panel"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content/inject.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content/bridge.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "ISOLATED"
+    }
+  ],
+  "commands": {
+    "toggle-global": {
+      "suggested_key": { "default": "Alt+Shift+T" },
+      "description": "Prender/apagar todas las reglas de Bender"
+    },
+    "open-panel": {
+      "suggested_key": { "default": "Alt+Shift+P" },
+      "description": "Abrir Bender en el panel lateral"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
