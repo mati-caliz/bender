@@ -1,6 +1,7 @@
 import type {
   CorsConfig,
   NetworkConfig,
+  RequestMethod,
   ResourceType,
   Scope,
   ToolkitState,
@@ -13,6 +14,7 @@ export const ENGINE_STATUS_KEY = 'benderEngineStatus';
 export const NETWORK_LOG_KEY = 'benderNetworkLog';
 export const DISABLED_COOKIES_KEY = 'benderDisabledCookies';
 export const DISABLED_STORAGE_KEY = 'benderDisabledStorage';
+export const DESIGN_PICKS_KEY = 'benderDesignPicks';
 
 export const SCHEMA_VERSION = 1;
 
@@ -45,6 +47,30 @@ export const RESOURCE_TYPE_LABELS: Record<string, string> = {
   csp_report: 'CSP report',
   media: 'Media',
   websocket: 'WebSocket',
+  other: 'Otro',
+};
+
+export const ALL_REQUEST_METHODS: RequestMethod[] = [
+  'get',
+  'post',
+  'put',
+  'patch',
+  'delete',
+  'head',
+  'options',
+  'connect',
+  'other',
+];
+
+export const REQUEST_METHOD_LABELS: Record<RequestMethod, string> = {
+  get: 'GET',
+  post: 'POST',
+  put: 'PUT',
+  patch: 'PATCH',
+  delete: 'DELETE',
+  head: 'HEAD',
+  options: 'OPTIONS',
+  connect: 'CONNECT',
   other: 'Otro',
 };
 
@@ -148,8 +174,11 @@ export const createEmptyScope = (): Scope => ({
   activeTabOnly: false,
   includeDomains: [],
   excludeDomains: [],
+  initiatorDomains: [],
+  excludedInitiatorDomains: [],
   urlFilter: '',
   resourceTypes: [],
+  requestMethods: [],
 });
 
 export const DEFAULT_CORS_CONFIG: CorsConfig = {
@@ -178,7 +207,6 @@ export const DEFAULT_USER_AGENT_CONFIG: UserAgentConfig = {
 export const DEFAULT_NETWORK_CONFIG: NetworkConfig = {
   enabled: false,
   maxEntries: 500,
-  captureBodies: false,
   onlyModified: false,
 };
 

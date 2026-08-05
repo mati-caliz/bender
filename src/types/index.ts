@@ -13,6 +13,17 @@ export type ResourceType =
   | 'websocket'
   | 'other';
 
+export type RequestMethod =
+  | 'connect'
+  | 'delete'
+  | 'get'
+  | 'head'
+  | 'options'
+  | 'patch'
+  | 'post'
+  | 'put'
+  | 'other';
+
 export type HeaderOperation = 'set' | 'append' | 'remove';
 
 export interface HeaderEntry {
@@ -28,8 +39,11 @@ export interface Scope {
   activeTabOnly: boolean;
   includeDomains: string[];
   excludeDomains: string[];
+  initiatorDomains: string[];
+  excludedInitiatorDomains: string[];
   urlFilter: string;
   resourceTypes: ResourceType[];
+  requestMethods: RequestMethod[];
 }
 
 export interface Profile {
@@ -83,7 +97,6 @@ export interface UserAgentConfig {
 export interface NetworkConfig {
   enabled: boolean;
   maxEntries: number;
-  captureBodies: boolean;
   onlyModified: boolean;
 }
 
@@ -195,6 +208,71 @@ export interface MockDefinition {
   headers: Array<{ name: string; value: string }>;
 }
 
-export type BridgeMessage =
-  | { channel: 'bender'; type: 'mocks'; mocks: MockDefinition[] }
-  | { channel: 'bender'; type: 'mock-hit'; url: string; method: string; ruleName: string; status: number };
+export type DesignTool = 'inspect' | 'ruler' | 'spacing';
+
+export type DesignPickKind = 'color' | 'element' | 'measure';
+
+export interface DesignPick {
+  id: string;
+  kind: DesignPickKind;
+  label: string;
+  detail: string;
+  color: string | null;
+  origin: string;
+  createdAt: number;
+}
+
+export type ColorRole = 'text' | 'background' | 'border';
+
+export interface ColorUsage {
+  hex: string;
+  count: number;
+  roles: ColorRole[];
+}
+
+export interface FontUsage {
+  family: string;
+  count: number;
+  sizes: number[];
+  weights: number[];
+}
+
+export interface ValueUsage {
+  value: string;
+  count: number;
+}
+
+export interface CssVariable {
+  name: string;
+  value: string;
+}
+
+export interface DesignAudit {
+  elementCount: number;
+  rootFontSize: number;
+  colors: ColorUsage[];
+  fonts: FontUsage[];
+  spacings: ValueUsage[];
+  radii: ValueUsage[];
+  shadows: ValueUsage[];
+  variables: CssVariable[];
+}
+
+export type DesignCommand =
+  | { channel: 'bender-design'; type: 'set-tool'; tool: DesignTool }
+  | { channel: 'bender-design'; type: 'close' }
+  | { channel: 'bender-design'; type: 'ping' };
+
+export interface DesignOverlayState {
+  active: boolean;
+  tool: DesignTool;
+}
+
+export interface BridgeHandshake {
+  channel: 'bender';
+  type: 'connect';
+}
+
+export type BridgePortMessage =
+  | { type: 'mocks'; mocks: MockDefinition[] }
+  | { type: 'mock-hit'; url: string; method: string; ruleName: string; status: number };

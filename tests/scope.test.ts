@@ -5,7 +5,9 @@ import {
   parseDomainList,
   sanitizeDomain,
   sanitizeDomainList,
+  requestMatchesScope,
   scopeToCondition,
+  toRequestMethod,
   urlFilterToRegExp,
   urlMatchesScope,
 } from '@/lib/scope';
@@ -127,5 +129,68 @@ describe('scopeToCondition', () => {
     );
     expect(condition?.requestDomains).toEqual(['example.com']);
     expect(condition?.excludedRequestDomains).toEqual(['cdn.example.com']);
+  });
+});
+
+describe('toRequestMethod', () => {
+  it('normaliza a minusculas y cae en "other" si no lo conoce', () => {
+    expect(toRequestMethod('POST')).toBe('post');
+    expect(toRequestMethod('  Delete ')).toBe('delete');
+    expect(toRequestMethod('PURGE')).toBe('other');
+  });
+});
+
+describe('requestMatchesScope', () => {
+  const request = { url: 'https://api.example.com/v1/users', method: 'POST', initiatorHostname: 'app.local' };
+
+  it('acepta todo cuando el alcance esta vacio', () => {
+    expect(requestMatchesScope(createEmptyScope(), request)).toBe(true);
+  });
+
+  it('filtra por metodo', () => {
+    expect(requestMatchesScope(scopeWith({ requestMethods: ['post'] }), request)).toBe(true);
+    expect(requestMatchesScope(scopeWith({ requestMethods: ['get'] }), request)).toBe(false);
+  });
+
+  it('filtra por dominio iniciador incluyendo subdominios', () => {
+    expect(requestMatchesScope(scopeWith({ initiatorDomains: ['app.local'] }), request)).toBe(true);
+    expect(
+      requestMatchesScope(scopeWith({ initiatorDomains: ['local'] }), { ...request, initiatorHostname: 'a.b.local' })
+    ).toBe(true);
+    expect(requestMatchesScope(scopeWith({ initiatorDomains: ['otro.local'] }), request)).toBe(false);
+  });
+
+  it('el iniciador excluido gana sobre el incluido', () => {
+    const scope = scopeWith({ initiatorDomains: ['local'], excludedInitiatorDomains: ['app.local'] });
+    expect(requestMatchesScope(scope, request)).toBe(false);
+  });
+
+  it('sigue aplicando el filtro de url y de dominio destino', () => {
+    const scope = scopeWith({ includeDomains: ['example.com'], urlFilter: '/v1/', requestMethods: ['post'] });
+    expect(requestMatchesScope(scope, request)).toBe(true);
+    expect(requestMatchesScope(scope, { ...request, url: 'https://example.com/v2/users' })).toBe(false);
+  });
+});
+
+describe('scopeToCondition con metodos e iniciador', () => {
+  it('omite metodos e iniciador cuando estan vacios', () => {
+    const condition = scopeToCondition(createEmptyScope(), { activeTabId: null });
+    expect(condition?.requestMethods).toBeUndefined();
+    expect(condition?.initiatorDomains).toBeUndefined();
+    expect(condition?.excludedInitiatorDomains).toBeUndefined();
+  });
+
+  it('pasa los metodos elegidos tal cual', () => {
+    const condition = scopeToCondition(scopeWith({ requestMethods: ['post', 'put'] }), { activeTabId: null });
+    expect(condition?.requestMethods).toEqual(['post', 'put']);
+  });
+
+  it('normaliza los dominios iniciadores', () => {
+    const condition = scopeToCondition(
+      scopeWith({ initiatorDomains: ['*.App.local'], excludedInitiatorDomains: ['https://admin.local/panel'] }),
+      { activeTabId: null }
+    );
+    expect(condition?.initiatorDomains).toEqual(['app.local']);
+    expect(condition?.excludedInitiatorDomains).toEqual(['admin.local']);
   });
 });

@@ -1,4 +1,4 @@
-import { urlMatchesScope } from '@/lib/scope';
+import { requestMatchesScope, type ScopeRequest } from '@/lib/scope';
 import type { MockDefinition, ToolkitState } from '@/types';
 
 export const MOCKS_STORAGE_KEY = 'benderMocks';
@@ -27,8 +27,8 @@ export const collectMockDefinitions = (state: ToolkitState): MockDefinition[] =>
     .filter((mock): mock is MockDefinition => mock !== null);
 };
 
-export const findMatchingMock = (mocks: MockDefinition[], url: string): MockDefinition | null =>
-  mocks.find((mock) => urlMatchesScope(mock.scope, url)) ?? null;
+export const findMatchingMock = (mocks: MockDefinition[], request: ScopeRequest): MockDefinition | null =>
+  mocks.find((mock) => requestMatchesScope(mock.scope, request)) ?? null;
 
 export const publishMocks = async (state: ToolkitState): Promise<void> => {
   await chrome.storage.local.set({ [MOCKS_STORAGE_KEY]: collectMockDefinitions(state) });

@@ -6,6 +6,7 @@ import { useEngineStatus } from '@/ui/hooks/useEngineStatus';
 import { useToolkitState } from '@/ui/hooks/useToolkitState';
 import { CookiesView } from '@/ui/views/CookiesView';
 import { CorsView } from '@/ui/views/CorsView';
+import { DesignView } from '@/ui/views/DesignView';
 import { HeadersView } from '@/ui/views/HeadersView';
 import { NetworkView } from '@/ui/views/NetworkView';
 import { OverviewView } from '@/ui/views/OverviewView';
@@ -26,6 +27,7 @@ export type ViewId =
   | 'cookies'
   | 'storage'
   | 'scripts'
+  | 'design'
   | 'settings';
 
 interface NavEntry {
@@ -73,6 +75,7 @@ const NAV_ENTRIES: NavEntry[] = [
     group: 'Sitio',
     count: (state) => state.userScripts.filter((script) => script.enabled).length,
   },
+  { id: 'design', label: 'Diseño', icon: 'ruler', group: 'Diseño' },
 ];
 
 const SURFACE_PARAM = 'surface';
@@ -147,6 +150,8 @@ export const App = () => {
         return <StorageView activeTab={activeTab} />;
       case 'scripts':
         return <ScriptsView state={state} update={update} activeTab={activeTab} />;
+      case 'design':
+        return <DesignView activeTab={activeTab} />;
       case 'settings':
         return <SettingsView state={state} update={update} status={status} />;
     }

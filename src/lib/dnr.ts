@@ -6,6 +6,7 @@ import {
   DNR_OPERATION_REMOVE,
   DNR_OPERATION_SET,
   toDnrHeaderOperation,
+  toDnrRequestMethods,
   toDnrResourceTypes,
 } from '@/lib/dnr-enums';
 import { navigatorSpoofDiagnostics } from '@/lib/navigator-spoof';
@@ -51,6 +52,11 @@ const toRuleCondition = (condition: CompiledCondition): chrome.declarativeNetReq
   if (condition.regexFilter) ruleCondition.regexFilter = condition.regexFilter;
   if (condition.requestDomains) ruleCondition.requestDomains = condition.requestDomains;
   if (condition.excludedRequestDomains) ruleCondition.excludedRequestDomains = condition.excludedRequestDomains;
+  if (condition.initiatorDomains) ruleCondition.initiatorDomains = condition.initiatorDomains;
+  if (condition.excludedInitiatorDomains) {
+    ruleCondition.excludedInitiatorDomains = condition.excludedInitiatorDomains;
+  }
+  if (condition.requestMethods) ruleCondition.requestMethods = toDnrRequestMethods(condition.requestMethods);
   if (condition.tabIds) ruleCondition.tabIds = condition.tabIds;
   return ruleCondition;
 };
@@ -360,6 +366,20 @@ const compileTrafficRules = (
   }
 
   return rules;
+};
+
+export const dependsOnTabs = (state: ToolkitState): boolean => {
+  if (!state.globalEnabled) return false;
+  if (state.cors.enabled && state.cors.allowOrigin === 'reflect') return true;
+
+  const activeScopes = [
+    ...state.profiles.filter((profile) => profile.enabled).map((profile) => profile.scope),
+    ...state.trafficRules.filter((trafficRule) => trafficRule.enabled).map((trafficRule) => trafficRule.scope),
+    ...(state.cors.enabled ? [state.cors.scope] : []),
+    ...(state.userAgent.enabled ? [state.userAgent.scope] : []),
+  ];
+
+  return activeScopes.some((scope) => scope.activeTabOnly);
 };
 
 export const compileRules = (state: ToolkitState, context: CompileContext): CompiledRules => {

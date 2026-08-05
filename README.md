@@ -22,6 +22,8 @@ Extension de Chrome (Manifest V3) que reemplaza a ModHeader + Cookie-Editor + Ta
   eleccion de mundo (el de la pagina o uno aislado).
 - **Trafico**: log en vivo de requests que muestra los headers finales que salieron y que regla de
   Bender toco cada una.
+- **Diseño**: inspector de box model, regla y medidor de espaciados que se dibujan sobre la pagina,
+  mas cuentagotas, auditoria de paleta, tipografias, espaciados y variables `:root` del sitio.
 
 La UI vive en el popup, en el panel lateral y en una pestaña completa: es la misma app, cambia el
 ancho.
@@ -88,6 +90,8 @@ practica: el CSS se aplica al cargar la pagina, no al instante de guardarlo.
   lateral o la pestaña completa (el cuadro de pegar JSON funciona en los tres).
 - Los mocks no cubren navegacion ni subrecursos; para eso esta el redirect.
 - Un nombre de header invalido segun RFC 7230 se ignora y queda avisado en Resumen y en Ajustes.
+- El inspector de diseño solo entra en el frame principal, y las variables `:root` de hojas de
+  estilo cross-origin no se pueden leer. El cuentagotas depende de la API `EyeDropper`.
 
 ## Importar de otras herramientas
 

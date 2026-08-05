@@ -4,7 +4,11 @@ import { fileURLToPath } from 'node:url';
 const resolveFromRoot = (relativePath) => fileURLToPath(new URL(`../${relativePath}`, import.meta.url));
 
 const options = {
-  entryPoints: [resolveFromRoot('src/content/bridge.ts'), resolveFromRoot('src/content/inject.ts')],
+  entryPoints: [
+    resolveFromRoot('src/content/bridge.ts'),
+    resolveFromRoot('src/content/inject.ts'),
+    resolveFromRoot('src/content/design-overlay.ts'),
+  ],
   outdir: resolveFromRoot('dist/content'),
   bundle: true,
   format: 'iife',

@@ -11,8 +11,10 @@ export type IconName =
   | 'code'
   | 'cookie'
   | 'copy'
+  | 'crosshair'
   | 'database'
   | 'download'
+  | 'droplet'
   | 'external'
   | 'eye'
   | 'filter'
@@ -26,6 +28,7 @@ export type IconName =
   | 'plus'
   | 'power'
   | 'refresh'
+  | 'ruler'
   | 'search'
   | 'settings'
   | 'shield'
@@ -33,6 +36,7 @@ export type IconName =
   | 'sparkles'
   | 'sun'
   | 'trash'
+  | 'type'
   | 'upload'
   | 'x';
 
@@ -70,6 +74,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </>
   ),
+  crosshair: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+    </>
+  ),
+  droplet: <path d="M12 2.7 6.7 8a7.5 7.5 0 1 0 10.6 0L12 2.7z" />,
   database: (
     <>
       <ellipse cx="12" cy="5" rx="9" ry="3" />
@@ -125,6 +136,12 @@ const PATHS: Record<IconName, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
   power: <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10" />,
   refresh: <path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" />,
+  ruler: (
+    <>
+      <path d="M2.5 15.5 8.5 21.5 21.5 8.5 15.5 2.5 2.5 15.5z" />
+      <path d="M7 11l2 2M10 8l2 2M13 5l2 2" />
+    </>
+  ),
   search: (
     <>
       <circle cx="11" cy="11" r="7" />
@@ -152,6 +169,7 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   trash: <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />,
+  type: <path d="M4 7V4h16v3M9 20h6M12 4v16" />,
   upload: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />,
   x: <path d="M18 6 6 18M6 6l12 12" />,
 };

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CORS_CONFIG, DEFAULT_USER_AGENT_CONFIG, createDefaultState, createEmptyScope } from '@/lib/constants';
-import { type CompileContext, compileRules } from '@/lib/dnr';
+import { type CompileContext, compileRules, dependsOnTabs } from '@/lib/dnr';
 import { createHeaderEntry } from '@/lib/factories';
 import type { HeaderEntry, Profile, ToolkitState, TrafficRule, TrafficRuleAction } from '@/types';
 
@@ -313,5 +313,80 @@ describe('compileRules en conjunto', () => {
     const ids = compiled.rules.map((rule) => rule.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids.every((id) => compiled.labels[id] !== undefined)).toBe(true);
+  });
+});
+
+describe('dependsOnTabs', () => {
+  it('es falso cuando nada depende de la pestaña activa', () => {
+    const state = stateWith({
+      profiles: [profileWith({ requestHeaders: [header('x-test', '1')] })],
+      trafficRules: [trafficRuleWith({ kind: 'block' })],
+    });
+
+    expect(dependsOnTabs(state)).toBe(false);
+  });
+
+  it('es verdadero si un perfil activo usa solo la pestaña activa', () => {
+    const state = stateWith({
+      profiles: [profileWith({ scope: { ...createEmptyScope(), activeTabOnly: true } })],
+    });
+
+    expect(dependsOnTabs(state)).toBe(true);
+  });
+
+  it('ignora los perfiles apagados', () => {
+    const state = stateWith({
+      profiles: [profileWith({ enabled: false, scope: { ...createEmptyScope(), activeTabOnly: true } })],
+    });
+
+    expect(dependsOnTabs(state)).toBe(false);
+  });
+
+  it('es verdadero si CORS refleja el origen', () => {
+    const state = stateWith({
+      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: 'reflect' },
+    });
+
+    expect(dependsOnTabs(state)).toBe(true);
+  });
+
+  it('es falso con el motor apagado', () => {
+    const state = stateWith({
+      globalEnabled: false,
+      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: 'reflect' },
+    });
+
+    expect(dependsOnTabs(state)).toBe(false);
+  });
+});
+
+describe('compileRules con metodos e iniciador', () => {
+  it('lleva metodos y dominios iniciadores a la condicion de la regla', () => {
+    const state = stateWith({
+      profiles: [
+        profileWith({
+          requestHeaders: [header('x-test', '1')],
+          scope: {
+            ...createEmptyScope(),
+            requestMethods: ['post', 'put'],
+            initiatorDomains: ['app.local'],
+            excludedInitiatorDomains: ['admin.local'],
+          },
+        }),
+      ],
+    });
+    const [rule] = compileRules(state, EMPTY_CONTEXT).rules;
+
+    expect(rule?.condition.requestMethods).toEqual(['post', 'put']);
+    expect(rule?.condition.initiatorDomains).toEqual(['app.local']);
+    expect(rule?.condition.excludedInitiatorDomains).toEqual(['admin.local']);
+  });
+
+  it('no manda metodos ni iniciador cuando el alcance no los define', () => {
+    const state = stateWith({ profiles: [profileWith({ requestHeaders: [header('x-test', '1')] })] });
+    const [rule] = compileRules(state, EMPTY_CONTEXT).rules;
+
+    expect(rule?.condition.requestMethods).toBeUndefined();
+    expect(rule?.condition.initiatorDomains).toBeUndefined();
   });
 });

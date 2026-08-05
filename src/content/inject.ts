@@ -1,5 +1,6 @@
 import { findMatchingMock } from '@/lib/mocks';
-import type { BridgeMessage, MockDefinition } from '@/types';
+import type { ScopeRequest } from '@/lib/scope';
+import type { BridgeHandshake, BridgePortMessage, MockDefinition } from '@/types';
 
 const MOCKS_TIMEOUT_MS = 2000;
 const READY_STATE_HEADERS_RECEIVED = 2;
@@ -9,6 +10,8 @@ const READY_STATE_DONE = 4;
 const originalFetch = window.fetch.bind(window);
 const originalOpen = XMLHttpRequest.prototype.open;
 const originalSend = XMLHttpRequest.prototype.send;
+const originalSendBeacon = navigator.sendBeacon?.bind(navigator);
+const BEACON_METHOD = 'POST';
 
 interface PendingRequest {
   method: string;
@@ -24,25 +27,28 @@ const mocksReady = new Promise<void>((resolve) => {
 });
 window.setTimeout(() => resolveMocksReady?.(), MOCKS_TIMEOUT_MS);
 
-window.addEventListener('message', (event) => {
-  if (event.source !== window) return;
-  const data = event.data as Partial<BridgeMessage> | null;
-  if (!data || data.channel !== 'bender' || data.type !== 'mocks') return;
-  mocks = Array.isArray(data.mocks) ? data.mocks : [];
+const bridgeChannel = new MessageChannel();
+const bridgePort = bridgeChannel.port1;
+
+bridgePort.onmessage = (event: MessageEvent<BridgePortMessage>) => {
+  if (event.data.type !== 'mocks') return;
+  mocks = Array.isArray(event.data.mocks) ? event.data.mocks : [];
   resolveMocksReady?.();
   resolveMocksReady = null;
-});
+};
+
+const handshake: BridgeHandshake = { channel: 'bender', type: 'connect' };
+window.postMessage(handshake, '*', [bridgeChannel.port2]);
 
 const reportHit = (mock: MockDefinition, url: string, method: string): void => {
-  const message: BridgeMessage = {
-    channel: 'bender',
+  const message: BridgePortMessage = {
     type: 'mock-hit',
     url,
     method,
     ruleName: mock.name,
     status: mock.status,
   };
-  window.postMessage(message, '*');
+  bridgePort.postMessage(message);
 };
 
 const resolveMocks = async (): Promise<MockDefinition[]> => {
@@ -70,6 +76,12 @@ const requestMethodOf = (input: RequestInfo | URL, init?: RequestInit): string =
   return 'GET';
 };
 
+const scopeRequestFor = (url: string, method: string): ScopeRequest => ({
+  url,
+  method,
+  initiatorHostname: window.location.hostname,
+});
+
 const wait = (milliseconds: number): Promise<void> =>
   milliseconds > 0 ? new Promise((resolve) => window.setTimeout(resolve, milliseconds)) : Promise.resolve();
 
@@ -82,11 +94,12 @@ const mockHeaders = (mock: MockDefinition): Headers => {
 
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const url = requestUrlOf(input);
-  const mock = findMatchingMock(await resolveMocks(), url);
+  const method = requestMethodOf(input, init);
+  const mock = findMatchingMock(await resolveMocks(), scopeRequestFor(url, method));
   if (!mock) return originalFetch(input, init);
 
   await wait(mock.delayMs);
-  reportHit(mock, url, requestMethodOf(input, init));
+  reportHit(mock, url, method);
 
   const response = new Response(mock.body, {
     status: mock.status,
@@ -174,7 +187,7 @@ XMLHttpRequest.prototype.send = function patchedSend(this: XMLHttpRequest, body?
   }
 
   void resolveMocks().then((available) => {
-    const mock = findMatchingMock(available, request.url);
+    const mock = findMatchingMock(available, scopeRequestFor(request.url, request.method));
     if (mock) {
       simulateXhr(this, mock, request);
       return;
@@ -182,3 +195,14 @@ XMLHttpRequest.prototype.send = function patchedSend(this: XMLHttpRequest, body?
     originalSend.call(this, body);
   });
 };
+
+if (originalSendBeacon) {
+  navigator.sendBeacon = function patchedSendBeacon(url: string | URL, data?: BodyInit | null): boolean {
+    const target = absoluteUrl(String(url));
+    const mock = findMatchingMock(mocks, scopeRequestFor(target, BEACON_METHOD));
+    if (!mock) return originalSendBeacon(url, data);
+
+    reportHit(mock, target, BEACON_METHOD);
+    return true;
+  };
+}

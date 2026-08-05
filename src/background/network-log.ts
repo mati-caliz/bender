@@ -1,42 +1,76 @@
 import { NETWORK_LOG_KEY } from '@/lib/constants';
+import { errorMessage } from '@/lib/errors';
 import type { MockHitPayload } from '@/lib/messages';
-import type { NetworkEntry, NetworkPhase } from '@/types';
+import type { EngineDiagnostic, NetworkEntry, NetworkPhase } from '@/types';
 
 const FLUSH_DELAY_MS = 400;
+const PERSISTED_ENTRY_LIMIT = 200;
+const PENDING_MATCH_TTL_MS = 10_000;
 const BLOCKED_ERROR_PATTERN = /BLOCKED_BY_CLIENT|ERR_BLOCKED/i;
 const ALL_URLS_FILTER: chrome.webRequest.RequestFilter = { urls: ['<all_urls>'] };
+
+interface PendingRuleMatch {
+  labels: string[];
+  recordedAt: number;
+}
 
 let entries: NetworkEntry[] = [];
 let maxEntries = 500;
 let onlyModified = false;
 let listening = false;
 let flushHandle: number | null = null;
-const pendingRuleMatches = new Map<string, string[]>();
+let persistenceError: string | null = null;
+const entriesById = new Map<string, NetworkEntry>();
+const pendingRuleMatches = new Map<string, PendingRuleMatch>();
+
+const persist = async (): Promise<void> => {
+  const persisted = entries.slice(Math.max(0, entries.length - PERSISTED_ENTRY_LIMIT));
+  try {
+    await chrome.storage.session.set({ [NETWORK_LOG_KEY]: persisted });
+    persistenceError = null;
+  } catch (error) {
+    persistenceError = errorMessage(error, 'error desconocido');
+  }
+};
 
 const scheduleFlush = (): void => {
   if (flushHandle !== null) return;
   flushHandle = setTimeout(() => {
     flushHandle = null;
-    void chrome.storage.session.set({ [NETWORK_LOG_KEY]: entries });
+    void persist();
   }, FLUSH_DELAY_MS) as unknown as number;
 };
 
-const trim = (): void => {
-  if (entries.length > maxEntries) entries = entries.slice(entries.length - maxEntries);
+const indexEntries = (): void => {
+  entriesById.clear();
+  for (const entry of entries) entriesById.set(entry.id, entry);
 };
 
-const findEntry = (requestId: string): NetworkEntry | undefined =>
-  entries.find((entry) => entry.id === requestId);
+const trim = (): void => {
+  if (entries.length <= maxEntries) return;
+  const removed = entries.splice(0, entries.length - maxEntries);
+  for (const entry of removed) entriesById.delete(entry.id);
+};
+
+const findEntry = (requestId: string): NetworkEntry | undefined => entriesById.get(requestId);
 
 const upsert = (entry: NetworkEntry): void => {
-  const index = entries.findIndex((candidate) => candidate.id === entry.id);
-  if (index >= 0) {
-    entries[index] = entry;
+  const existing = entriesById.get(entry.id);
+  if (existing) {
+    entries[entries.indexOf(existing)] = entry;
   } else {
     entries.push(entry);
-    trim();
   }
+  entriesById.set(entry.id, entry);
+  trim();
   scheduleFlush();
+};
+
+const prunePendingRuleMatches = (): void => {
+  const cutoff = Date.now() - PENDING_MATCH_TTL_MS;
+  for (const [requestId, pending] of pendingRuleMatches) {
+    if (pending.recordedAt < cutoff) pendingRuleMatches.delete(requestId);
+  }
 };
 
 const createEntry = (details: chrome.webRequest.WebRequestBodyDetails): NetworkEntry => ({
@@ -55,7 +89,7 @@ const createEntry = (details: chrome.webRequest.WebRequestBodyDetails): NetworkE
   requestHeaders: [],
   responseHeaders: [],
   matchedRuleIds: [],
-  matchedRuleLabels: pendingRuleMatches.get(details.requestId) ?? [],
+  matchedRuleLabels: pendingRuleMatches.get(details.requestId)?.labels ?? [],
   source: 'network',
 });
 
@@ -121,8 +155,9 @@ const handleRuleMatched = (info: chrome.declarativeNetRequest.MatchedRuleInfoDeb
   const label = ruleLabels[info.rule.ruleId] ?? `Regla #${info.rule.ruleId}`;
   const entry = findEntry(requestId);
   if (!entry) {
-    const pending = pendingRuleMatches.get(requestId) ?? [];
-    pendingRuleMatches.set(requestId, [...pending, label]);
+    prunePendingRuleMatches();
+    const pending = pendingRuleMatches.get(requestId)?.labels ?? [];
+    pendingRuleMatches.set(requestId, { labels: [...pending, label], recordedAt: Date.now() });
     return;
   }
   if (!entry.matchedRuleIds.includes(info.rule.ruleId)) {
@@ -152,6 +187,7 @@ const attach = (): void => {
 const detach = (): void => {
   if (!listening) return;
   listening = false;
+  pendingRuleMatches.clear();
   chrome.webRequest.onBeforeRequest.removeListener(handleBeforeRequest);
   chrome.webRequest.onSendHeaders.removeListener(handleSendHeaders);
   chrome.webRequest.onHeadersReceived.removeListener(handleHeadersReceived);
@@ -177,8 +213,15 @@ export const configureNetworkLog = (config: { enabled: boolean; maxEntries: numb
 export const restoreNetworkLog = async (): Promise<void> => {
   const stored = await chrome.storage.session.get(NETWORK_LOG_KEY);
   const restored = stored[NETWORK_LOG_KEY];
-  if (Array.isArray(restored)) entries = restored as NetworkEntry[];
+  if (!Array.isArray(restored)) return;
+  entries = restored as NetworkEntry[];
+  indexEntries();
 };
+
+export const networkLogDiagnostics = (): EngineDiagnostic[] =>
+  persistenceError
+    ? [{ level: 'warning', message: `El log de trafico no se pudo guardar en la sesion: ${persistenceError}` }]
+    : [];
 
 export const listNetworkEntries = (): NetworkEntry[] => {
   const visible = onlyModified ? entries.filter((entry) => entry.matchedRuleLabels.length > 0) : entries;
@@ -187,8 +230,9 @@ export const listNetworkEntries = (): NetworkEntry[] => {
 
 export const clearNetworkLog = (): void => {
   entries = [];
+  entriesById.clear();
   pendingRuleMatches.clear();
-  void chrome.storage.session.set({ [NETWORK_LOG_KEY]: entries });
+  void persist();
 };
 
 export const recordMockHit = (payload: MockHitPayload, tabId: number): void => {

@@ -1,14 +1,15 @@
 import { ENGINE_STATUS_KEY, STORAGE_KEY } from '@/lib/constants';
-import { compileRules, type TabOrigin } from '@/lib/dnr';
+import { compileRules, dependsOnTabs, type TabOrigin } from '@/lib/dnr';
 import { errorMessage } from '@/lib/errors';
 import { createProfile } from '@/lib/factories';
 import type { ExtensionMessage } from '@/lib/messages';
 import { publishMocks } from '@/lib/mocks';
-import { readState, updateState } from '@/lib/state';
+import { readState, readStateDetailed, updateState, type DroppedItems } from '@/lib/state';
 import {
   clearNetworkLog,
   configureNetworkLog,
   listNetworkEntries,
+  networkLogDiagnostics,
   recordMockHit,
   restoreNetworkLog,
   setRuleLabels,
@@ -55,13 +56,28 @@ const updateBadge = (state: ToolkitState, status: EngineStatus): void => {
   void chrome.action.setBadgeBackgroundColor({ color: hasErrors ? BADGE_ERROR_COLOR : state.ui.accent });
 };
 
+const droppedItemsDiagnostics = (dropped: DroppedItems): EngineStatus['diagnostics'] => {
+  const descriptions: string[] = [];
+  if (dropped.profiles) descriptions.push(`${dropped.profiles} perfil(es)`);
+  if (dropped.trafficRules) descriptions.push(`${dropped.trafficRules} regla(s)`);
+  if (dropped.userScripts) descriptions.push(`${dropped.userScripts} script(s)`);
+  if (!descriptions.length) return [];
+
+  return [
+    {
+      level: 'warning',
+      message: `Se descartaron ${descriptions.join(', ')} porque estaban guardados con un formato invalido.`,
+    },
+  ];
+};
+
 const applyEngine = async (): Promise<EngineStatus> => {
-  const state = await readState();
+  const { state, dropped } = await readStateDetailed();
   const [tabs, tabId] = await Promise.all([collectTabOrigins(), activeTabId()]);
   const compiled = compileRules(state, { activeTabId: tabId, tabs });
 
   const existing = await chrome.declarativeNetRequest.getSessionRules();
-  const diagnostics = [...compiled.diagnostics];
+  const diagnostics = [...compiled.diagnostics, ...droppedItemsDiagnostics(dropped)];
 
   try {
     await chrome.declarativeNetRequest.updateSessionRules({
@@ -87,6 +103,7 @@ const applyEngine = async (): Promise<EngineStatus> => {
   if (lastUserScriptsStatus.error) {
     diagnostics.push({ level: 'warning', message: `Userscripts: ${lastUserScriptsStatus.error}` });
   }
+  diagnostics.push(...networkLogDiagnostics());
 
   lastStatus = {
     appliedRuleCount: compiled.rules.length,
@@ -127,15 +144,20 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onStartup.addListener(() => {
   resetTabStyles();
-  void restoreNetworkLog().then(scheduleApply);
 });
+
+const applyIfTabsMatter = (): void => {
+  void readState().then((state) => {
+    if (dependsOnTabs(state)) void scheduleApply();
+  });
+};
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes[STORAGE_KEY]) void scheduleApply();
 });
 
 chrome.tabs.onActivated.addListener(() => {
-  void scheduleApply();
+  applyIfTabsMatter();
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -146,7 +168,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'loading' && tab.url && HTTP_URL_PATTERN.test(tab.url)) {
     void readState().then((state) => applyUserStyles(state, tabId, tab.url ?? ''));
   }
-  if (changeInfo.url) void scheduleApply();
+  if (changeInfo.url) applyIfTabsMatter();
 });
 
 chrome.commands.onCommand.addListener((command) => {

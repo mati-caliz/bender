@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultState, createEmptyScope } from '@/lib/constants';
 import { createHeaderEntry } from '@/lib/factories';
 import { collectMockDefinitions, findMatchingMock } from '@/lib/mocks';
+import type { ScopeRequest } from '@/lib/scope';
 import type { MockDefinition, Scope, ToolkitState, TrafficRule, TrafficRuleAction } from '@/types';
 
 const mockAction = (overrides: Partial<Extract<TrafficRuleAction, { kind: 'mock' }>> = {}): TrafficRuleAction => ({
@@ -83,6 +84,12 @@ describe('collectMockDefinitions', () => {
   });
 });
 
+const requestFor = (url: string, method = 'GET', initiatorHostname = 'app.local'): ScopeRequest => ({
+  url,
+  method,
+  initiatorHostname,
+});
+
 describe('findMatchingMock', () => {
   it('devuelve el primero que matchea', () => {
     const mocks = [
@@ -90,10 +97,36 @@ describe('findMatchingMock', () => {
       mockWith({ includeDomains: ['example.com'] }, 'primero'),
       mockWith({ includeDomains: ['example.com'] }, 'segundo'),
     ];
-    expect(findMatchingMock(mocks, 'https://example.com/api')?.id).toBe('primero');
+    expect(findMatchingMock(mocks, requestFor('https://example.com/api'))?.id).toBe('primero');
   });
 
   it('devuelve null cuando ninguno matchea', () => {
-    expect(findMatchingMock([mockWith({ includeDomains: ['otro.com'] }, 'otro')], 'https://example.com/')).toBeNull();
+    const mocks = [mockWith({ includeDomains: ['otro.com'] }, 'otro')];
+    expect(findMatchingMock(mocks, requestFor('https://example.com/'))).toBeNull();
+  });
+
+  it('respeta el metodo pedido por el alcance', () => {
+    const mocks = [mockWith({ includeDomains: ['example.com'], requestMethods: ['post'] }, 'solo-post')];
+    expect(findMatchingMock(mocks, requestFor('https://example.com/api', 'POST'))?.id).toBe('solo-post');
+    expect(findMatchingMock(mocks, requestFor('https://example.com/api', 'GET'))).toBeNull();
+  });
+
+  it('trata un metodo desconocido como "other"', () => {
+    const mocks = [mockWith({ includeDomains: ['example.com'], requestMethods: ['other'] }, 'raro')];
+    expect(findMatchingMock(mocks, requestFor('https://example.com/api', 'PURGE'))?.id).toBe('raro');
+  });
+
+  it('filtra por el dominio que origina la request', () => {
+    const mocks = [mockWith({ includeDomains: ['example.com'], initiatorDomains: ['app.local'] }, 'desde-app')];
+    expect(findMatchingMock(mocks, requestFor('https://example.com/api', 'GET', 'app.local'))?.id).toBe('desde-app');
+    expect(findMatchingMock(mocks, requestFor('https://example.com/api', 'GET', 'otro.local'))).toBeNull();
+  });
+
+  it('excluye por dominio que origina la request', () => {
+    const mocks = [
+      mockWith({ includeDomains: ['example.com'], excludedInitiatorDomains: ['admin.local'] }, 'sin-admin'),
+    ];
+    expect(findMatchingMock(mocks, requestFor('https://example.com/api', 'GET', 'app.local'))?.id).toBe('sin-admin');
+    expect(findMatchingMock(mocks, requestFor('https://example.com/api', 'GET', 'admin.local'))).toBeNull();
   });
 });

@@ -1,9 +1,14 @@
 import { useState, type KeyboardEvent } from 'react';
-import { ALL_RESOURCE_TYPES, RESOURCE_TYPE_LABELS } from '@/lib/constants';
+import {
+  ALL_REQUEST_METHODS,
+  ALL_RESOURCE_TYPES,
+  REQUEST_METHOD_LABELS,
+  RESOURCE_TYPE_LABELS,
+} from '@/lib/constants';
 import { parseDomainList } from '@/lib/scope';
 import { Icon } from '@/ui/components/Icon';
 import { Button, Chip, Field, Switch, TextInput } from '@/ui/components/primitives';
-import type { ResourceType, Scope } from '@/types';
+import type { RequestMethod, ResourceType, Scope } from '@/types';
 
 interface DomainInputProps {
   label: string;
@@ -68,6 +73,13 @@ interface ScopeEditorProps {
 export const ScopeEditor = ({ scope, onChange, currentHostname }: ScopeEditorProps) => {
   const [showResourceTypes, setShowResourceTypes] = useState(scope.resourceTypes.length > 0);
 
+  const toggleRequestMethod = (requestMethod: RequestMethod) => {
+    const next = scope.requestMethods.includes(requestMethod)
+      ? scope.requestMethods.filter((candidate) => candidate !== requestMethod)
+      : [...scope.requestMethods, requestMethod];
+    onChange({ ...scope, requestMethods: next });
+  };
+
   const toggleResourceType = (resourceType: ResourceType) => {
     const next = scope.resourceTypes.includes(resourceType)
       ? scope.resourceTypes.filter((candidate) => candidate !== resourceType)
@@ -107,6 +119,38 @@ export const ScopeEditor = ({ scope, onChange, currentHostname }: ScopeEditorPro
         domains={scope.excludeDomains}
         onChange={(domains) => onChange({ ...scope, excludeDomains: domains })}
       />
+
+      <DomainInput
+        label="Sitios que originan la request"
+        hint="Vacio = cualquier sitio. Es el dominio de la pagina que pide, no el del destino."
+        domains={scope.initiatorDomains}
+        onChange={(domains) => onChange({ ...scope, initiatorDomains: domains })}
+        suggestion={currentHostname}
+      />
+
+      <DomainInput
+        label="Sitios de origen excluidos"
+        hint="Opcional: paginas desde las que la regla nunca se aplica."
+        domains={scope.excludedInitiatorDomains}
+        onChange={(domains) => onChange({ ...scope, excludedInitiatorDomains: domains })}
+      />
+
+      <div className="field">
+        <span className="field-label">Metodos</span>
+        <div className="row wrap">
+          {ALL_REQUEST_METHODS.map((requestMethod) => (
+            <label key={requestMethod} className="checkbox">
+              <input
+                type="checkbox"
+                checked={scope.requestMethods.includes(requestMethod)}
+                onChange={() => toggleRequestMethod(requestMethod)}
+              />
+              {REQUEST_METHOD_LABELS[requestMethod]}
+            </label>
+          ))}
+        </div>
+        {scope.requestMethods.length ? null : <span className="field-hint">Vacio = todos los metodos.</span>}
+      </div>
 
       <div onKeyDown={handleUrlFilterKey}>
         <Field

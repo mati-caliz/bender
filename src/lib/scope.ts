@@ -1,6 +1,6 @@
-import { ALL_RESOURCE_TYPES } from '@/lib/constants';
+import { ALL_REQUEST_METHODS, ALL_RESOURCE_TYPES } from '@/lib/constants';
 import { escapeForRegExp } from '@/lib/regexp';
-import type { ResourceType, Scope } from '@/types';
+import type { RequestMethod, ResourceType, Scope } from '@/types';
 
 const DOMAIN_PATTERN = /^[a-z0-9.-]+$/;
 const WILDCARD_PREFIX = '*.';
@@ -29,11 +29,19 @@ export const parseDomainList = (input: string): string[] =>
 export const resolveResourceTypes = (scope: Scope): ResourceType[] =>
   scope.resourceTypes.length ? scope.resourceTypes : ALL_RESOURCE_TYPES;
 
+export const toRequestMethod = (method: string): RequestMethod => {
+  const normalized = method.trim().toLowerCase();
+  return ALL_REQUEST_METHODS.includes(normalized as RequestMethod) ? (normalized as RequestMethod) : 'other';
+};
+
 export interface CompiledCondition {
   urlFilter?: string;
   regexFilter?: string;
   requestDomains?: string[];
   excludedRequestDomains?: string[];
+  initiatorDomains?: string[];
+  excludedInitiatorDomains?: string[];
+  requestMethods?: RequestMethod[];
   resourceTypes: ResourceType[];
   tabIds?: number[];
 }
@@ -58,6 +66,14 @@ export const scopeToCondition = (scope: Scope, context: ConditionContext): Compi
   const excludeDomains = sanitizeDomainList(scope.excludeDomains);
   if (excludeDomains.length) condition.excludedRequestDomains = excludeDomains;
 
+  const initiatorDomains = sanitizeDomainList(scope.initiatorDomains);
+  if (initiatorDomains.length) condition.initiatorDomains = initiatorDomains;
+
+  const excludedInitiatorDomains = sanitizeDomainList(scope.excludedInitiatorDomains);
+  if (excludedInitiatorDomains.length) condition.excludedInitiatorDomains = excludedInitiatorDomains;
+
+  if (scope.requestMethods.length) condition.requestMethods = scope.requestMethods;
+
   if (scope.activeTabOnly && context.activeTabId !== null) condition.tabIds = [context.activeTabId];
 
   return condition;
@@ -66,8 +82,11 @@ export const scopeToCondition = (scope: Scope, context: ConditionContext): Compi
 export const describeScope = (scope: Scope): string => {
   const parts: string[] = [];
   if (scope.activeTabOnly) parts.push('solo pestaña activa');
+  if (scope.requestMethods.length) parts.push(scope.requestMethods.map((method) => method.toUpperCase()).join('/'));
   if (scope.includeDomains.length) parts.push(scope.includeDomains.join(', '));
   if (scope.excludeDomains.length) parts.push(`excepto ${scope.excludeDomains.join(', ')}`);
+  if (scope.initiatorDomains.length) parts.push(`desde ${scope.initiatorDomains.join(', ')}`);
+  if (scope.excludedInitiatorDomains.length) parts.push(`no desde ${scope.excludedInitiatorDomains.join(', ')}`);
   if (scope.urlFilter.trim()) parts.push(`url ~ ${scope.urlFilter.trim()}`);
   if (scope.resourceTypes.length) parts.push(`${scope.resourceTypes.length} tipo(s)`);
   return parts.length ? parts.join(' · ') : 'todas las requests';
@@ -77,8 +96,11 @@ export const isScopeRestricted = (scope: Scope): boolean =>
   scope.activeTabOnly ||
   scope.includeDomains.length > 0 ||
   scope.excludeDomains.length > 0 ||
+  scope.initiatorDomains.length > 0 ||
+  scope.excludedInitiatorDomains.length > 0 ||
   scope.urlFilter.trim().length > 0 ||
-  scope.resourceTypes.length > 0;
+  scope.resourceTypes.length > 0 ||
+  scope.requestMethods.length > 0;
 
 const URL_FILTER_WILDCARD = '*';
 const URL_FILTER_SEPARATOR = '^';
@@ -136,4 +158,25 @@ export const urlMatchesScope = (scope: Scope, url: string): boolean => {
   if (urlFilter && !urlFilterToRegExp(urlFilter).test(url)) return false;
 
   return true;
+};
+
+export interface ScopeRequest {
+  url: string;
+  method: string;
+  initiatorHostname: string;
+}
+
+export const requestMatchesScope = (scope: Scope, request: ScopeRequest): boolean => {
+  if (!urlMatchesScope(scope, request.url)) return false;
+
+  if (scope.requestMethods.length && !scope.requestMethods.includes(toRequestMethod(request.method))) return false;
+
+  const initiatorHostname = request.initiatorHostname.toLowerCase();
+  const initiatorDomains = sanitizeDomainList(scope.initiatorDomains);
+  if (initiatorDomains.length && !initiatorDomains.some((domain) => matchesDomain(initiatorHostname, domain))) {
+    return false;
+  }
+
+  const excludedInitiatorDomains = sanitizeDomainList(scope.excludedInitiatorDomains);
+  return !excludedInitiatorDomains.some((domain) => matchesDomain(initiatorHostname, domain));
 };
