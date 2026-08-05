@@ -26,6 +26,17 @@ export const formatDateTime = (timestamp: number): string =>
 export const truncate = (value: string, maxLength: number): string =>
   value.length <= maxLength ? value : `${value.slice(0, maxLength - 1)}…`;
 
+/** Nombre apto para un archivo: sin acentos, espacios ni caracteres que Windows rechaza. */
+export const slugify = (value: string): string => {
+  const slug = value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || 'perfil';
+};
+
 export const shortUrl = (url: string): string => {
   try {
     const parsed = new URL(url);

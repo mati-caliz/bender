@@ -68,6 +68,30 @@ export const parseProfiles = (text: string): Profile[] => {
   return profiles;
 };
 
+/**
+ * Suma los importados a los que ya estan sin tocar el resto: los que traen un id
+ * conocido pisan a ese perfil y los demas se agregan al final.
+ *
+ * Importa que sea por id y no por concatenacion: dos perfiles con el mismo id
+ * rompen las referencias que los apuntan (selectedProfileId, entornos).
+ */
+export const mergeProfiles = (current: Profile[], imported: Profile[]): Profile[] => {
+  const merged = [...current];
+  const indexById = new Map(merged.map((profile, index) => [profile.id, index]));
+
+  for (const profile of imported) {
+    const existing = indexById.get(profile.id);
+    if (existing === undefined) {
+      indexById.set(profile.id, merged.length);
+      merged.push(profile);
+    } else {
+      merged[existing] = profile;
+    }
+  }
+
+  return merged;
+};
+
 export type ImportedCookie = Omit<CookieSnapshot, 'partitionKey'>;
 
 const readSameSite = (value: unknown): chrome.cookies.SameSiteStatus => {

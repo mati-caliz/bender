@@ -272,10 +272,21 @@ Guardar con un nombre que ya existe lo pisa, igual que los snapshots de cookies.
 
 ### 3.4 Export e import por perfil
 
-- [ ] `src/ui/views/HeadersView.tsx`, `src/lib/import.ts`
+- [x] `src/ui/views/HeadersView.tsx`, `src/lib/import.ts`, `src/lib/format.ts`
 
 Hoy el backup es todo o nada (`SettingsView`). Para compartir con el equipo hace falta exportar un
 perfil suelto e importarlo sin pisar el resto. El `ImportDialog` y el parser de `import.ts` ya están.
+
+Hecho: botón de exportar en la cabecera del perfil, que baja solo ese (`bender-perfil-<slug>.json`,
+con `slugify` nuevo en `format.ts` para que el nombre sirva de archivo en Windows). El botón de la
+barra pasó a llamarse "Exportar todos" para que la diferencia se note.
+
+Del lado del import, "Agregar a lo actual" ahora hace merge por id (`mergeProfiles`) en vez de
+concatenar: un perfil que ya existe se actualiza en su lugar y el resto queda intacto. Además de ser
+lo que pedía la tarea, arregla un bug: concatenar dejaba dos perfiles con el mismo id, y hay
+referencias que apuntan por id (`selectedProfileId`, los entornos de 3.3).
+
+**Verificación:** `tests/import.test.ts` y `tests/format.test.ts`.
 
 ### 3.5 Latencia y fallos globales
 

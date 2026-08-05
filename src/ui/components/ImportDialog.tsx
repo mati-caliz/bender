@@ -48,7 +48,7 @@ export const ImportDialog = ({ title, description, allowAppend = true, onClose, 
             Cancelar
           </Button>
           {allowAppend ? (
-            <Button onClick={() => submit('append')} icon="plus">
+            <Button onClick={() => submit('append')} icon="plus" title="No toca lo que no venga en el archivo">
               Agregar a lo actual
             </Button>
           ) : null}

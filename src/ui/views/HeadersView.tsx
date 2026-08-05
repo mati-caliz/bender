@@ -3,8 +3,9 @@ import { PROFILE_COLORS } from '@/lib/constants';
 import { downloadJson } from '@/lib/download';
 import { forgetFromEnvironments } from '@/lib/environments';
 import { createHeaderEntry, createProfile } from '@/lib/factories';
+import { slugify } from '@/lib/format';
 import { createId } from '@/lib/ids';
-import { parseProfiles } from '@/lib/import';
+import { mergeProfiles, parseProfiles } from '@/lib/import';
 import { PLACEHOLDERS } from '@/lib/placeholders';
 import { describeScope } from '@/lib/scope';
 import { Icon } from '@/ui/components/Icon';
@@ -105,7 +106,7 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
               notify('Perfiles exportados', 'success');
             }}
           >
-            Exportar
+            Exportar todos
           </Button>
         </>
       }
@@ -185,6 +186,14 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                   <option key={color} value={color} />
                 ))}
               </datalist>
+              <IconButton
+                icon="download"
+                title="Exportar solo este perfil"
+                onClick={() => {
+                  downloadJson(`bender-perfil-${slugify(selected.name)}.json`, [selected]);
+                  notify(`Perfil "${selected.name}" exportado`, 'success');
+                }}
+              />
               <IconButton
                 icon="copy"
                 title="Duplicar perfil"
@@ -436,13 +445,13 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
       {importing ? (
         <ImportDialog
           title="Importar perfiles"
-          description="Acepta exports de Bender, de ModHeader y del dev-toolkit viejo."
+          description="Acepta exports de Bender, de ModHeader y del dev-toolkit viejo. Al agregar, un perfil que ya exista se actualiza en su lugar y el resto queda intacto."
           onClose={() => setImporting(false)}
           onImport={(text, mode) => {
             const imported = parseProfiles(text);
             update((current) => ({
               ...current,
-              profiles: mode === 'replace' ? imported : [...current.profiles, ...imported],
+              profiles: mode === 'replace' ? imported : mergeProfiles(current.profiles, imported),
               selectedProfileId: imported[0]?.id ?? current.selectedProfileId,
             }));
             notify(`${imported.length} perfil(es) importado(s)`, 'success');

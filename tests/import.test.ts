@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { parseCookies, parseProfiles, parseStorageItems } from '@/lib/import';
+import { createProfile } from '@/lib/factories';
+import { mergeProfiles, parseCookies, parseProfiles, parseStorageItems } from '@/lib/import';
+import type { Profile } from '@/types';
 
 describe('parseProfiles', () => {
   it('lee un export de ModHeader', () => {
@@ -152,5 +154,39 @@ describe('parseStorageItems', () => {
     expect(() => parseStorageItems('[]')).toThrow('ningun item');
     expect(() => parseStorageItems('{}')).toThrow('ningun item');
     expect(() => parseStorageItems('42')).toThrow('objeto');
+  });
+});
+
+describe('mergeProfiles', () => {
+  const profile = (id: string, name = id): Profile => ({ ...createProfile(0), id, name });
+
+  it('agrega los perfiles que no estaban', () => {
+    const merged = mergeProfiles([profile('a')], [profile('b')]);
+    expect(merged.map((item) => item.id)).toEqual(['a', 'b']);
+  });
+
+  it('actualiza en su lugar el perfil que ya existe, sin duplicar el id', () => {
+    const merged = mergeProfiles([profile('a', 'viejo'), profile('b')], [profile('a', 'nuevo')]);
+
+    expect(merged.map((item) => item.id)).toEqual(['a', 'b']);
+    expect(merged[0]?.name).toBe('nuevo');
+  });
+
+  it('no toca los perfiles que no vienen en el archivo', () => {
+    const intacto = profile('b', 'intacto');
+    const merged = mergeProfiles([profile('a'), intacto], [profile('a', 'cambiado')]);
+
+    expect(merged[1]).toBe(intacto);
+  });
+
+  it('colapsa ids repetidos dentro del propio import', () => {
+    const merged = mergeProfiles([], [profile('a', 'primero'), profile('a', 'segundo')]);
+
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.name).toBe('segundo');
+  });
+
+  it('con la lista actual vacia devuelve los importados', () => {
+    expect(mergeProfiles([], [profile('a')]).map((item) => item.id)).toEqual(['a']);
   });
 });
