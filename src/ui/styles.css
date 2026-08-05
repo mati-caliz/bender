@@ -1164,6 +1164,61 @@ select {
   color: var(--text-muted);
 }
 
+.env-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: var(--transition);
+}
+
+.env-row:hover {
+  border-color: var(--border-strong);
+}
+
+.env-row[data-active='true'] {
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
+  background: color-mix(in srgb, var(--success) 8%, var(--surface));
+}
+
+.env-apply {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.env-apply:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.env-row[data-active='true'] .env-apply {
+  color: var(--success);
+}
+
+.env-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.env-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
 .net-row {
   display: grid;
   grid-template-columns: 54px 60px 1fr auto;

@@ -62,6 +62,7 @@ const droppedItemsDiagnostics = (dropped: DroppedItems): EngineStatus['diagnosti
   if (dropped.profiles) descriptions.push(`${dropped.profiles} perfil(es)`);
   if (dropped.trafficRules) descriptions.push(`${dropped.trafficRules} regla(s)`);
   if (dropped.userScripts) descriptions.push(`${dropped.userScripts} script(s)`);
+  if (dropped.environments) descriptions.push(`${dropped.environments} entorno(s)`);
   if (!descriptions.length) return [];
 
   return [

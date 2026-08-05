@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CONTENT_TYPE_PRESETS } from '@/lib/constants';
+import { forgetFromEnvironments } from '@/lib/environments';
 import { createHeaderEntry, createTrafficRule } from '@/lib/factories';
 import { prettyJson } from '@/lib/format';
 import { describeScope } from '@/lib/scope';
@@ -336,6 +337,7 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                     update((current) => ({
                       ...current,
                       trafficRules: current.trafficRules.filter((candidate) => candidate.id !== rule.id),
+                      environments: forgetFromEnvironments(current.environments, rule.id),
                     }))
                   }
                 />

@@ -1,8 +1,26 @@
+import { useState } from 'react';
 import { effectiveHeadersFor } from '@/lib/effective';
+import {
+  applyEnvironment,
+  captureEnvironment,
+  describeEnvironment,
+  findActiveEnvironment,
+} from '@/lib/environments';
 import { sendMessage } from '@/lib/messages';
 import { Icon, type IconName } from '@/ui/components/Icon';
-import { Badge, Button, Card, EmptyState, Notice, Stat, Switch } from '@/ui/components/primitives';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  IconButton,
+  Notice,
+  Stat,
+  Switch,
+  TextInput,
+} from '@/ui/components/primitives';
 import { ViewShell } from '@/ui/components/ViewShell';
+import { useToasts } from '@/ui/hooks/useToasts';
 import type { ViewId } from '@/ui/App';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
 import type { UpdateState } from '@/ui/views/types';
@@ -33,6 +51,121 @@ const QuickToggle = ({ icon, title, hint, checked, onChange, onOpen }: QuickTogg
     <Switch checked={checked} onChange={onChange} title={title} />
   </div>
 );
+
+const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: UpdateState }) => {
+  const { notify } = useToasts();
+  const [draftName, setDraftName] = useState('');
+  const [naming, setNaming] = useState(false);
+  const active = findActiveEnvironment(state);
+  const hasSomethingToSave = state.profiles.length > 0 || state.trafficRules.length > 0;
+
+  const save = () => {
+    const name = draftName.trim();
+    if (!name) return;
+    update((current) => {
+      const captured = captureEnvironment(current, name);
+      // Guardar con un nombre que ya existe lo pisa, igual que los snapshots de cookies.
+      const existing = current.environments.find((environment) => environment.name === name);
+      const environments = existing
+        ? current.environments.map((environment) =>
+            environment.id === existing.id ? { ...captured, id: existing.id } : environment
+          )
+        : [...current.environments, captured];
+      return { ...current, environments };
+    });
+    setDraftName('');
+    setNaming(false);
+    notify(`Entorno "${name}" guardado`, 'success');
+  };
+
+  return (
+    <Card
+      title="Entornos"
+      subtitle="Prende y apaga un conjunto de perfiles y reglas de una"
+      actions={
+        <Button
+          small
+          icon="plus"
+          disabled={!hasSomethingToSave}
+          title={
+            hasSomethingToSave
+              ? 'Guardar lo que esta prendido ahora como un entorno'
+              : 'Crea al menos un perfil o una regla primero'
+          }
+          onClick={() => setNaming((current) => !current)}
+        >
+          Guardar actual
+        </Button>
+      }
+    >
+      {naming ? (
+        <div className="row wrap domain-input">
+          <TextInput
+            value={draftName}
+            onChange={setDraftName}
+            placeholder="dev, staging, prod…"
+            title="Nombre del entorno"
+          />
+          <Button small variant="primary" disabled={!draftName.trim()} onClick={save}>
+            Guardar
+          </Button>
+          <IconButton
+            icon="x"
+            small
+            title="Cancelar"
+            onClick={() => {
+              setNaming(false);
+              setDraftName('');
+            }}
+          />
+        </div>
+      ) : null}
+
+      {state.environments.length ? (
+        <div className="list">
+          {state.environments.map((environment) => {
+            const isActive = active?.id === environment.id;
+            return (
+              <div key={environment.id} className="env-row" data-active={isActive}>
+                <button
+                  type="button"
+                  className="env-apply"
+                  title={isActive ? 'Ya es el estado actual' : `Aplicar "${environment.name}"`}
+                  onClick={() => {
+                    update((current) => applyEnvironment(current, environment.id));
+                    notify(`Entorno "${environment.name}" aplicado`, 'success');
+                  }}
+                >
+                  <Icon name={isActive ? 'check' : 'layers'} size={14} />
+                  <span className="env-name truncate">{environment.name}</span>
+                  <span className="env-detail truncate">{describeEnvironment(environment, state)}</span>
+                </button>
+                {isActive ? <Badge tone="success">activo</Badge> : null}
+                <IconButton
+                  icon="trash"
+                  tone="danger"
+                  small
+                  title="Eliminar entorno"
+                  onClick={() =>
+                    update((current) => ({
+                      ...current,
+                      environments: current.environments.filter((candidate) => candidate.id !== environment.id),
+                    }))
+                  }
+                />
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-small text-muted" style={{ margin: 0 }}>
+          Prende los perfiles y reglas que uses para un entorno y guardalos con un nombre. Despues los volves a dejar
+          asi de un click.
+        </p>
+      )}
+    </Card>
+  );
+};
 
 interface OverviewViewProps {
   state: ToolkitState;
@@ -80,6 +213,8 @@ export const OverviewView = ({ state, update, status, activeTab, onNavigate }: O
         <Stat label="Perfiles activos" value={`${enabledProfiles.length}/${state.profiles.length}`} />
         <Stat label="Mocks activos" value={String(mockCount)} hint="interceptan fetch y XHR" />
       </div>
+
+      <EnvironmentsCard state={state} update={update} />
 
       <div className="grid-2 quick-grid">
         <QuickToggle

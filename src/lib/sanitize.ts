@@ -4,6 +4,7 @@ import { isRecord } from '@/lib/records';
 import type {
   CookieSnapshot,
   CookieSnapshotSet,
+  Environment,
   HeaderEntry,
   HeaderOperation,
   Profile,
@@ -150,6 +151,19 @@ export const coerceUserScript = (value: unknown): UserScript | null => {
     allFrames: asBoolean(value.allFrames, false),
     code: asString(value.code),
     updatedAt: asNumber(value.updatedAt, 0),
+  };
+};
+
+export const coerceEnvironment = (value: unknown): Environment | null => {
+  if (!isRecord(value)) return null;
+  const name = asString(value.name).trim();
+  if (!name) return null;
+
+  return {
+    id: asIdentifier(value.id),
+    name,
+    profileIds: asStringList(value.profileIds),
+    ruleIds: asStringList(value.ruleIds),
   };
 };
 

@@ -250,11 +250,25 @@ las del snapshot y saca del mapa de apagadas las que el snapshot vuelve a prende
 
 ### 3.3 Entornos
 
-- [ ] `src/types/index.ts`, `src/ui/App.tsx`, vista nueva o dentro de Resumen
+- [x] `src/types/index.ts`, `src/lib/environments.ts`, `src/lib/sanitize.ts`, `src/lib/state.ts`,
+      `src/ui/views/OverviewView.tsx`
 
 Un selector que prende y apaga un conjunto de perfiles + reglas de una (dev / staging / prod), en
 vez de togglear uno por uno. Modelar como una lista de nombres de entorno donde cada uno guarda los
 ids que deja prendidos.
+
+Hecho dentro de Resumen, sin sumar entrada al nav. `Environment` guarda `profileIds` / `ruleIds`;
+aplicar deja prendido exactamente eso y apagado el resto. No toca CORS, User-Agent ni userscripts,
+que son globales.
+
+Cuál entorno está activo **se deriva** comparando lo prendido contra cada entorno, en vez de guardar
+un `activeEnvironmentId`: así togglear un perfil suelto no deja marcado un entorno que ya no
+describe el estado. Los ids de perfiles y reglas borrados se ignoran al comparar, y además se sacan
+de los entornos al eliminar el item (`forgetFromEnvironments`) para no acumular basura.
+
+Guardar con un nombre que ya existe lo pisa, igual que los snapshots de cookies.
+
+**Verificación:** `tests/environments.test.ts`.
 
 ### 3.4 Export e import por perfil
 

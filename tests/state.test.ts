@@ -65,7 +65,7 @@ describe('normalizeStateDetailed con entradas invalidas', () => {
 
     expect(state.schemaVersion).toBe(SCHEMA_VERSION);
     expect(state.profiles).toEqual([]);
-    expect(dropped).toEqual({ profiles: 0, trafficRules: 0, userScripts: 0 });
+    expect(dropped).toEqual({ profiles: 0, trafficRules: 0, userScripts: 0, environments: 0 });
   });
 
   it('genera un id cuando el guardado esta vacio', () => {

@@ -8,13 +8,20 @@ import {
 } from '@/lib/constants';
 import { migrateStoredState } from '@/lib/migrations';
 import { isRecord } from '@/lib/records';
-import { coerceList, coerceProfile, coerceTrafficRule, coerceUserScript } from '@/lib/sanitize';
+import {
+  coerceEnvironment,
+  coerceList,
+  coerceProfile,
+  coerceTrafficRule,
+  coerceUserScript,
+} from '@/lib/sanitize';
 import type { ToolkitState } from '@/types';
 
 export interface DroppedItems {
   profiles: number;
   trafficRules: number;
   userScripts: number;
+  environments: number;
 }
 
 export interface NormalizedState {
@@ -22,7 +29,7 @@ export interface NormalizedState {
   dropped: DroppedItems;
 }
 
-const NOTHING_DROPPED: DroppedItems = { profiles: 0, trafficRules: 0, userScripts: 0 };
+const NOTHING_DROPPED: DroppedItems = { profiles: 0, trafficRules: 0, userScripts: 0, environments: 0 };
 
 const mergeSection = <T extends object>(defaults: T, stored: unknown): T =>
   isRecord(stored) ? { ...defaults, ...(stored as Partial<T>) } : defaults;
@@ -35,6 +42,7 @@ export const normalizeStateDetailed = (stored: unknown): NormalizedState => {
   const profiles = coerceList(migrated.profiles, coerceProfile);
   const trafficRules = coerceList(migrated.trafficRules, coerceTrafficRule);
   const userScripts = coerceList(migrated.userScripts, coerceUserScript);
+  const environments = coerceList(migrated.environments, coerceEnvironment);
   const selectedProfileId =
     typeof migrated.selectedProfileId === 'string' &&
     profiles.items.some((profile) => profile.id === migrated.selectedProfileId)
@@ -49,6 +57,7 @@ export const normalizeStateDetailed = (stored: unknown): NormalizedState => {
       selectedProfileId,
       trafficRules: trafficRules.items,
       userScripts: userScripts.items,
+      environments: environments.items,
       cors: mergeSection(DEFAULT_CORS_CONFIG, migrated.cors),
       userAgent: mergeSection(DEFAULT_USER_AGENT_CONFIG, migrated.userAgent),
       network: mergeSection(DEFAULT_NETWORK_CONFIG, migrated.network),
@@ -58,6 +67,7 @@ export const normalizeStateDetailed = (stored: unknown): NormalizedState => {
       profiles: profiles.dropped,
       trafficRules: trafficRules.dropped,
       userScripts: userScripts.dropped,
+      environments: environments.dropped,
     },
   };
 };

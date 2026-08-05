@@ -226,6 +226,7 @@ export const createDefaultState = (): ToolkitState => ({
   selectedProfileId: null,
   trafficRules: [],
   userScripts: [],
+  environments: [],
   cors: DEFAULT_CORS_CONFIG,
   userAgent: DEFAULT_USER_AGENT_CONFIG,
   network: DEFAULT_NETWORK_CONFIG,

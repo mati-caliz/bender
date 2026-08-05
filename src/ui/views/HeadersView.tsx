@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PROFILE_COLORS } from '@/lib/constants';
 import { downloadJson } from '@/lib/download';
+import { forgetFromEnvironments } from '@/lib/environments';
 import { createHeaderEntry, createProfile } from '@/lib/factories';
 import { createId } from '@/lib/ids';
 import { parseProfiles } from '@/lib/import';
@@ -206,7 +207,12 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                   onConfirm={() => {
                     update((current) => {
                       const profiles = current.profiles.filter((profile) => profile.id !== selected.id);
-                      return { ...current, profiles, selectedProfileId: profiles[0]?.id ?? null };
+                      return {
+                        ...current,
+                        profiles,
+                        selectedProfileId: profiles[0]?.id ?? null,
+                        environments: forgetFromEnvironments(current.environments, selected.id),
+                      };
                     });
                     setConfirmDelete(false);
                     notify('Perfil eliminado');

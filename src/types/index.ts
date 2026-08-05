@@ -137,6 +137,17 @@ export interface UserScriptsStatus {
   error: string | null;
 }
 
+/**
+ * Un entorno guarda que perfiles y reglas quedan prendidos, no una copia de ellos:
+ * si se edita un perfil, los entornos que lo listan siguen apuntando al mismo.
+ */
+export interface Environment {
+  id: string;
+  name: string;
+  profileIds: string[];
+  ruleIds: string[];
+}
+
 export interface ToolkitState {
   schemaVersion: number;
   globalEnabled: boolean;
@@ -144,6 +155,7 @@ export interface ToolkitState {
   selectedProfileId: string | null;
   trafficRules: TrafficRule[];
   userScripts: UserScript[];
+  environments: Environment[];
   cors: CorsConfig;
   userAgent: UserAgentConfig;
   network: NetworkConfig;
