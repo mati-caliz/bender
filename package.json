@@ -8,13 +8,14 @@
     "build": "npm run clean && npm run build:app && npm run build:content",
     "build:app": "vite build",
     "build:content": "node scripts/build-content.mjs",
-    "clean": "rm -rf dist",
+    "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\"",
     "dev": "concurrently \"node scripts/build-content.mjs --watch\" \"vite build --watch\"",
     "icons": "python3 scripts/generate-icons.py public/icons",
+    "screenshots": "powershell -ExecutionPolicy Bypass -File scripts/fit-screenshots.ps1",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "zip": "cd dist && zip -r ../bender.zip ."
+    "zip": "node scripts/zip.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
