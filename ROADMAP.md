@@ -233,13 +233,20 @@ deje el valor viejo al cambiar de tab.
 
 ### 3.2 Snapshots de cookies
 
-- [ ] `src/ui/views/CookiesView.tsx`, `src/ui/hooks/useCookies.ts`
+- [x] `src/lib/cookie-snapshots.ts`, `src/lib/sanitize.ts`, `src/ui/views/CookiesView.tsx`,
+      `src/ui/hooks/useCookies.ts`
 
 Guardar el set completo de cookies de un origen con un nombre ("admin", "user readonly") y
 restaurarlo de un click. Para QA que switchea entre usuarios logueados vale más que el ABM
 individual que ya existe.
 
 Reusar la mecánica de apagado blando que ya guarda copias en `chrome.storage.local`.
+
+Hecho: se reusaron los helpers de mapa por scope de `toggleable.ts` (renombrados a
+`loadScopedMap` / `saveScopedMap`, porque ya no guardan solo lo apagado). Cada dominio guarda un
+`Record<id, CookieSnapshotSet>` y lo leído se pasa por `coerceCookieSnapshotSet` en vez de castear.
+Guardar con un nombre que ya existe lo pisa. Restaurar borra las cookies vivas del dominio, escribe
+las del snapshot y saca del mapa de apagadas las que el snapshot vuelve a prender.
 
 ### 3.3 Entornos
 
