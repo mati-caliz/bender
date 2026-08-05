@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createUserScript } from '@/lib/factories';
 import { isValidMatchPattern, parseMatchPatterns } from '@/lib/match-patterns';
 import { sendMessage } from '@/lib/messages';
 import { SCRIPT_TEMPLATES, type ScriptTemplate } from '@/lib/script-templates';
+import {
+  describeHeader,
+  headerHasData,
+  parseUserScriptHeader,
+  type UserScriptHeader,
+} from '@/lib/userscript-header';
 import { CodeEditor } from '@/ui/components/CodeEditor';
 import { Icon } from '@/ui/components/Icon';
 import { ViewShell } from '@/ui/components/ViewShell';
@@ -38,6 +44,45 @@ const isRunAt = (value: string): value is UserScriptRunAt =>
   value === 'document_start' || value === 'document_end' || value === 'document_idle';
 
 const isWorld = (value: string): value is UserScriptWorld => value === 'MAIN' || value === 'USER_SCRIPT';
+
+/**
+ * Al pegar un script de Tampermonkey, ofrece cargar lo que dice su header en vez
+ * de obligar a copiar los patrones a mano. Se aplica solo si el usuario acepta:
+ * el header puede traer patrones mas amplios de los que quiere.
+ */
+const HeaderImportNotice = ({
+  code,
+  onApply,
+}: {
+  code: string;
+  onApply: (header: UserScriptHeader) => void;
+}) => {
+  const [dismissed, setDismissed] = useState(false);
+  const header = useMemo(() => parseUserScriptHeader(code), [code]);
+
+  if (dismissed || !headerHasData(header)) return null;
+
+  return (
+    <Notice tone="info">
+      <div className="row wrap" style={{ width: '100%' }}>
+        <span className="truncate">Este script trae header de Tampermonkey: {describeHeader(header)}.</span>
+        <div className="spacer" />
+        <Button
+          small
+          onClick={() => {
+            onApply(header);
+            setDismissed(true);
+          }}
+        >
+          Aplicar
+        </Button>
+        <Button small variant="ghost" onClick={() => setDismissed(true)}>
+          Ignorar
+        </Button>
+      </div>
+    </Notice>
+  );
+};
 
 const patternForHostname = (hostname: string): string => (hostname ? `https://${hostname}/*` : '');
 
@@ -276,6 +321,21 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                       </label>
                     </div>
                   </div>
+
+                  <HeaderImportNotice
+                    code={script.code}
+                    onApply={(header) =>
+                      mutateScript(script.id, (current) => ({
+                        ...current,
+                        name: header.name ?? current.name,
+                        description: header.description ?? current.description,
+                        // Se suman a lo que ya haya, sin repetir, para no pisar lo que el usuario cargo a mano.
+                        matches: [...new Set([...current.matches, ...header.matches])],
+                        excludeMatches: [...new Set([...current.excludeMatches, ...header.excludeMatches])],
+                        runAt: header.runAt ?? current.runAt,
+                      }))
+                    }
+                  />
 
                   <Field label={script.language === 'css' ? 'CSS' : 'JavaScript'}>
                     <CodeEditor

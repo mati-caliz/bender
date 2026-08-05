@@ -336,14 +336,30 @@ mayor, y el valor por línea de código no se acerca al resto del roadmap.
 
 ### 3.7 Scripts más usables
 
-- [ ] `src/ui/views/ScriptsView.tsx`, `src/ui/components/CodeEditor.tsx`,
-      `src/background/userscripts.ts`
+- [x] parsear el header `// ==UserScript==` — `src/lib/userscript-header.ts`,
+      `src/ui/views/ScriptsView.tsx`
+- [ ] mostrar errores de runtime del script
+- [ ] reemplazar el `<textarea>` de `CodeEditor` por CodeMirror 6
 
-- parsear el header `// ==UserScript==` al pegar, para importar de Tampermonkey (`@match`,
-  `@run-at`, `@name`);
-- mostrar errores de runtime del script, no solo los de registro que ya reporta
-  `UserScriptsStatus`;
-- reemplazar el `<textarea>` de `CodeEditor` por CodeMirror 6 en configuración mínima.
+**Header de Tampermonkey: hecho.** Al pegar un script con `// ==UserScript==` aparece un aviso con
+lo que trae (`@name`, `@description`, `@match`, `@include`, `@exclude`, `@run-at`) y un botón para
+aplicarlo. Los `run-at` se traducen de `document-start` al `document_start` que espera
+`chrome.userScripts`, y un valor desconocido se ignora en vez de inventar uno. Los patrones se
+**suman** a los que ya haya, sin repetir, para no pisar lo cargado a mano. Se aplica solo si el
+usuario acepta, porque el header puede traer patrones más amplios de los que quiere.
+**Verificación:** `tests/userscript-header.test.ts`.
+
+**Errores de runtime: pendiente, y hay que decidir algo antes.** Envolver el código en un try/catch
+es la parte fácil; el problema es por dónde vuelve el error. Los scripts en mundo `USER_SCRIPT`
+pueden usar `chrome.runtime.sendMessage` (ya está `messaging: true`), pero los de mundo `MAIN` —que
+es el default— no tienen APIs de extensión, y el único canal sería `window.postMessage`, que es
+justo el agujero que cerró 0.5: cualquier script de la página podría inyectar errores falsos. Es
+ruido en la UI y no ejecución de código, así que el riesgo es menor, pero contradice una decisión
+tomada a propósito. Definir si se acepta ese canal o si la feature queda solo para mundo aislado.
+
+**CodeMirror: pendiente, y conviene medir antes.** Son ~200 kB extra en un bundle que hoy pesa
+~230 kB, en una extensión donde el popup tiene que abrir instantáneo. Vale la pena confirmar que el
+peso se justifica frente al `<textarea>` actual, o buscar algo más liviano.
 
 ---
 
