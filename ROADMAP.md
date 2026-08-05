@@ -315,11 +315,24 @@ despacha `error` + `loadend` con `status` 0. En `sendBeacon`, que es síncrono, 
 
 ### 3.6 Editor de storage y vista de IndexedDB
 
-- [ ] `src/ui/views/StorageView.tsx`, `src/ui/hooks/useWebStorage.ts`
+- [x] `src/lib/json-tree.ts`, `src/ui/components/JsonTree.tsx`, `src/ui/views/StorageView.tsx`
 
 Los valores de `localStorage` suelen ser JSON largo y hoy se editan en un input plano. Sumar
 detección de JSON con árbol plegable. IndexedDB es un laburo aparte y bastante más grande: dejarlo
 para el final o descartarlo.
+
+Hecho el árbol: cuando el valor parsea como objeto o array aparece un selector Árbol / Texto. El
+árbol colorea por tipo, cuenta los hijos de cada rama (`{3}` / `[2]`), deja copiar cada hoja suelta
+y tiene "Desplegar todo". Arranca abierto dos niveles para que un JSON grande no tape la pantalla.
+
+Un string o un número sueltos son JSON válido pero no ganan nada como árbol, así que ahí se sigue
+mostrando el textarea. El árbol es **solo lectura**: editar sigue siendo por Texto, que ya tenía
+"Formatear JSON". Hacerlo editable es bastante más grande y no lo pedía la tarea.
+
+**IndexedDB queda descartado** por lo que ya decía esta misma entrada: es un trabajo aparte y mucho
+mayor, y el valor por línea de código no se acerca al resto del roadmap.
+
+**Verificación:** `tests/json-tree.test.ts`.
 
 ### 3.7 Scripts más usables
 

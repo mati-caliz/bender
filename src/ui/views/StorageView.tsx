@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { downloadJson } from '@/lib/download';
 import { formatBytes, prettyJson } from '@/lib/format';
 import { parseStorageItems } from '@/lib/import';
+import { parseJsonTree } from '@/lib/json-tree';
 import { ImportDialog } from '@/ui/components/ImportDialog';
+import { JsonTree } from '@/ui/components/JsonTree';
 import { JwtPanel } from '@/ui/components/JwtPanel';
 import { ToggleCard } from '@/ui/components/ToggleCard';
 import { ViewShell } from '@/ui/components/ViewShell';
@@ -28,6 +30,8 @@ const AREA_OPTIONS: Array<{ value: StorageArea; label: string }> = [
   { value: 'session', label: 'sessionStorage' },
 ];
 
+type ValueMode = 'tree' | 'text';
+
 interface ItemFormProps {
   draft: StoredItem;
   onChange: (item: StoredItem) => void;
@@ -37,34 +41,60 @@ interface ItemFormProps {
   isNew: boolean;
 }
 
-const ItemForm = ({ draft, onChange, onSave, onDelete, onCancel, isNew }: ItemFormProps) => (
-  <>
-    <Field label="Key">
-      <TextInput value={draft.key} mono onChange={(key) => onChange({ ...draft, key })} />
-    </Field>
-    <Field label="Valor" hint={`${formatBytes(new Blob([draft.value]).size)} en disco`}>
-      <TextArea value={draft.value} mono rows={6} onChange={(value) => onChange({ ...draft, value })} />
-    </Field>
+const VALUE_MODES: Array<{ value: ValueMode; label: string }> = [
+  { value: 'tree', label: 'Arbol' },
+  { value: 'text', label: 'Texto' },
+];
 
-    <JwtPanel value={draft.value} />
+const ItemForm = ({ draft, onChange, onSave, onDelete, onCancel, isNew }: ItemFormProps) => {
+  const [mode, setMode] = useState<ValueMode>('tree');
+  // El arbol se recalcula con el valor, asi que editar en Texto y volver muestra lo nuevo.
+  const tree = useMemo(() => parseJsonTree(draft.value), [draft.value]);
 
-    <div className="row">
-      <Button variant="primary" icon="check" onClick={onSave} disabled={!draft.key.trim()}>
-        Guardar
-      </Button>
-      <Button variant="ghost" onClick={() => onChange({ ...draft, value: prettyJson(draft.value) })}>
-        Formatear JSON
-      </Button>
-      <div className="spacer" />
-      <Button variant="danger" icon="trash" onClick={onDelete}>
-        {isNew ? 'Descartar' : 'Borrar'}
-      </Button>
-      <Button variant="ghost" onClick={onCancel}>
-        Cerrar
-      </Button>
-    </div>
-  </>
-);
+  return (
+    <>
+      <Field label="Key">
+        <TextInput value={draft.key} mono onChange={(key) => onChange({ ...draft, key })} />
+      </Field>
+
+      <Field label="Valor" hint={`${formatBytes(new Blob([draft.value]).size)} en disco`}>
+        {tree ? (
+          <>
+            <div className="row" style={{ marginBottom: 6 }}>
+              <Segmented value={mode} options={VALUE_MODES} onChange={setMode} />
+              <span className="field-hint">El arbol es solo lectura: para editar usa Texto.</span>
+            </div>
+            {mode === 'tree' ? (
+              <JsonTree root={tree} />
+            ) : (
+              <TextArea value={draft.value} mono rows={6} onChange={(value) => onChange({ ...draft, value })} />
+            )}
+          </>
+        ) : (
+          <TextArea value={draft.value} mono rows={6} onChange={(value) => onChange({ ...draft, value })} />
+        )}
+      </Field>
+
+      <JwtPanel value={draft.value} />
+
+      <div className="row wrap">
+        <Button variant="primary" icon="check" onClick={onSave} disabled={!draft.key.trim()}>
+          Guardar
+        </Button>
+        <Button variant="ghost" onClick={() => onChange({ ...draft, value: prettyJson(draft.value) })}>
+          Formatear JSON
+        </Button>
+        <div className="spacer" />
+        <Button variant="danger" icon="trash" onClick={onDelete}>
+          {isNew ? 'Descartar' : 'Borrar'}
+        </Button>
+        <Button variant="ghost" onClick={onCancel}>
+          Cerrar
+        </Button>
+      </div>
+    </>
+  );
+};
 
 export const StorageView = ({ activeTab }: { activeTab: ActiveTab }) => {
   const { notify } = useToasts();
