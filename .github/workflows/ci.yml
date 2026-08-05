@@ -33,3 +33,29 @@ jobs:
 
       # El build es parte del check: la extension tiene que poder empaquetarse.
       - run: npm run build
+
+  # Aparte del job rapido: baja un Chromium de ~115 MB y necesita el dist ya armado.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

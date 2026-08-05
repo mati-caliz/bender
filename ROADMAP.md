@@ -460,5 +460,28 @@ test.
 Se verificó que los tests no son vacíos mutando el status del error de red en `failXhr`: la suite
 falla como corresponde.
 
-**El nivel 2 (Playwright) sigue pendiente**, y es lo único que cubriría las reglas DNR y el registro
-de userscripts, que no pasan por `inject.ts`.
+**Nivel 2 (Playwright): hecho para DNR, parcial para userscripts.** `e2e/` levanta Chrome con la
+extensión cargada desde `dist/` y un servidor HTTP real —no `route.fulfill`, porque las reglas DNR
+actúan sobre tráfico de verdad y un mock de Playwright lo cortaría antes de que la extensión lo vea.
+
+Cubre lo que ningún test unitario podía: que un perfil activo **realmente** agregue el header a la
+request que llega al servidor, que apagar Bender o el perfil lo saque, que el filtro de URL limite
+el alcance, que una regla de bloqueo corte la request antes de salir y que un redirect la mande a
+otra URL.
+
+Dos cosas que costaron y conviene saber si se toca:
+
+- el service worker **no puede mandarse un mensaje a sí mismo**, así que la fixture escribe el estado
+  en `chrome.storage.local` (que ya dispara `scheduleApply` por el listener de `onChanged`) y espera
+  a que el motor publique un `updatedAt` nuevo en `storage.session`;
+- Chrome deja conexiones keep-alive abiertas y el `server.close()` no vuelve nunca sin
+  `closeAllConnections()`.
+
+Se verificó que los tests no son vacíos rompiendo la compilación de reglas de perfil: fallan los dos
+que dependen de headers y siguen pasando los otros cuatro, que es exactamente lo esperado.
+
+**Lo que quedó afuera: los userscripts.** `chrome.userScripts` solo existe con el modo desarrollador
+prendido, y no hay flag de línea de comandos para habilitarlo; sembrar `developer_mode` en las
+preferencias del perfil tampoco alcanzó. Los tres tests están escritos y se saltean con el motivo a
+la vista, así que corren solos el día que se pueda habilitar. Por lo mismo sigue sin cubrirse de
+punta a punta la propagación de errores de userscript entre mundos (3.7).

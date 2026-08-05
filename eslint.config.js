@@ -64,6 +64,17 @@ export default tseslint.config(
     rules: { '@typescript-eslint/unbound-method': 'off' },
   },
 
+  // Los fixtures de Playwright reciben `use` como argumento y declaran fixtures sin
+  // dependencias con `({}, use)`. El plugin de React confunde ese `use` con un hook.
+  {
+    files: ['e2e/**/*.ts'],
+    languageOptions: { globals: globals.node },
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'no-empty-pattern': 'off',
+    },
+  },
+
   {
     files: ['tests/**/*.ts'],
     languageOptions: { globals: globals.node },
