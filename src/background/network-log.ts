@@ -215,7 +215,7 @@ export const configureNetworkLog = (config: { enabled: boolean; maxEntries: numb
 
 export const restoreNetworkLog = async (): Promise<void> => {
   const stored = await chrome.storage.session.get(NETWORK_LOG_KEY);
-  const restored = stored[NETWORK_LOG_KEY];
+  const restored: unknown = stored[NETWORK_LOG_KEY];
   if (!Array.isArray(restored)) return;
   entries = restored as NetworkEntry[];
   indexEntries();

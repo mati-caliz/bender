@@ -29,5 +29,4 @@ export interface MessageResultMap {
 
 export const sendMessage = async <TType extends ExtensionMessage['type']>(
   message: Extract<ExtensionMessage, { type: TType }>
-): Promise<MessageResultMap[TType]> =>
-  (await chrome.runtime.sendMessage(message)) as MessageResultMap[TType];
+): Promise<MessageResultMap[TType]> => await chrome.runtime.sendMessage(message);

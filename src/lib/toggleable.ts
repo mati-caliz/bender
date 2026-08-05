@@ -6,7 +6,7 @@ export const loadScopedMap = async <TItem>(
 ): Promise<Record<string, TItem>> => {
   if (!scope) return {};
   const stored = await chrome.storage.local.get(storageKey);
-  const all = stored[storageKey];
+  const all: unknown = stored[storageKey];
   if (typeof all !== 'object' || all === null) return {};
   const scoped = (all as Record<string, unknown>)[scope];
   return typeof scoped === 'object' && scoped !== null ? (scoped as Record<string, TItem>) : {};

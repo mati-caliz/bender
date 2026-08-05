@@ -21,7 +21,7 @@ export const useEngineStatus = (): EngineStatus => {
 
     const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area !== 'session' || !changes[ENGINE_STATUS_KEY]) return;
-      const next = changes[ENGINE_STATUS_KEY].newValue;
+      const next: unknown = changes[ENGINE_STATUS_KEY].newValue;
       if (isEngineStatus(next)) setStatus(next);
     };
     chrome.storage.onChanged.addListener(handler);

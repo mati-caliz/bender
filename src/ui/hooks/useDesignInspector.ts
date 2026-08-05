@@ -8,7 +8,7 @@ const OVERLAY_FILE = 'content/design-overlay.js';
 const INACTIVE_OVERLAY: DesignOverlayState = { active: false, tool: 'inspect' };
 
 const sendCommand = async (tabId: number, command: DesignCommand): Promise<DesignOverlayState> =>
-  (await chrome.tabs.sendMessage(tabId, command)) as DesignOverlayState;
+  await chrome.tabs.sendMessage(tabId, command);
 
 export interface DesignInspectorController {
   overlay: DesignOverlayState;

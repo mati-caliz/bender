@@ -31,31 +31,30 @@ export const isBranch = (kind: JsonKind): boolean => kind === 'object' || kind =
 const clip = (text: string): string =>
   text.length > MAX_PREVIEW_CHARS ? `${text.slice(0, MAX_PREVIEW_CHARS - 1)}…` : text;
 
+const isJsonObject = (value: JsonValue): value is { [key: string]: JsonValue } =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
 export const previewOf = (value: JsonValue): string => {
-  const kind = jsonKindOf(value);
-  if (kind === 'array') return `[${(value as JsonValue[]).length}]`;
-  if (kind === 'object') return `{${Object.keys(value as object).length}}`;
-  if (kind === 'string') return clip(`"${value as string}"`);
+  if (Array.isArray(value)) return `[${value.length}]`;
+  if (isJsonObject(value)) return `{${Object.keys(value).length}}`;
+  if (typeof value === 'string') return clip(`"${value}"`);
   return String(value);
 };
 
 /** El valor crudo de una hoja: el texto sin comillas, para que copiarlo sirva. */
 const rawOf = (value: JsonValue): string | null => {
-  const kind = jsonKindOf(value);
-  if (isBranch(kind)) return null;
-  return kind === 'string' ? (value as string) : String(value);
+  if (Array.isArray(value) || isJsonObject(value)) return null;
+  return typeof value === 'string' ? value : String(value);
 };
 
 export const buildJsonTree = (value: JsonValue, label = '', path = '$'): JsonNode => {
   const kind = jsonKindOf(value);
   let children: JsonNode[] = [];
 
-  if (kind === 'array') {
-    children = (value as JsonValue[]).map((item, index) => buildJsonTree(item, String(index), `${path}.${index}`));
-  } else if (kind === 'object') {
-    children = Object.entries(value as Record<string, JsonValue>).map(([key, item]) =>
-      buildJsonTree(item, key, `${path}.${key}`)
-    );
+  if (Array.isArray(value)) {
+    children = value.map((item, index) => buildJsonTree(item, String(index), `${path}.${index}`));
+  } else if (isJsonObject(value)) {
+    children = Object.entries(value).map(([key, item]) => buildJsonTree(item, key, `${path}.${key}`));
   }
 
   return { path, label, kind, children, preview: previewOf(value), raw: rawOf(value) };
@@ -71,8 +70,7 @@ export const parseJsonTree = (text: string): JsonNode | null => {
 
   try {
     const parsed: unknown = JSON.parse(trimmed);
-    const kind = jsonKindOf(parsed as JsonValue);
-    if (!isBranch(kind)) return null;
+    if (!Array.isArray(parsed) && !isJsonObject(parsed as JsonValue)) return null;
     return buildJsonTree(parsed as JsonValue);
   } catch {
     return null;

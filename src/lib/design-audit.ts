@@ -102,13 +102,14 @@ export const auditPageDesign = (maxElements: number, maxResults: number): Design
 
   const variables: Array<{ name: string; value: string }> = [];
   for (const sheet of Array.from(document.styleSheets)) {
-    let rules: CSSRuleList | null = null;
+    // Una hoja de otro origen tira SecurityError al leer cssRules.
+    let rules: CSSRuleList;
     try {
       rules = sheet.cssRules;
     } catch {
       continue;
     }
-    for (const rule of Array.from(rules ?? [])) {
+    for (const rule of Array.from(rules)) {
       if (!(rule instanceof CSSStyleRule) || !rule.selectorText.includes(':root')) continue;
       for (const property of Array.from(rule.style)) {
         if (!property.startsWith('--')) continue;

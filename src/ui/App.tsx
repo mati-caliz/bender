@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/ui/components/Icon';
 import { Badge, IconButton, Switch } from '@/ui/components/primitives';
 import { useActiveTab } from '@/ui/hooks/useActiveTab';
@@ -90,13 +90,19 @@ export const App = () => {
   const { state, ready, update } = useToolkitState();
   const status = useEngineStatus();
   const activeTab = useActiveTab();
-  const surface = useMemo(readSurface, []);
+  const surface = useMemo(() => readSurface(), []);
   const [view, setView] = useState<ViewId>('overview');
   const [navOpen, setNavOpen] = useState(false);
 
+  // Restaura la ultima vista una sola vez, cuando el estado termina de cargar. El
+  // flag evita volver a pisarla cada vez que goTo actualiza lastView.
+  const viewRestored = useRef(false);
   useEffect(() => {
-    if (ready) setView(NAV_ENTRIES.some((entry) => entry.id === state.ui.lastView) ? (state.ui.lastView as ViewId) : 'overview');
-  }, [ready]);
+    if (!ready || viewRestored.current) return;
+    viewRestored.current = true;
+    const stored = state.ui.lastView;
+    setView(NAV_ENTRIES.some((entry) => entry.id === stored) ? (stored as ViewId) : 'overview');
+  }, [ready, state.ui.lastView]);
 
   useEffect(() => {
     document.body.dataset.surface = surface;

@@ -351,16 +351,40 @@ mayor, y el valor por línea de código no se acerca al resto del roadmap.
 
 ### 4.1 ESLint
 
-- [ ] `package.json`, config nueva
+- [x] `package.json`, `eslint.config.js`
 
 No hay linter. Con `typecheck` y `vitest` ya armados es lo único que falta. Recordar que el proyecto
 no usa `eslint-disable`: si una regla molesta, se arregla el código o se saca la regla de la config.
 
+Hecho con flat config: `js.recommended` + `typescript-eslint` **type-checked** + `react-hooks`.
+`npm run lint` corre con `--max-warnings 0`, así que la salida limpia es la única salida válida.
+
+Se respetó la regla de no usar `eslint-disable`. De los 27 hallazgos iniciales, se **arreglaron** los
+que eran deuda real: los `as` innecesarios en `sendMessage`, las lecturas de `chrome.storage` que
+entraban como `any` (ahora `unknown` explícito, forzando el narrowing que ya existía), un `let`
+inicializado al pedo y las guardas de tipo de `json-tree.ts` (que de paso se comió tres casts).
+
+Se **sacaron de la config**, con el motivo escrito al lado:
+
+- `react-hooks/set-state-in-effect`: todo el estado vive en `chrome.storage` y en los content
+  scripts, así que los efectos que lo bajan a estado de React son justamente el caso de sincronizar
+  con un sistema externo. Reescribir esos siete efectos es un refactor aparte.
+- `@typescript-eslint/unbound-method`, solo en `inject.ts`: guardar el método original del prototipo
+  y reinvocarlo con `.call` es el patrón del parcheo, no un `this` perdido.
+- `no-implied-eval` y `no-unsafe-enum-comparison`, solo en `tests/`.
+- `prefer-nullish-coalescing`: el código ya elige `??` o `||` a propósito.
+
 ### 4.2 CI
 
-- [ ] `.github/workflows/`
+- [x] `.github/workflows/ci.yml`
 
 Un workflow que corra `typecheck`, `lint` y `test` en cada push.
+
+Hecho: corre en push a `main` y en cada PR, con `lint`, `typecheck`, `test` y además `build`, porque
+que la extensión siga empaquetando es parte de que ande. Cancela la corrida vieja si llega otro push.
+
+Va con Node 24 y no con 22 porque el script `clean` usa `fs` como global de `node -e`, que no está
+garantizado en versiones anteriores.
 
 ### 4.3 Tests del camino de mocks
 
