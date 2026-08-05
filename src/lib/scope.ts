@@ -81,6 +81,20 @@ export const isScopeRestricted = (scope: Scope): boolean =>
 
 const escapeForRegExp = (value: string): string => value.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 
+const URL_FILTER_WILDCARD = '*';
+const URL_FILTER_SEPARATOR = '^';
+const SEPARATOR_SOURCE = '(?:[^a-zA-Z0-9._%\\-]|$)';
+
+const urlFilterBodyToSource = (body: string): string =>
+  body
+    .split(/([*^])/)
+    .map((part) => {
+      if (part === URL_FILTER_WILDCARD) return '.*';
+      if (part === URL_FILTER_SEPARATOR) return SEPARATOR_SOURCE;
+      return escapeForRegExp(part);
+    })
+    .join('');
+
 export const urlFilterToRegExp = (urlFilter: string): RegExp => {
   let pattern = urlFilter;
   let anchoredStart = false;
@@ -98,7 +112,7 @@ export const urlFilterToRegExp = (urlFilter: string): RegExp => {
     anchoredEnd = true;
   }
 
-  const body = escapeForRegExp(pattern).replace(/\*/g, '.*').replace(/\^/g, '[^a-zA-Z0-9._%-]');
+  const body = urlFilterBodyToSource(pattern);
   return new RegExp(`${anchoredStart ? '^.*?' : ''}${body}${anchoredEnd ? '$' : ''}`);
 };
 

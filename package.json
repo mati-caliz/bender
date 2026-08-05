@@ -11,6 +11,8 @@
     "clean": "rm -rf dist",
     "dev": "node scripts/build-content.mjs --watch & vite build --watch",
     "icons": "python3 scripts/generate-icons.py public/icons",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "zip": "cd dist && zip -r ../bender.zip ."
   },
@@ -26,6 +28,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "esbuild": "^0.28.1",
     "typescript": "^5.7.2",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "vitest": "^4.1.10"
   }
 }
