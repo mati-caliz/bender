@@ -31,7 +31,7 @@ const DomainInput = ({ label, hint, domains, onChange, suggestion }: DomainInput
   return (
     <div className="field">
       <span className="field-label">{label}</span>
-      <div className="row">
+      <div className="row wrap domain-input">
         <TextInput
           value={draft}
           onChange={setDraft}

@@ -79,6 +79,7 @@ const NAV_ENTRIES: NavEntry[] = [
 ];
 
 const SURFACE_PARAM = 'surface';
+const NARROW_BREAKPOINT_PX = 620;
 
 const readSurface = (): 'popup' | 'panel' | 'tab' => {
   const surface = new URLSearchParams(window.location.search).get(SURFACE_PARAM);
@@ -91,6 +92,7 @@ export const App = () => {
   const activeTab = useActiveTab();
   const surface = useMemo(readSurface, []);
   const [view, setView] = useState<ViewId>('overview');
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     if (ready) setView(NAV_ENTRIES.some((entry) => entry.id === state.ui.lastView) ? (state.ui.lastView as ViewId) : 'overview');
@@ -100,6 +102,21 @@ export const App = () => {
     document.body.dataset.surface = surface;
     document.body.dataset.density = state.ui.density;
   }, [surface, state.ui.density]);
+
+  // El popup y el panel lateral son angostos: el layout pasa a nav colapsado y filas apiladas.
+  useEffect(() => {
+    if (surface === 'popup') {
+      document.body.dataset.narrow = 'true';
+      return undefined;
+    }
+    const media = window.matchMedia(`(max-width: ${NARROW_BREAKPOINT_PX}px)`);
+    const apply = () => {
+      document.body.dataset.narrow = String(media.matches);
+    };
+    apply();
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, [surface]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -117,6 +134,7 @@ export const App = () => {
 
   const goTo = (next: ViewId) => {
     setView(next);
+    setNavOpen(false);
     update((current) => ({ ...current, ui: { ...current.ui, lastView: next } }));
   };
 
@@ -160,11 +178,22 @@ export const App = () => {
   return (
     <div className="app">
       <header className="topbar">
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label={navOpen ? 'Cerrar menu' : 'Abrir menu'}
+          aria-expanded={navOpen}
+          title="Menu"
+          onClick={() => setNavOpen((current) => !current)}
+        >
+          <Icon name={navOpen ? 'x' : 'menu'} size={16} />
+        </button>
+
         <div className="brand">
           <span className="brand-mark">
             <Icon name="bolt" size={15} />
           </span>
-          Bender
+          <span className="brand-name">Bender</span>
           <span className="brand-tag">v1.0</span>
         </div>
 
@@ -191,7 +220,7 @@ export const App = () => {
             onChange={() => update((current) => ({ ...current, globalEnabled: !current.globalEnabled }))}
             small
           />
-          {state.globalEnabled ? 'Activo' : 'Apagado'}
+          <span className="master-toggle-label">{state.globalEnabled ? 'Activo' : 'Apagado'}</span>
         </button>
 
         {surface === 'popup' ? (
@@ -218,8 +247,8 @@ export const App = () => {
         ) : null}
       </header>
 
-      <div className="layout">
-        <nav className="nav">
+      <div className="layout" data-nav-open={navOpen}>
+        <nav className="nav" data-open={navOpen}>
           {groups.map(([group, entries]) => (
             <div key={group}>
               <div className="nav-group-label">{group}</div>
@@ -231,11 +260,12 @@ export const App = () => {
                     type="button"
                     className="nav-item"
                     aria-current={view === entry.id}
+                    title={entry.label}
                     onClick={() => goTo(entry.id)}
                     style={{ width: '100%' }}
                   >
                     <Icon name={entry.icon} size={15} className="nav-icon" />
-                    {entry.label}
+                    <span className="nav-label">{entry.label}</span>
                     {count ? <span className="nav-count">{count}</span> : null}
                   </button>
                 );
@@ -247,14 +277,17 @@ export const App = () => {
               type="button"
               className="nav-item"
               aria-current={view === 'settings'}
+              title="Ajustes"
               onClick={() => goTo('settings')}
               style={{ width: '100%' }}
             >
               <Icon name="settings" size={15} className="nav-icon" />
-              Ajustes
+              <span className="nav-label">Ajustes</span>
             </button>
           </div>
         </nav>
+
+        {navOpen ? <button type="button" className="nav-scrim" aria-label="Cerrar menu" onClick={() => setNavOpen(false)} /> : null}
 
         <main className="content">{renderView()}</main>
       </div>

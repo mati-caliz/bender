@@ -81,8 +81,8 @@ body {
 }
 
 body[data-surface='popup'] {
-  width: 780px;
-  height: 600px;
+  width: 400px;
+  height: 560px;
   overflow: hidden;
 }
 
@@ -233,6 +233,37 @@ select {
   display: grid;
   grid-template-columns: var(--nav-width) 1fr;
   min-height: 0;
+  position: relative;
+}
+
+/* Boton hamburguesa: solo aparece cuando el nav esta colapsado (ver media query). */
+.nav-toggle {
+  display: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.nav-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.nav-scrim {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  border: 0;
+  padding: 0;
+  background: rgb(0 0 0 / 0.4);
+  animation: fade-in 120ms ease;
 }
 
 .nav {
@@ -365,6 +396,12 @@ select {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* En una columna flex con scroll los hijos se encogen por defecto y su contenido
+   queda recortado en vez de generar scroll. */
+.view-body > * {
+  flex-shrink: 0;
 }
 
 .card {
@@ -833,8 +870,6 @@ select {
 .headers-layout {
   display: grid;
   grid-template-columns: 62px 1fr;
-  min-height: 0;
-  flex: 1;
 }
 
 .header-table {
@@ -1119,6 +1154,9 @@ select {
 .quick-toggle-title {
   font-size: 12.5px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .quick-toggle-hint {
@@ -1144,6 +1182,11 @@ select {
 
 .net-row[data-selected='true'] {
   background: var(--accent-soft);
+}
+
+.effective-row {
+  grid-template-columns: 70px minmax(0, 1fr) auto;
+  cursor: default;
 }
 
 .net-url {
@@ -1417,6 +1460,7 @@ input[type='color'] {
   padding: 0;
   background: transparent;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 input[type='color']::-webkit-color-swatch-wrapper {
@@ -1601,4 +1645,375 @@ input[type='color']::-webkit-color-swatch {
 .font-meta {
   font-size: 10px;
   color: var(--text-muted);
+}
+
+/* Nota informativa plegable: por defecto cerrada, para no comerse el alto util. */
+.hint-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.hint-card > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 11px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  user-select: none;
+}
+
+.hint-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.hint-card > summary:hover {
+  color: var(--text);
+}
+
+.hint-card[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.hint-card > p,
+.hint-card > .hint-body {
+  padding: 10px 11px;
+  line-height: 1.55;
+}
+
+/* ==========================================================================
+   Layout angosto (popup ~400px y panel lateral).
+   El nav se vuelve una barra de iconos que se despliega como drawer, y las
+   filas con muchas columnas se apilan en dos lineas para que entren.
+   ========================================================================== */
+
+body[data-narrow='true'] .topbar {
+  padding: 0 8px;
+  gap: 6px;
+}
+
+body[data-narrow='true'] .nav-toggle {
+  display: grid;
+}
+
+body[data-narrow='true'] .brand {
+  gap: 7px;
+  font-size: 13px;
+}
+
+body[data-narrow='true'] .brand-tag {
+  display: none;
+}
+
+body[data-narrow='true'] .topbar-domain {
+  max-width: 100px;
+  padding: 4px 8px;
+}
+
+body[data-narrow='true'] .master-toggle-label {
+  display: none;
+}
+
+body[data-narrow='true'] .master-toggle {
+  padding: 4px;
+}
+
+/* --- Nav colapsado a rail de iconos --- */
+
+body[data-narrow='true'] .layout {
+  grid-template-columns: 52px 1fr;
+}
+
+body[data-narrow='true'] .nav {
+  padding: 8px 6px;
+  align-items: center;
+}
+
+body[data-narrow='true'] .nav-group-label,
+body[data-narrow='true'] .nav-label,
+body[data-narrow='true'] .nav-count {
+  display: none;
+}
+
+body[data-narrow='true'] .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding: 8px;
+}
+
+body[data-narrow='true'] .nav-item[aria-current='true']::before {
+  left: -6px;
+}
+
+body[data-narrow='true'] .nav-footer {
+  width: 100%;
+}
+
+/* --- Nav desplegado: se superpone al contenido en vez de comprimirlo --- */
+
+body[data-narrow='true'] .nav[data-open='true'] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 196px;
+  z-index: 9;
+  padding: 10px 8px;
+  align-items: stretch;
+  box-shadow: var(--shadow-lg);
+}
+
+body[data-narrow='true'] .nav[data-open='true'] .nav-group-label,
+body[data-narrow='true'] .nav[data-open='true'] .nav-label {
+  display: block;
+}
+
+body[data-narrow='true'] .nav[data-open='true'] .nav-count {
+  display: inline-block;
+}
+
+body[data-narrow='true'] .nav[data-open='true'] .nav-item {
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 7px 10px;
+}
+
+body[data-narrow='true'] .nav-scrim {
+  display: block;
+}
+
+/* --- Densidad general --- */
+
+body[data-narrow='true'] .view-header {
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 12px 10px;
+}
+
+/* El flex-shrink:0 del layout ancho impide que la botonera envuelva, y vistas con
+   varias acciones (Cookies, Storage) se desbordan por derecha. */
+body[data-narrow='true'] .view-actions {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* Con 3+ acciones no entran junto al titulo: en vez de que una sola caiga suelta a
+   la derecha dejando un hueco, toda la botonera baja a su propia fila. */
+body[data-narrow='true'] .view-actions:has(> :nth-child(3)) {
+  width: 100%;
+  margin-left: 0;
+  justify-content: flex-start;
+}
+
+body[data-narrow='true'] .view-subtitle {
+  display: none;
+}
+
+body[data-narrow='true'] .view-body {
+  padding: 12px 12px 20px;
+  gap: 12px;
+}
+
+body[data-narrow='true'] .toolbar,
+body[data-narrow='true'] .dialog-footer {
+  flex-wrap: wrap;
+}
+
+/* Sin minimo el buscador se comprime hasta quedar solo la lupa: mejor que baje. */
+body[data-narrow='true'] .search {
+  min-width: 150px;
+}
+
+/* Idem el campo de dominio cuando comparte fila con "Agregar" y la sugerencia. */
+body[data-narrow='true'] .domain-input > .input {
+  flex: 1;
+  min-width: 150px;
+}
+
+body[data-narrow='true'] .empty {
+  padding: 24px 14px;
+}
+
+body[data-narrow='true'] .grid-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Cada toggle lleva icono + titulo + hint + engranaje + switch: a dos columnas
+   no entra nada, asi que en angosto va uno por fila. */
+body[data-narrow='true'] .quick-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-narrow='true'] .stat-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-narrow='true'] .item-name {
+  max-width: 120px;
+}
+
+body[data-narrow='true'] .net-detail {
+  max-height: 200px;
+}
+
+body[data-narrow='true'] .code-editor textarea {
+  min-height: 160px;
+}
+
+body[data-narrow='true'] .dialog-backdrop {
+  padding: 12px;
+}
+
+/* --- Perfiles de headers --- */
+
+body[data-narrow='true'] .headers-layout {
+  grid-template-columns: 50px 1fr;
+}
+
+body[data-narrow='true'] .profile-rail {
+  width: 50px;
+  padding: 10px 6px;
+}
+
+body[data-narrow='true'] .profile-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 12px;
+}
+
+/* --- Fila de header apilada en dos lineas --- */
+
+body[data-narrow='true'] .table-head {
+  display: none;
+}
+
+body[data-narrow='true'] .header-row {
+  grid-template-columns: 20px 30px minmax(0, 1fr) 84px;
+  grid-template-areas:
+    'grip toggle name actions'
+    'value value value op';
+  gap: 6px;
+  padding: 8px;
+}
+
+body[data-narrow='true'] .header-row > *:nth-child(1) {
+  grid-area: grip;
+}
+
+body[data-narrow='true'] .header-row > *:nth-child(2) {
+  grid-area: toggle;
+}
+
+body[data-narrow='true'] .header-row > *:nth-child(3) {
+  grid-area: name;
+}
+
+body[data-narrow='true'] .header-row > *:nth-child(4) {
+  grid-area: value;
+}
+
+body[data-narrow='true'] .header-row > *:nth-child(5) {
+  grid-area: op;
+}
+
+body[data-narrow='true'] .header-row > *:nth-child(6) {
+  grid-area: actions;
+  justify-self: end;
+}
+
+/* --- Fila de trafico apilada: metadatos arriba, URL abajo --- */
+
+body[data-narrow='true'] .log-row {
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-areas:
+    'status method meta'
+    'url url url';
+  gap: 4px 8px;
+  padding: 7px 10px;
+}
+
+body[data-narrow='true'] .log-row > *:nth-child(1) {
+  grid-area: status;
+}
+
+body[data-narrow='true'] .log-row > *:nth-child(2) {
+  grid-area: method;
+}
+
+body[data-narrow='true'] .log-row > *:nth-child(3) {
+  grid-area: url;
+}
+
+body[data-narrow='true'] .log-row > *:nth-child(4) {
+  grid-area: meta;
+  justify-self: end;
+}
+
+/* --- Headers efectivos del resumen: direccion + origen arriba, texto abajo --- */
+
+body[data-narrow='true'] .effective-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'dir source'
+    'text text';
+  gap: 4px 8px;
+}
+
+body[data-narrow='true'] .effective-row > *:nth-child(1) {
+  grid-area: dir;
+}
+
+body[data-narrow='true'] .effective-row > *:nth-child(2) {
+  grid-area: text;
+}
+
+body[data-narrow='true'] .effective-row > *:nth-child(3) {
+  grid-area: source;
+  justify-self: end;
+}
+
+/* --- Tablas clave/valor apiladas --- */
+
+body[data-narrow='true'] .kv-table {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+body[data-narrow='true'] .kv-key {
+  margin-top: 7px;
+  white-space: normal;
+  word-break: break-all;
+}
+
+body[data-narrow='true'] .kv-key:first-child {
+  margin-top: 0;
+}
+
+/* --- Vista de diseño --- */
+
+/* Las dos muestras (16px y 24px) no entran en una linea a 400px. */
+body[data-narrow='true'] .contrast-preview {
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 10px;
+}
+
+/* El bloque de nombre + tamaños/pesos no puede achicarse sin min-width:0. */
+.font-row > div:first-child {
+  min-width: 0;
+}
+
+.font-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-narrow='true'] .font-meta {
+  overflow-wrap: anywhere;
 }

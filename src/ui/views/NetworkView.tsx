@@ -181,7 +181,7 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
             {visible.map((entry) => (
               <div key={entry.id}>
                 <div
-                  className="net-row"
+                  className="net-row log-row"
                   data-selected={entry.id === selectedId}
                   onClick={() => setSelectedId(entry.id === selectedId ? null : entry.id)}
                 >

@@ -23,6 +23,7 @@ export type IconName =
   | 'info'
   | 'key'
   | 'layers'
+  | 'menu'
   | 'moon'
   | 'panel'
   | 'plus'
@@ -126,6 +127,7 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   layers: <path d="m12 2 9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5" />,
+  menu: <path d="M3 6h18M3 12h18M3 18h18" />,
   moon: <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />,
   panel: (
     <>

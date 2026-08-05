@@ -114,7 +114,7 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
           El backup incluye perfiles, reglas, mocks, scripts y preferencias. No incluye cookies ni storage de los
           sitios.
         </p>
-        <div className="row">
+        <div className="row wrap">
           <Button
             icon="download"
             onClick={() => {

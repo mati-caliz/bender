@@ -81,7 +81,7 @@ export const OverviewView = ({ state, update, status, activeTab, onNavigate }: O
         <Stat label="Mocks activos" value={String(mockCount)} hint="interceptan fetch y XHR" />
       </div>
 
-      <div className="grid-2">
+      <div className="grid-2 quick-grid">
         <QuickToggle
           icon="shield"
           title="CORS abierto"
@@ -130,7 +130,7 @@ export const OverviewView = ({ state, update, status, activeTab, onNavigate }: O
         {effective.length ? (
           <div className="list" style={{ gap: 0 }}>
             {effective.map((header, index) => (
-              <div key={`${header.name}-${index}`} className="net-row" style={{ gridTemplateColumns: '70px 1fr auto' }}>
+              <div key={`${header.name}-${index}`} className="net-row effective-row">
                 <Badge tone={header.direction === 'request' ? 'accent' : 'info'}>
                   {header.direction === 'request' ? 'request' : 'response'}
                 </Badge>
