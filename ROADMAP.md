@@ -215,7 +215,8 @@ de comillas en el body para cURL.
 
 ### 3.1 Valores dinámicos en headers
 
-- [ ] `src/lib/dnr.ts`, `src/ui/views/HeadersView.tsx`
+- [x] `src/lib/placeholders.ts`, `src/lib/dnr.ts`, `src/background/service-worker.ts`,
+      `src/ui/views/HeadersView.tsx`
 
 Placeholders tipo `{{uuid}}`, `{{timestamp}}`, `{{tabUrl}}` en el valor de un header. Es lo que más
 se pide para tokens.
@@ -223,6 +224,12 @@ se pide para tokens.
 Ojo con el modelo: DNR es declarativo, el valor se congela en el momento de compilar. O sea que se
 resuelve en cada `applyEngine` y no por request. Para `{{timestamp}}` eso alcanza; documentar el
 límite y no prometer más.
+
+Hecho con ocho marcadores (`uuid`, `timestamp`, `unix`, `isoDate`, `random`, `tabUrl`, `tabOrigin`,
+`tabHostname`). Un marcador desconocido se manda tal cual y sale como diagnóstico; los de pestaña sin
+pestaña activa quedan vacíos y también avisan. `TabOrigin` ahora lleva la URL además del origen, y
+`dependsOnTabs` devuelve `true` si algún header prendido usa un marcador de pestaña, para que 0.8 no
+deje el valor viejo al cambiar de tab.
 
 ### 3.2 Snapshots de cookies
 

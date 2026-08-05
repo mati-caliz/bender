@@ -10,6 +10,7 @@ import {
   toDnrResourceTypes,
 } from '@/lib/dnr-enums';
 import { navigatorSpoofDiagnostics } from '@/lib/navigator-spoof';
+import { hasTabPlaceholders, type PlaceholderContext, resolvePlaceholders } from '@/lib/placeholders';
 import { type CompiledCondition, scopeToCondition } from '@/lib/scope';
 import { userAgentTraits } from '@/lib/user-agent-traits';
 import type { CorsConfig, EngineDiagnostic, HeaderEntry, Profile, ToolkitState, UserAgentConfig } from '@/types';
@@ -24,6 +25,7 @@ const FIRST_RULE_ID = 1;
 export interface TabOrigin {
   id: number;
   origin: string;
+  url: string;
 }
 
 export interface CompileContext {
@@ -61,9 +63,36 @@ const toRuleCondition = (condition: CompiledCondition): chrome.declarativeNetReq
   return ruleCondition;
 };
 
+const compileHeaderValue = (
+  entry: HeaderEntry,
+  ownerName: string,
+  placeholders: PlaceholderContext,
+  diagnostics: EngineDiagnostic[]
+): string => {
+  const { value, unknownNames, unavailableNames } = resolvePlaceholders(entry.value, placeholders);
+
+  for (const name of unknownNames) {
+    diagnostics.push({
+      level: 'warning',
+      message: `"{{${name}}}" no es un valor dinamico conocido (${ownerName}, header "${entry.name}"): se manda tal cual.`,
+    });
+  }
+  if (unavailableNames.length) {
+    diagnostics.push({
+      level: 'warning',
+      message: `No hay pestaña activa para resolver ${unavailableNames
+        .map((name) => `"{{${name}}}"`)
+        .join(', ')} (${ownerName}, header "${entry.name}"): queda vacio.`,
+    });
+  }
+
+  return value;
+};
+
 const compileHeaderEntries = (
   entries: HeaderEntry[],
   ownerName: string,
+  placeholders: PlaceholderContext,
   diagnostics: EngineDiagnostic[]
 ): ModifyHeaderSpec[] => {
   const byName = new Map<string, ModifyHeaderSpec>();
@@ -90,7 +119,9 @@ const compileHeaderEntries = (
     }
 
     const spec: ModifyHeaderSpec = { header: name, operation: toDnrHeaderOperation(entry.operation) };
-    if (entry.operation !== 'remove') spec.value = entry.value;
+    if (entry.operation !== 'remove') {
+      spec.value = compileHeaderValue(entry, ownerName, placeholders, diagnostics);
+    }
     byName.set(entry.operation === 'append' ? `${key}:${byName.size}` : key, spec);
   }
 
@@ -100,6 +131,7 @@ const compileHeaderEntries = (
 const compileProfileRules = (
   profiles: Profile[],
   context: CompileContext,
+  placeholders: PlaceholderContext,
   nextId: () => number,
   labels: Record<number, string>,
   diagnostics: EngineDiagnostic[]
@@ -110,8 +142,9 @@ const compileProfileRules = (
     const condition = scopeToCondition(profile.scope, context);
     if (!condition) return;
 
-    const requestHeaders = compileHeaderEntries(profile.requestHeaders, `perfil "${profile.name}"`, diagnostics);
-    const responseHeaders = compileHeaderEntries(profile.responseHeaders, `perfil "${profile.name}"`, diagnostics);
+    const owner = `perfil "${profile.name}"`;
+    const requestHeaders = compileHeaderEntries(profile.requestHeaders, owner, placeholders, diagnostics);
+    const responseHeaders = compileHeaderEntries(profile.responseHeaders, owner, placeholders, diagnostics);
     if (!requestHeaders.length && !responseHeaders.length) return;
 
     const id = nextId();
@@ -372,6 +405,15 @@ export const dependsOnTabs = (state: ToolkitState): boolean => {
   if (!state.globalEnabled) return false;
   if (state.cors.enabled && state.cors.allowOrigin === 'reflect') return true;
 
+  const usesTabPlaceholder = state.profiles
+    .filter((profile) => profile.enabled)
+    .some((profile) =>
+      [...profile.requestHeaders, ...profile.responseHeaders].some(
+        (entry) => entry.enabled && entry.operation !== 'remove' && hasTabPlaceholders(entry.value)
+      )
+    );
+  if (usesTabPlaceholder) return true;
+
   const activeScopes = [
     ...state.profiles.filter((profile) => profile.enabled).map((profile) => profile.scope),
     ...state.trafficRules.filter((trafficRule) => trafficRule.enabled).map((trafficRule) => trafficRule.scope),
@@ -393,9 +435,12 @@ export const compileRules = (state: ToolkitState, context: CompileContext): Comp
   let currentId = FIRST_RULE_ID;
   const nextId = () => currentId++;
 
+  const activeTab = context.tabs.find((tab) => tab.id === context.activeTabId) ?? null;
+  const placeholders: PlaceholderContext = { tabUrl: activeTab?.url ?? null, now: Date.now() };
+
   const enabledProfiles = state.profiles.filter((profile) => profile.enabled);
   const rules = [
-    ...compileProfileRules(enabledProfiles, context, nextId, labels, diagnostics),
+    ...compileProfileRules(enabledProfiles, context, placeholders, nextId, labels, diagnostics),
     ...compileCorsRules(state.cors, context, nextId, labels, diagnostics),
     ...compileUserAgentRule(state.userAgent, context, nextId, labels, diagnostics),
     ...compileTrafficRules(state, context, nextId, labels, diagnostics),

@@ -6,8 +6,8 @@ Extension de Chrome (Manifest V3) que reemplaza a ModHeader + Cookie-Editor + Ta
 "Allow CORS" en una sola herramienta, pensada para el dia a dia de desarrollo.
 
 - **Headers**: perfiles de headers de request y response, con `set` / `append` / `remove`, varios
-  perfiles activos a la vez y alcance por dominio, filtro de URL, tipo de recurso o solo la pestaña
-  activa.
+  perfiles activos a la vez, alcance por dominio, filtro de URL, tipo de recurso o solo la pestaña
+  activa, y valores dinamicos (`{{uuid}}`, `{{timestamp}}`, `{{tabUrl}}`, …).
 - **Reglas de trafico**: bloquear, redirigir (con regex y grupos capturados) o mockear una URL con
   status, headers, body y delay a medida.
 - **CORS**: un switch que reescribe `Access-Control-Allow-*`, con opcion de reflejar el origen real
@@ -94,6 +94,9 @@ practica: el CSS se aplica al cargar la pagina, no al instante de guardarlo.
   mocks: solo lo que pide su JavaScript. Se cortan a los 20.000 caracteres y se pegan a la entrada
   del log por URL + metodo, asi que dos requests identicas en vuelo pueden cruzarse.
 - Un nombre de header invalido segun RFC 7230 se ignora y queda avisado en Resumen y en Ajustes.
+- Los valores dinamicos de un header se congelan al compilar las reglas, no se resuelven por request:
+  DNR es declarativo. Se recalculan al guardar un cambio, al cambiar de pestaña si el valor depende de
+  ella y al arrancar el navegador.
 - El inspector de diseño solo entra en el frame principal, y las variables `:root` de hojas de
   estilo cross-origin no se pueden leer. El cuentagotas depende de la API `EyeDropper`.
 

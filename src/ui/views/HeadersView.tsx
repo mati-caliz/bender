@@ -4,6 +4,7 @@ import { downloadJson } from '@/lib/download';
 import { createHeaderEntry, createProfile } from '@/lib/factories';
 import { createId } from '@/lib/ids';
 import { parseProfiles } from '@/lib/import';
+import { PLACEHOLDERS } from '@/lib/placeholders';
 import { describeScope } from '@/lib/scope';
 import { Icon } from '@/ui/components/Icon';
 import { ImportDialog } from '@/ui/components/ImportDialog';
@@ -389,6 +390,23 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {selected ? (
+        <Card title="Valores dinamicos">
+          <p className="text-small text-muted" style={{ margin: '0 0 8px' }}>
+            En el valor de un header podes escribir estos marcadores. Se resuelven cuando el motor recompila las
+            reglas (al guardar un cambio, al cambiar de pestaña o al arrancar el navegador), no en cada request.
+          </p>
+          <div style={{ display: 'grid', gap: 4 }}>
+            {PLACEHOLDERS.map((placeholder) => (
+              <div key={placeholder.name} className="row" style={{ gap: 8 }}>
+                <code className="text-small">{`{{${placeholder.name}}}`}</code>
+                <span className="text-small text-muted">{placeholder.description}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
       ) : null}
 
       {selected ? (

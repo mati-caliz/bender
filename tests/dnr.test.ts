@@ -131,8 +131,8 @@ describe('compileRules con CORS', () => {
     const compiled = compileRules(state, {
       activeTabId: 1,
       tabs: [
-        { id: 1, origin: 'https://uno.com' },
-        { id: 2, origin: 'https://dos.com' },
+        { id: 1, origin: 'https://uno.com', url: 'https://uno.com/a' },
+        { id: 2, origin: 'https://dos.com', url: 'https://dos.com/b' },
       ],
     });
     expect(compiled.rules).toHaveLength(2);
@@ -388,5 +388,82 @@ describe('compileRules con metodos e iniciador', () => {
 
     expect(rule?.condition.requestMethods).toBeUndefined();
     expect(rule?.condition.initiatorDomains).toBeUndefined();
+  });
+});
+
+describe('compileRules con valores dinamicos', () => {
+  const tabContext: CompileContext = {
+    activeTabId: 1,
+    tabs: [{ id: 1, origin: 'https://app.local', url: 'https://app.local/panel?x=1' }],
+  };
+
+  it('resuelve los marcadores de pestaña y de tiempo', () => {
+    const state = stateWith({
+      profiles: [
+        profileWith({
+          requestHeaders: [
+            header('x-origen', '{{tabOrigin}}'),
+            header('x-host', '{{tabHostname}}'),
+            header('x-url', '{{tabUrl}}'),
+            header('x-unix', '{{unix}}'),
+          ],
+        }),
+      ],
+    });
+    const [rule] = compileRules(state, tabContext).rules;
+    const values = rule?.action.requestHeaders?.map((entry) => entry.value);
+
+    expect(values?.[0]).toBe('https://app.local');
+    expect(values?.[1]).toBe('app.local');
+    expect(values?.[2]).toBe('https://app.local/panel?x=1');
+    expect(values?.[3]).toMatch(/^\d+$/);
+  });
+
+  it('genera un uuid distinto por ocurrencia', () => {
+    const state = stateWith({
+      profiles: [profileWith({ requestHeaders: [header('x-par', '{{uuid}}|{{uuid}}')] })],
+    });
+    const [rule] = compileRules(state, tabContext).rules;
+    const [primero, segundo] = (rule?.action.requestHeaders?.[0]?.value ?? '').split('|');
+
+    expect(primero).toBeTruthy();
+    expect(segundo).toBeTruthy();
+    expect(primero).not.toBe(segundo);
+  });
+
+  it('deja el marcador desconocido tal cual y avisa', () => {
+    const state = stateWith({
+      profiles: [profileWith({ requestHeaders: [header('x-test', '{{noExiste}}')] })],
+    });
+    const compiled = compileRules(state, tabContext);
+
+    expect(compiled.rules[0]?.action.requestHeaders?.[0]?.value).toBe('{{noExiste}}');
+    expect(compiled.diagnostics.some((diagnostic) => diagnostic.message.includes('noExiste'))).toBe(true);
+  });
+
+  it('vacia los marcadores de pestaña cuando no hay pestaña activa y avisa', () => {
+    const state = stateWith({
+      profiles: [profileWith({ requestHeaders: [header('x-url', 'pre-{{tabUrl}}-post')] })],
+    });
+    const compiled = compileRules(state, EMPTY_CONTEXT);
+
+    expect(compiled.rules[0]?.action.requestHeaders?.[0]?.value).toBe('pre--post');
+    expect(compiled.diagnostics.some((diagnostic) => diagnostic.message.includes('tabUrl'))).toBe(true);
+  });
+
+  it('obliga a recompilar por pestaña si un header usa un marcador de pestaña', () => {
+    const state = stateWith({
+      profiles: [profileWith({ requestHeaders: [header('x-url', '{{tabUrl}}')] })],
+    });
+
+    expect(dependsOnTabs(state)).toBe(true);
+  });
+
+  it('no obliga a recompilar por pestaña con marcadores que no dependen de ella', () => {
+    const state = stateWith({
+      profiles: [profileWith({ requestHeaders: [header('x-id', '{{uuid}}')] })],
+    });
+
+    expect(dependsOnTabs(state)).toBe(false);
   });
 });

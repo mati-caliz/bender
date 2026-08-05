@@ -32,7 +32,7 @@ const collectTabOrigins = async (): Promise<TabOrigin[]> => {
   for (const tab of tabs) {
     if (typeof tab.id !== 'number' || !tab.url || !HTTP_URL_PATTERN.test(tab.url)) continue;
     try {
-      origins.push({ id: tab.id, origin: new URL(tab.url).origin });
+      origins.push({ id: tab.id, origin: new URL(tab.url).origin, url: tab.url });
     } catch {
       continue;
     }
