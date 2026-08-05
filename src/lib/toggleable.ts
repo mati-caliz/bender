@@ -32,6 +32,12 @@ export const saveDisabledMap = async <TItem>(
   await chrome.storage.local.set({ [storageKey]: all });
 };
 
+export const withoutKey = <TItem>(map: Record<string, TItem>, key: string): Record<string, TItem> => {
+  const next = { ...map };
+  delete next[key];
+  return next;
+};
+
 export const computeToggleRows = <TItem>(
   liveItems: TItem[],
   disabledMap: Record<string, TItem>,

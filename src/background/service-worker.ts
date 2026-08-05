@@ -1,5 +1,6 @@
 import { ENGINE_STATUS_KEY, STORAGE_KEY } from '@/lib/constants';
 import { compileRules, type TabOrigin } from '@/lib/dnr';
+import { errorMessage } from '@/lib/errors';
 import { createProfile } from '@/lib/factories';
 import type { ExtensionMessage } from '@/lib/messages';
 import { publishMocks } from '@/lib/mocks';
@@ -70,7 +71,7 @@ const applyEngine = async (): Promise<EngineStatus> => {
   } catch (error) {
     diagnostics.push({
       level: 'error',
-      message: `No se pudieron aplicar las reglas: ${error instanceof Error ? error.message : 'error desconocido'}`,
+      message: `No se pudieron aplicar las reglas: ${errorMessage(error, 'error desconocido')}`,
     });
     await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: existing.map((rule) => rule.id) });
   }

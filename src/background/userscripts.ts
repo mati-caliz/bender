@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { sanitizeMatchPatterns, urlMatchesPatterns } from '@/lib/match-patterns';
 import { type NavigatorSpoofRegistration, navigatorSpoofRegistration } from '@/lib/navigator-spoof';
 import type { ToolkitState, UserScript, UserScriptsStatus } from '@/types';
@@ -64,7 +65,7 @@ export const syncUserScripts = async (state: ToolkitState): Promise<UserScriptsS
     return {
       supported: true,
       registeredCount: 0,
-      error: error instanceof Error ? error.message : 'No se pudieron registrar los userscripts.',
+      error: errorMessage(error, 'No se pudieron registrar los userscripts.'),
     };
   }
 };

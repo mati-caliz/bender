@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from 'react';
 import { readFileAsText } from '@/lib/download';
+import { errorMessage } from '@/lib/errors';
 import { Button, Dialog, Notice } from '@/ui/components/primitives';
 
 export type ImportMode = 'replace' | 'append';
@@ -27,7 +28,7 @@ export const ImportDialog = ({ title, description, allowAppend = true, onClose, 
       onImport(text, mode);
       onClose();
     } catch (importError) {
-      setError(importError instanceof Error ? importError.message : 'No se pudo importar.');
+      setError(errorMessage(importError, 'No se pudo importar.'));
     }
   };
 

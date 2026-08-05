@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DISABLED_COOKIES_KEY } from '@/lib/constants';
+import { errorMessage } from '@/lib/errors';
 import type { ImportedCookie } from '@/lib/import';
-import { computeToggleRows, loadDisabledMap, saveDisabledMap } from '@/lib/toggleable';
+import { computeToggleRows, loadDisabledMap, saveDisabledMap, withoutKey } from '@/lib/toggleable';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
 import type { ToggleRow } from '@/types';
 
@@ -93,7 +94,7 @@ export const useCookies = (activeTab: ActiveTab): CookiesController => {
       .catch(() => chrome.cookies.getAll({ url: activeTab.url }))
       .then((cookies) => setLiveCookies(cookies.map(toSnapshot)))
       .catch((cookieError: unknown) => {
-        setError(cookieError instanceof Error ? cookieError.message : 'No se pudieron leer las cookies.');
+        setError(errorMessage(cookieError, 'No se pudieron leer las cookies.'));
         setLiveCookies([]);
       });
   }, [activeTab.injectable, activeTab.url, domain]);
@@ -108,35 +109,37 @@ export const useCookies = (activeTab: ActiveTab): CookiesController => {
     [domain]
   );
 
-  const toggle = useCallback(
-    async (row: ToggleRow<CookieSnapshot>, enabled: boolean) => {
+  const runAndReload = useCallback(
+    async (fallbackMessage: string, action: () => Promise<void>) => {
       try {
-        if (enabled) {
-          await chrome.cookies.set(toSetDetails(row.item, domain));
-          const next = { ...disabled };
-          delete next[row.key];
-          await persistDisabled(next);
-        } else {
-          await persistDisabled({ ...disabled, [row.key]: row.item });
-          await chrome.cookies.remove(toRemoveDetails(row.item, domain));
-        }
+        await action();
         reload();
-      } catch (toggleError) {
-        setError(toggleError instanceof Error ? toggleError.message : 'No se pudo cambiar la cookie.');
+      } catch (actionError) {
+        setError(errorMessage(actionError, fallbackMessage));
       }
     },
-    [disabled, domain, persistDisabled, reload]
+    [reload]
+  );
+
+  const toggle = useCallback(
+    async (row: ToggleRow<CookieSnapshot>, enabled: boolean) =>
+      runAndReload('No se pudo cambiar la cookie.', async () => {
+        if (enabled) {
+          await chrome.cookies.set(toSetDetails(row.item, domain));
+          await persistDisabled(withoutKey(disabled, row.key));
+          return;
+        }
+        await persistDisabled({ ...disabled, [row.key]: row.item });
+        await chrome.cookies.remove(toRemoveDetails(row.item, domain));
+      }),
+    [disabled, domain, persistDisabled, runAndReload]
   );
 
   const save = useCallback(
-    async (original: CookieSnapshot | null, next: CookieSnapshot, wasOff: boolean) => {
-      try {
+    async (original: CookieSnapshot | null, next: CookieSnapshot, wasOff: boolean) =>
+      runAndReload('No se pudo guardar la cookie.', async () => {
         if (wasOff && original) {
-          const map = { ...disabled };
-          delete map[cookieKeyOf(original)];
-          map[cookieKeyOf(next)] = next;
-          await persistDisabled(map);
-          reload();
+          await persistDisabled({ ...withoutKey(disabled, cookieKeyOf(original)), [cookieKeyOf(next)]: next });
           return;
         }
 
@@ -145,41 +148,30 @@ export const useCookies = (activeTab: ActiveTab): CookiesController => {
           (original.name !== next.name || original.domain !== next.domain || original.path !== next.path);
         if (identityChanged && original) await chrome.cookies.remove(toRemoveDetails(original, domain));
         await chrome.cookies.set(toSetDetails(next, domain));
-        reload();
-      } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : 'No se pudo guardar la cookie.');
-      }
-    },
-    [disabled, domain, persistDisabled, reload]
+      }),
+    [disabled, domain, persistDisabled, runAndReload]
   );
 
   const remove = useCallback(
-    async (cookie: CookieSnapshot, wasOff: boolean) => {
-      try {
+    async (cookie: CookieSnapshot, wasOff: boolean) =>
+      runAndReload('No se pudo borrar la cookie.', async () => {
         if (wasOff) {
-          const map = { ...disabled };
-          delete map[cookieKeyOf(cookie)];
-          await persistDisabled(map);
-        } else {
-          await chrome.cookies.remove(toRemoveDetails(cookie, domain));
+          await persistDisabled(withoutKey(disabled, cookieKeyOf(cookie)));
+          return;
         }
-        reload();
-      } catch (removeError) {
-        setError(removeError instanceof Error ? removeError.message : 'No se pudo borrar la cookie.');
-      }
-    },
-    [disabled, domain, persistDisabled, reload]
+        await chrome.cookies.remove(toRemoveDetails(cookie, domain));
+      }),
+    [disabled, domain, persistDisabled, runAndReload]
   );
 
-  const removeAll = useCallback(async () => {
-    try {
-      await Promise.all(liveCookies.map((cookie) => chrome.cookies.remove(toRemoveDetails(cookie, domain))));
-      await persistDisabled({});
-      reload();
-    } catch (removeError) {
-      setError(removeError instanceof Error ? removeError.message : 'No se pudieron borrar las cookies.');
-    }
-  }, [domain, liveCookies, persistDisabled, reload]);
+  const removeAll = useCallback(
+    async () =>
+      runAndReload('No se pudieron borrar las cookies.', async () => {
+        await Promise.all(liveCookies.map((cookie) => chrome.cookies.remove(toRemoveDetails(cookie, domain))));
+        await persistDisabled({});
+      }),
+    [domain, liveCookies, persistDisabled, runAndReload]
+  );
 
   const importCookies = useCallback(
     async (cookies: ImportedCookie[]) => {

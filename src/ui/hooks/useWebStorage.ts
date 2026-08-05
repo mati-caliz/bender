@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DISABLED_STORAGE_KEY } from '@/lib/constants';
-import { computeToggleRows, loadDisabledMap, saveDisabledMap } from '@/lib/toggleable';
+import { errorMessage } from '@/lib/errors';
+import { computeToggleRows, loadDisabledMap, saveDisabledMap, withoutKey } from '@/lib/toggleable';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
 import type { StorageArea, StoredItem, ToggleRow } from '@/types';
 
@@ -73,7 +74,7 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
       .then((result) => setItems(result ?? []))
       .catch((readError: unknown) => {
         setItems([]);
-        setError(readError instanceof Error ? readError.message : 'No se pudo leer el storage de la pagina.');
+        setError(errorMessage(readError, 'No se pudo leer el storage de la pagina.'));
       });
   }, [activeTab.injectable, area, runInPage, scope]);
 
@@ -87,74 +88,65 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
     [scope]
   );
 
-  const toggle = useCallback(
-    async (row: ToggleRow<StoredItem>, enabled: boolean) => {
+  const runAndReload = useCallback(
+    async (fallbackMessage: string, action: () => Promise<void>) => {
       try {
-        if (enabled) {
-          await runInPage(pageSet, [area, row.item.key, row.item.value]);
-          const next = { ...disabled };
-          delete next[row.key];
-          await persistDisabled(next);
-        } else {
-          await persistDisabled({ ...disabled, [row.key]: row.item });
-          await runInPage(pageRemove, [area, row.item.key]);
-        }
+        await action();
         reload();
-      } catch (toggleError) {
-        setError(toggleError instanceof Error ? toggleError.message : 'No se pudo cambiar el item.');
+      } catch (actionError) {
+        setError(errorMessage(actionError, fallbackMessage));
       }
     },
-    [area, disabled, persistDisabled, reload, runInPage]
+    [reload]
+  );
+
+  const toggle = useCallback(
+    async (row: ToggleRow<StoredItem>, enabled: boolean) =>
+      runAndReload('No se pudo cambiar el item.', async () => {
+        if (enabled) {
+          await runInPage(pageSet, [area, row.item.key, row.item.value]);
+          await persistDisabled(withoutKey(disabled, row.key));
+          return;
+        }
+        await persistDisabled({ ...disabled, [row.key]: row.item });
+        await runInPage(pageRemove, [area, row.item.key]);
+      }),
+    [area, disabled, persistDisabled, runAndReload, runInPage]
   );
 
   const save = useCallback(
-    async (originalKey: string | null, item: StoredItem, wasOff: boolean) => {
-      try {
+    async (originalKey: string | null, item: StoredItem, wasOff: boolean) =>
+      runAndReload('No se pudo guardar el item.', async () => {
         if (wasOff && originalKey !== null) {
-          const map = { ...disabled };
-          delete map[originalKey];
-          map[item.key] = item;
-          await persistDisabled(map);
-          reload();
+          await persistDisabled({ ...withoutKey(disabled, originalKey), [item.key]: item });
           return;
         }
         if (originalKey !== null && originalKey !== item.key) await runInPage(pageRemove, [area, originalKey]);
         await runInPage(pageSet, [area, item.key, item.value]);
-        reload();
-      } catch (saveError) {
-        setError(saveError instanceof Error ? saveError.message : 'No se pudo guardar el item.');
-      }
-    },
-    [area, disabled, persistDisabled, reload, runInPage]
+      }),
+    [area, disabled, persistDisabled, runAndReload, runInPage]
   );
 
   const remove = useCallback(
-    async (item: StoredItem, wasOff: boolean) => {
-      try {
+    async (item: StoredItem, wasOff: boolean) =>
+      runAndReload('No se pudo borrar el item.', async () => {
         if (wasOff) {
-          const map = { ...disabled };
-          delete map[item.key];
-          await persistDisabled(map);
-        } else {
-          await runInPage(pageRemove, [area, item.key]);
+          await persistDisabled(withoutKey(disabled, item.key));
+          return;
         }
-        reload();
-      } catch (removeError) {
-        setError(removeError instanceof Error ? removeError.message : 'No se pudo borrar el item.');
-      }
-    },
-    [area, disabled, persistDisabled, reload, runInPage]
+        await runInPage(pageRemove, [area, item.key]);
+      }),
+    [area, disabled, persistDisabled, runAndReload, runInPage]
   );
 
-  const clear = useCallback(async () => {
-    try {
-      await runInPage(pageClear, [area]);
-      await persistDisabled({});
-      reload();
-    } catch (clearError) {
-      setError(clearError instanceof Error ? clearError.message : 'No se pudo vaciar el storage.');
-    }
-  }, [area, persistDisabled, reload, runInPage]);
+  const clear = useCallback(
+    async () =>
+      runAndReload('No se pudo vaciar el storage.', async () => {
+        await runInPage(pageClear, [area]);
+        await persistDisabled({});
+      }),
+    [area, persistDisabled, runAndReload, runInPage]
+  );
 
   const importItems = useCallback(
     async (incoming: StoredItem[]) => {

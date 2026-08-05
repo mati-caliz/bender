@@ -1,4 +1,5 @@
 import { ALL_RESOURCE_TYPES } from '@/lib/constants';
+import { escapeForRegExp } from '@/lib/regexp';
 import type { ResourceType, Scope } from '@/types';
 
 const DOMAIN_PATTERN = /^[a-z0-9.-]+$/;
@@ -78,8 +79,6 @@ export const isScopeRestricted = (scope: Scope): boolean =>
   scope.excludeDomains.length > 0 ||
   scope.urlFilter.trim().length > 0 ||
   scope.resourceTypes.length > 0;
-
-const escapeForRegExp = (value: string): string => value.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 
 const URL_FILTER_WILDCARD = '*';
 const URL_FILTER_SEPARATOR = '^';

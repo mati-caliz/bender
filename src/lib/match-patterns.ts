@@ -1,4 +1,6 @@
-const MATCH_PATTERN = /^(\*|https?|file):\/\/(\*|(?:\*\.)?[^/*]+)?(\/.*)$/;
+import { escapeForRegExp } from '@/lib/regexp';
+
+const MATCH_PATTERN =/^(\*|https?|file):\/\/(\*|(?:\*\.)?[^/*]+)?(\/.*)$/;
 const ALL_URLS = '<all_urls>';
 
 export const isValidMatchPattern = (pattern: string): boolean =>
@@ -12,8 +14,6 @@ export const parseMatchPatterns = (input: string): string[] =>
     .split(/[\s,]+/)
     .map((pattern) => pattern.trim())
     .filter(Boolean);
-
-const escapeForRegExp = (value: string): string => value.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 
 export const matchPatternToRegExp = (pattern: string): RegExp | null => {
   if (pattern === ALL_URLS) return /^(https?|file):\/\/.*$/;

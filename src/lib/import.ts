@@ -1,11 +1,9 @@
 import { PROFILE_COLORS, createEmptyScope } from '@/lib/constants';
 import { createHeaderEntry } from '@/lib/factories';
 import { createId } from '@/lib/ids';
+import { isRecord } from '@/lib/records';
 import { sanitizeDomainList } from '@/lib/scope';
 import type { HeaderEntry, Profile, StoredItem } from '@/types';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const asString = (value: unknown, fallback = ''): string => (typeof value === 'string' ? value : fallback);
 

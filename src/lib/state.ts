@@ -6,10 +6,8 @@ import {
   STORAGE_KEY,
   createDefaultState,
 } from '@/lib/constants';
+import { isRecord } from '@/lib/records';
 import type { ToolkitState } from '@/types';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const mergeSection = <T extends object>(defaults: T, stored: unknown): T =>
   isRecord(stored) ? { ...defaults, ...(stored as Partial<T>) } : defaults;
