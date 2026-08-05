@@ -65,8 +65,12 @@ Sos responsable del código que ejecutás con esta función, igual que con la co
 
 ## Cambios
 
-Si esta política cambia, la fecha de arriba se actualiza y el cambio queda registrado en el
-historial del repositorio.
+Si esta política cambia, se actualiza la fecha de arriba y la versión publicada en la dirección
+donde la estés leyendo. Los cambios de fondo se anuncian además en la descripción de la
+extensión en la Chrome Web Store.
+
+> Este archivo es la fuente; lo que se publica es `store/privacy.html`, que tiene el mismo
+> contenido. Si tocás uno, tocá el otro.
 
 ## Contacto
 

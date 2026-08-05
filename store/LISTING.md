@@ -203,6 +203,11 @@ Herramienta de desarrollo web que permite inspeccionar y modificar headers HTTP,
 
 | Campo | Valor |
 |---|---|
-| **Política de privacidad** | *(obligatorio — publicar `PRIVACY.md` y pegar la URL aquí)* |
-| **Sitio web** | URL del repositorio |
+| **Política de privacidad** | `https://matiascaliz.com.ar/bender/privacidad` |
+| **Sitio web** | `https://matiascaliz.com.ar` *(opcional)* |
 | **Correo de soporte** | mati-caliz |
+
+El campo **Sitio web** es opcional. No pongas el repositorio: es privado, así que el enlace
+daría 404 al revisor y a cualquier usuario, que es peor que dejarlo vacío. Tu página personal
+sirve bien, y de paso le da al revisor una identidad real detrás de una extensión con permisos
+sensibles.

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de privacidad — Bender</title>
+<meta name="description" content="Política de privacidad de Bender, la extensión de Chrome para desarrollo web. Bender no recolecta ni transmite ningún dato.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f8fb;
+    --surface: #ffffff;
+    --ink: #16192b;
+    --muted: #5b6178;
+    --line: #e3e6ef;
+    --accent: #4f46e5;
+    --code-bg: #eef0f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0d16;
+      --surface: #121728;
+      --ink: #e7e9f3;
+      --muted: #9aa1bb;
+      --line: #232a42;
+      --accent: #818cf8;
+      --code-bg: #1b2237;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 48px 24px 96px; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 40px; }
+  .mark {
+    width: 44px; height: 44px; border-radius: 12px; flex: none;
+    background: linear-gradient(160deg, #6366f1, #0ea5e9);
+    display: grid; place-items: center;
+    color: #fff; font: 700 18px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .name { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
+  .kicker { color: var(--muted); font-size: 14px; }
+  h1 { font-size: 30px; line-height: 1.25; letter-spacing: -0.02em; margin: 0 0 8px; }
+  .updated { color: var(--muted); font-size: 14px; margin: 0 0 36px; }
+  h2 {
+    font-size: 19px; letter-spacing: -0.01em; margin: 40px 0 12px;
+    padding-top: 24px; border-top: 1px solid var(--line);
+  }
+  p { margin: 0 0 16px; }
+  ul { margin: 0 0 16px; padding-left: 22px; }
+  li { margin-bottom: 8px; }
+  strong { font-weight: 650; }
+  code {
+    background: var(--code-bg); padding: 2px 6px; border-radius: 5px;
+    font: 0.88em ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .lead {
+    background: var(--surface); border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 20px 22px; margin-bottom: 8px;
+  }
+  .lead p:last-child { margin-bottom: 0; }
+  .scroll { overflow-x: auto; margin: 0 0 16px; }
+  table {
+    width: 100%; border-collapse: collapse; min-width: 560px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  }
+  th {
+    text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--line); font-weight: 600;
+  }
+  td { padding: 13px 14px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 15px; }
+  tr:last-child td { border-bottom: 0; }
+  a { color: var(--accent); }
+  footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark">&gt;_</div>
+    <div>
+      <div class="name">Bender</div>
+      <div class="kicker">Extensión de Chrome para desarrollo web</div>
+    </div>
+  </header>
+
+  <h1>Política de privacidad</h1>
+  <p class="updated">Última actualización: 5 de agosto de 2026</p>
+
+  <p>Bender es una extensión de Chrome para desarrollo web. Esta política explica qué datos
+  maneja la extensión y qué hace con ellos.</p>
+
+  <h2>Resumen</h2>
+
+  <div class="lead">
+    <p><strong>Bender no recolecta, transmite, vende ni comparte ningún dato.</strong> No hay
+    servidores de Bender. No hay analytics, telemetría, crash reporting ni identificadores de
+    usuario. La extensión no realiza ninguna petición de red hacia ningún servicio externo.</p>
+    <p>Todo lo que Bender procesa ocurre dentro de tu navegador y se queda ahí.</p>
+  </div>
+
+  <h2>Qué datos procesa la extensión</h2>
+
+  <p>Para cumplir su función, Bender accede localmente a lo siguiente:</p>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Dato</th><th>Para qué</th><th>Dónde queda</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Headers de request y response</td>
+          <td>Mostrarlos en el log de tráfico y aplicar las reglas que vos definís</td>
+          <td>En memoria del service worker; se descarta al cerrar el navegador</td>
+        </tr>
+        <tr>
+          <td>URLs, métodos y códigos de estado</td>
+          <td>Mostrar el log de tráfico de la pestaña</td>
+          <td>En memoria; el log es volátil y tiene un máximo de entradas configurable</td>
+        </tr>
+        <tr>
+          <td>Cuerpos de request y response</td>
+          <td>Solo si activás explícitamente la captura de cuerpos</td>
+          <td>En memoria, junto con la entrada del log</td>
+        </tr>
+        <tr>
+          <td>Cookies del sitio activo</td>
+          <td>Ver, editar, crear, borrar y guardar snapshots por dominio</td>
+          <td>Las cookies siguen viviendo en Chrome; los snapshots se guardan en el almacenamiento local de la extensión</td>
+        </tr>
+        <tr>
+          <td><code>localStorage</code> y <code>sessionStorage</code> del origen activo</td>
+          <td>Ver y editar sus claves</td>
+          <td>Siguen viviendo en el sitio; Bender no los copia a ningún lado</td>
+        </tr>
+        <tr>
+          <td>Tu configuración (perfiles de headers, reglas, entornos, scripts, snapshots)</td>
+          <td>Que persista entre sesiones</td>
+          <td><code>chrome.storage.local</code>, solo en tu equipo</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Lo que Bender NO hace</h2>
+
+  <ul>
+    <li>No envía nada a ningún servidor, propio ni de terceros.</li>
+    <li>No usa <code>chrome.storage.sync</code>, así que tu configuración no se replica a tu cuenta de Google.</li>
+    <li>No incluye analytics, tracking pixels, SDKs de terceros ni bibliotecas cargadas de forma remota.</li>
+    <li>No lee ni transmite credenciales, contraseñas ni información de pago.</li>
+    <li>No modifica el tráfico salvo con las reglas que vos creás y activás.</li>
+    <li>No ejecuta código descargado de internet. Todo el código está en el paquete de la extensión.</li>
+  </ul>
+
+  <h2>Scripts de usuario</h2>
+
+  <p>Bender permite ejecutar JavaScript y CSS que <strong>vos escribís</strong> en los sitios que
+  <strong>vos elegís</strong>, mediante la API <code>chrome.userScripts</code>. Estos scripts:</p>
+
+  <ul>
+    <li>Los escribís y los activás vos, uno por uno.</li>
+    <li>Se guardan únicamente en tu equipo.</li>
+    <li>No se comparten, sincronizan ni suben a ningún lado.</li>
+    <li>No vienen scripts precargados ni se descargan scripts de ningún repositorio.</li>
+  </ul>
+
+  <p>Sos responsable del código que ejecutás con esta función, igual que con la consola del navegador.</p>
+
+  <h2>Permisos y por qué existen</h2>
+
+  <ul>
+    <li><strong><code>declarativeNetRequest</code> / <code>declarativeNetRequestFeedback</code></strong>:
+      aplicar las reglas de headers, bloqueo y redirección, y saber qué regla afectó a cada request.</li>
+    <li><strong><code>webRequest</code></strong>: observar el tráfico para el log. Se usa en modo
+      lectura; Bender no usa <code>webRequestBlocking</code> y no puede alterar el tráfico por esta vía.</li>
+    <li><strong><code>storage</code></strong>: guardar tu configuración localmente.</li>
+    <li><strong><code>cookies</code></strong>: la función de gestión de cookies.</li>
+    <li><strong><code>scripting</code></strong>: leer y escribir <code>localStorage</code>/<code>sessionStorage</code>
+      del origen activo y dibujar el inspector de diseño sobre la página.</li>
+    <li><strong><code>userScripts</code></strong>: ejecutar los scripts que vos escribís.</li>
+    <li><strong><code>tabs</code></strong>: saber cuál es la pestaña activa, para acotar reglas y
+      mostrar el contexto correcto.</li>
+    <li><strong><code>sidePanel</code></strong>: abrir la interfaz en el panel lateral.</li>
+    <li><strong><code>&lt;all_urls&gt;</code></strong>: Bender es una herramienta de desarrollo de
+      propósito general; no puede saber de antemano en qué dominios trabajás. Ningún dato de esos
+      sitios sale de tu navegador.</li>
+  </ul>
+
+  <h2>Cambios</h2>
+
+  <p>Si esta política cambia, se actualiza la fecha de arriba y la versión publicada en esta misma
+  dirección. Los cambios de fondo se anuncian además en la descripción de la extensión en la
+  Chrome Web Store.</p>
+
+  <h2>Contacto</h2>
+
+  <p>Por dudas sobre privacidad: <a href="mailto:mati-caliz">mati-caliz</a></p>
+
+  <footer>
+    Bender · Política de privacidad · Última actualización 5 de agosto de 2026
+  </footer>
+
+</div>
+</body>
+</html>

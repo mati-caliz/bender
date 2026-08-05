@@ -27,18 +27,42 @@
 
 ### Publicar la política de privacidad
 
-La opción más rápida es GitHub Pages sobre el mismo repo:
+El repo es privado, así que GitHub Pages no sirve (Pages sobre repos privados es una función
+de los planes pagos). Se cuelga de **matiascaliz.com.ar**, que ya es un dominio propio con
+certificado:
 
-```bash
-git add store/ scripts/zip.mjs package.json
-git commit -m "Material de publicacion para Chrome Web Store"
-git push
+```
+https://matiascaliz.com.ar/bender/privacidad
 ```
 
-Después, en Settings → Pages del repo, activá Pages desde la rama `main` y la carpeta raíz.
-La URL queda: `https://<usuario>.github.io/bender/store/PRIVACY`
+Va ahí y no en gastronova.com.ar: para el revisor, la política de una herramienta de desarrollo
+firmada por su autor cierra sola, mientras que alojarla bajo la marca de un negocio de
+gastronomía es justo el tipo de incoherencia que dispara una pregunta por mail.
 
-Alternativa sin Pages: pegar el contenido en un Gist público y usar esa URL.
+La página lista para servir es `store/privacy.html`: autocontenida, sin una sola request
+externa, y se adapta a tema claro y oscuro. `store/PRIVACY.md` es la fuente en markdown; si
+tocás uno, tocá el otro.
+
+Desde la raíz del repo, reemplazando `<IP>` por la del VPS:
+
+```bash
+ssh root@<IP> 'mkdir -p /var/www/bender'
+scp store/privacy.html root@<IP>:/var/www/bender/
+```
+
+Después, en el server block que ya atiende `matiascaliz.com.ar` en el 443, pegar el bloque
+`location` que está en `store/nginx-bender.conf` y recargar:
+
+```bash
+ssh root@<IP> 'nginx -t && systemctl reload nginx'
+```
+
+No hace falta certificado nuevo: el que ya tiene el dominio cubre la ruta. Si el dominio no
+está servido desde este VPS, el mismo archivo trae un `server { }` completo para levantar
+`bender.matiascaliz.com.ar` como subdominio.
+
+Antes de pegar la URL en el dashboard, abrila desde afuera del servidor y confirmá que dé 200
+por HTTPS y sin advertencia de certificado.
 
 ---
 
@@ -160,5 +184,19 @@ directo del archivo — no los pases por un editor que reinterprete el encoding.
 ### 3. Source maps incluidos
 
 El ZIP incluye los `.map` (unos 750 KB de los 999 KB). Es deliberado: con permisos sensibles
-como estos, que el revisor pueda leer el código original agiliza la revisión. Si preferís no
-enviarlos: `npm run zip -- --no-maps`.
+como estos, que el revisor pueda leer el código original agiliza la revisión. Con el repo
+privado esto pesa todavía más: los source maps son lo único que le permite al revisor ver el
+código como lo escribiste. **Dejalos.**
+
+### 4. La URL de la política es infraestructura de la publicación
+
+`https://matiascaliz.com.ar/bender/privacidad` tiene que seguir respondiendo mientras la
+extensión esté publicada. Si el dominio se deja vencer, el VPS se da de baja o una migración
+cambia las rutas, el enlace muere y Google puede bajar la extensión por política de privacidad
+rota — sin más aviso que un mail.
+
+Dos consecuencias prácticas:
+
+- Poné la renovación del dominio en automático.
+- Si algún día rehacés matiascaliz.com.ar, `/bender/privacidad` es una ruta que hay que
+  preservar o redirigir, no una que se pueda borrar.
