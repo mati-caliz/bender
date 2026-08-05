@@ -13,7 +13,8 @@ Extension de Chrome (Manifest V3) que reemplaza a ModHeader + Cookie-Editor + Ta
 - **CORS**: un switch que reescribe `Access-Control-Allow-*`, con opcion de reflejar el origen real
   de la pestaña (lo unico valido cuando la request manda credenciales) y de sacar CSP o
   `X-Frame-Options`.
-- **User-Agent**: presets de mobile, desktop y bots, mas los client hints (`Sec-CH-UA-*`).
+- **User-Agent**: presets de mobile, desktop y bots, los client hints (`Sec-CH-UA-*`) y un switch para
+  pisar tambien `navigator` dentro de la pagina.
 - **Cookies**: ABM completo con todos los atributos, apagado individual, filtro y decodificador de
   JWT inline.
 - **Storage**: lo mismo para `localStorage` y `sessionStorage` del origen activo.
@@ -70,14 +71,19 @@ descomprimidas, que es justo como se usa esta.
 copia completa en `chrome.storage.local`; prenderlo lo restaura tal cual. Como no hay nada vigilando
 en background, si el sitio lo vuelve a crear reaparece con el badge `reaparecio`.
 
+**El spoof de `navigator` viaja como un userscript mas.** Es la unica via que corre codigo propio en
+el mundo MAIN en `document_start` de forma sincronica, antes de que la pagina lea `navigator`. Se
+genera a partir del User-Agent elegido y se re-registra en cada cambio de estado, junto con los
+userscripts del usuario.
+
 **El CSS de los userscripts no usa `chrome.userScripts`.** Esa API solo registra JavaScript, asi que
 los estilos se inyectan con `chrome.scripting.insertCSS` escuchando `tabs.onUpdated`. Consecuencia
 practica: el CSS se aplica al cargar la pagina, no al instante de guardarlo.
 
 ## Limitaciones conocidas
 
-- Suplantar el User-Agent cambia el header, no `navigator.userAgent`. Para los sitios que detectan
-  el dispositivo por JavaScript hay una plantilla de userscript que pisa `navigator`.
+- Pisar `navigator` se registra como userscript por dominio, asi que ignora el filtro de URL y el
+  alcance "solo la pestaña activa" del User-Agent, y necesita el modo desarrollador prendido.
 - El selector nativo de archivos puede cerrar el popup en Linux; para importar conviene el panel
   lateral o la pestaña completa (el cuadro de pegar JSON funciona en los tres).
 - Los mocks no cubren navegacion ni subrecursos; para eso esta el redirect.

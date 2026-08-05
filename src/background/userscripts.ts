@@ -1,4 +1,5 @@
 import { sanitizeMatchPatterns, urlMatchesPatterns } from '@/lib/match-patterns';
+import { type NavigatorSpoofRegistration, navigatorSpoofRegistration } from '@/lib/navigator-spoof';
 import type { ToolkitState, UserScript, UserScriptsStatus } from '@/types';
 
 const REGISTERED_ID_PREFIX = 'bender-';
@@ -25,6 +26,16 @@ const toRegistered = (script: UserScript): chrome.userScripts.RegisteredUserScri
   allFrames: script.allFrames,
 });
 
+const toRegisteredSpoof = (spoof: NavigatorSpoofRegistration): chrome.userScripts.RegisteredUserScript => ({
+  id: spoof.id,
+  matches: spoof.matches,
+  excludeMatches: spoof.excludeMatches,
+  js: [{ code: spoof.code }],
+  runAt: 'document_start',
+  world: 'MAIN',
+  allFrames: true,
+});
+
 export const syncUserScripts = async (state: ToolkitState): Promise<UserScriptsStatus> => {
   if (!isSupported()) {
     return {
@@ -41,12 +52,14 @@ export const syncUserScripts = async (state: ToolkitState): Promise<UserScriptsS
       await chrome.userScripts.unregister({ ids: existing.map((script) => script.id) });
     }
 
-    const scripts = runnableScripts(state, 'javascript')
+    const ownScripts = runnableScripts(state, 'javascript')
       .map(toRegistered)
       .filter((script) => (script.matches ?? []).length > 0);
+    const spoof = navigatorSpoofRegistration(state);
+    const scripts = spoof ? [toRegisteredSpoof(spoof), ...ownScripts] : ownScripts;
 
     if (scripts.length) await chrome.userScripts.register(scripts);
-    return { supported: true, registeredCount: scripts.length, error: null };
+    return { supported: true, registeredCount: ownScripts.length, error: null };
   } catch (error) {
     return {
       supported: true,

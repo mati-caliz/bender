@@ -171,6 +171,7 @@ export const DEFAULT_USER_AGENT_CONFIG: UserAgentConfig = {
   presetId: 'iphone-safari',
   value: USER_AGENT_PRESETS[0]?.value ?? '',
   spoofClientHints: true,
+  spoofNavigator: false,
   scope: createEmptyScope(),
 };
 

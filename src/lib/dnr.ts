@@ -8,7 +8,9 @@ import {
   toDnrHeaderOperation,
   toDnrResourceTypes,
 } from '@/lib/dnr-enums';
+import { navigatorSpoofDiagnostics } from '@/lib/navigator-spoof';
 import { type CompiledCondition, scopeToCondition } from '@/lib/scope';
+import { userAgentTraits } from '@/lib/user-agent-traits';
 import type { CorsConfig, EngineDiagnostic, HeaderEntry, Profile, ToolkitState, UserAgentConfig } from '@/types';
 
 const PROFILE_BASE_PRIORITY = 10;
@@ -220,23 +222,14 @@ const compileCorsRules = (
 };
 
 const clientHintHeaders = (userAgentValue: string): ModifyHeaderSpec[] => {
-  const isMobile = /Mobile|Android|iPhone|iPod/i.test(userAgentValue);
-  const platform = /Android/i.test(userAgentValue)
-    ? 'Android'
-    : /iPhone|iPad|iPod/i.test(userAgentValue)
-      ? 'iOS'
-      : /Macintosh|Mac OS X/i.test(userAgentValue)
-        ? 'macOS'
-        : /Windows/i.test(userAgentValue)
-          ? 'Windows'
-          : 'Linux';
+  const { mobile, platform, chromium } = userAgentTraits(userAgentValue);
 
   const headers: ModifyHeaderSpec[] = [
-    { header: 'sec-ch-ua-mobile', operation: DNR_OPERATION_SET, value: isMobile ? '?1' : '?0' },
+    { header: 'sec-ch-ua-mobile', operation: DNR_OPERATION_SET, value: mobile ? '?1' : '?0' },
     { header: 'sec-ch-ua-platform', operation: DNR_OPERATION_SET, value: `"${platform}"` },
   ];
 
-  if (!/Chrome\/|Chromium\/|Edg\//i.test(userAgentValue)) {
+  if (!chromium) {
     headers.push(
       { header: 'sec-ch-ua', operation: DNR_OPERATION_REMOVE },
       { header: 'sec-ch-ua-full-version-list', operation: DNR_OPERATION_REMOVE },
@@ -269,6 +262,8 @@ const compileUserAgentRule = (
     { header: 'user-agent', operation: DNR_OPERATION_SET, value },
     ...(userAgent.spoofClientHints ? clientHintHeaders(value) : []),
   ];
+
+  diagnostics.push(...navigatorSpoofDiagnostics(userAgent));
 
   const id = nextId();
   labels[id] = 'User-Agent';

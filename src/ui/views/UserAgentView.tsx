@@ -80,10 +80,28 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
           />
           Ajustar tambien los client hints (Sec-CH-UA-Mobile y Sec-CH-UA-Platform)
         </label>
-        <Notice>
-          El User-Agent viaja en la request, pero <code>navigator.userAgent</code> dentro de la pagina sigue siendo el
-          real. Si el sitio detecta el dispositivo por JavaScript, sumale un userscript que pise <code>navigator</code>.
-        </Notice>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={userAgent.spoofNavigator}
+            onChange={(event) => {
+              const spoofNavigator = event.target.checked;
+              mutate((config) => ({ ...config, spoofNavigator }));
+            }}
+          />
+          Pisar tambien <code>navigator</code> dentro de la pagina (userAgent, platform, touch y client hints)
+        </label>
+        {userAgent.spoofNavigator ? (
+          <Notice>
+            El spoof de <code>navigator</code> se registra como userscript en <code>document_start</code>, asi que
+            necesita el modo desarrollador. Se aplica por dominio: ignora el filtro de URL y "solo la pestaña activa".
+          </Notice>
+        ) : (
+          <Notice>
+            El User-Agent viaja en la request, pero <code>navigator.userAgent</code> dentro de la pagina sigue siendo el
+            real. Prendé la opcion de arriba si el sitio detecta el dispositivo por JavaScript.
+          </Notice>
+        )}
       </Card>
 
       <Card title="Alcance">

@@ -76,6 +76,7 @@ export interface UserAgentConfig {
   presetId: string;
   value: string;
   spoofClientHints: boolean;
+  spoofNavigator: boolean;
   scope: Scope;
 }
 
