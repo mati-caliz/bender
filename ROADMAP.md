@@ -290,10 +290,28 @@ referencias que apuntan por id (`selectedProfileId`, los entornos de 3.3).
 
 ### 3.5 Latencia y fallos globales
 
-- [ ] `src/types/index.ts`, `src/lib/dnr.ts` o `src/content/inject.ts`
+- [x] `src/types/index.ts`, `src/lib/chaos.ts`, `src/lib/mocks.ts`, `src/lib/dnr.ts`,
+      `src/content/inject.ts`, `src/ui/views/RulesView.tsx`
 
 Hoy el `delayMs` vive solo adentro de un mock. Sumar una regla de tráfico que solo demore, o que
 falle un porcentaje de las requests, sin tener que inventar un body. Chaos testing casero.
+
+Hecho como una acción `chaos` nueva, con `delayMs`, `failRate` (0-100) y `failStatus`
+(`0` = error de red, cualquier otro = ese status). Va por `inject.ts` y no por DNR, porque DNR no
+sabe demorar; se publica en el `PageConfig` al lado de los mocks y aplica a fetch, XHR y
+`sendBeacon`. Misma limitación documentada que los mocks: solo alcanza lo que pide el JavaScript de
+la página.
+
+El dado se tira **una vez por request** (`resolveChaos`), para que la demora y el fallo sean
+coherentes entre sí. `shouldFail` recibe el random desde afuera para poder testearlo, y trata 0% y
+100% como casos exactos en vez de depender de cómo caiga.
+
+El chaos corre aunque además haya un mock que matchee: demorar o romper un mock también sirve. En
+XHR el fallo con status reusa `simulateXhr` con un mock sintético de cuerpo vacío; el error de red
+despacha `error` + `loadend` con `status` 0. En `sendBeacon`, que es síncrono, solo aplica el fallo
+(devuelve `false`), no la demora.
+
+**Verificación:** `tests/chaos.test.ts`.
 
 ### 3.6 Editor de storage y vista de IndexedDB
 

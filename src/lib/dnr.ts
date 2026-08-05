@@ -326,7 +326,8 @@ const compileTrafficRules = (
   const rules: chrome.declarativeNetRequest.Rule[] = [];
 
   for (const trafficRule of state.trafficRules) {
-    if (!trafficRule.enabled || trafficRule.action.kind === 'mock') continue;
+    // mock y chaos no son declarativos: los aplica inject.ts sobre fetch/XHR.
+    if (!trafficRule.enabled || trafficRule.action.kind === 'mock' || trafficRule.action.kind === 'chaos') continue;
 
     const condition = scopeToCondition(trafficRule.scope, context);
     if (!condition) continue;

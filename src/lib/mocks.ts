@@ -1,6 +1,7 @@
+import { collectChaosDefinitions } from '@/lib/chaos';
 import { isRecord } from '@/lib/records';
 import { requestMatchesScope, type ScopeRequest } from '@/lib/scope';
-import type { MockDefinition, PageConfig, ToolkitState } from '@/types';
+import type { ChaosDefinition, MockDefinition, PageConfig, ToolkitState } from '@/types';
 
 export const MOCKS_STORAGE_KEY = 'benderMocks';
 
@@ -33,13 +34,15 @@ export const findMatchingMock = (mocks: MockDefinition[], request: ScopeRequest)
 
 export const collectPageConfig = (state: ToolkitState): PageConfig => ({
   mocks: collectMockDefinitions(state),
+  chaos: collectChaosDefinitions(state),
   captureBodies: state.globalEnabled && state.network.enabled && state.network.captureBodies,
 });
 
 export const toPageConfig = (stored: unknown): PageConfig => {
-  if (!isRecord(stored)) return { mocks: [], captureBodies: false };
+  if (!isRecord(stored)) return { mocks: [], chaos: [], captureBodies: false };
   return {
     mocks: Array.isArray(stored.mocks) ? (stored.mocks as MockDefinition[]) : [],
+    chaos: Array.isArray(stored.chaos) ? (stored.chaos as ChaosDefinition[]) : [],
     captureBodies: stored.captureBodies === true,
   };
 };

@@ -15,6 +15,8 @@ import type {
 const DEFAULT_MOCK_STATUS = 200;
 const DEFAULT_MOCK_CONTENT_TYPE = 'application/json; charset=utf-8';
 const DEFAULT_MOCK_BODY = '{\n  "ok": true\n}';
+const DEFAULT_CHAOS_DELAY_MS = 1000;
+const DEFAULT_CHAOS_FAIL_STATUS = 500;
 
 export const createHeaderEntry = (overrides: Partial<HeaderEntry> = {}): HeaderEntry => ({
   id: createId(),
@@ -52,6 +54,8 @@ export const createTrafficRuleAction = (kind: TrafficRuleAction['kind']): Traffi
         delayMs: 0,
         headers: [],
       };
+    case 'chaos':
+      return { kind: 'chaos', delayMs: DEFAULT_CHAOS_DELAY_MS, failRate: 0, failStatus: DEFAULT_CHAOS_FAIL_STATUS };
   }
 };
 

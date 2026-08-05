@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MAX_FAIL_RATE, MIN_FAIL_RATE, NETWORK_ERROR_STATUS, describeChaos } from '@/lib/chaos';
 import { CONTENT_TYPE_PRESETS } from '@/lib/constants';
 import { forgetFromEnvironments } from '@/lib/environments';
 import { createHeaderEntry, createTrafficRule } from '@/lib/factories';
@@ -15,6 +16,7 @@ import {
   Field,
   IconButton,
   Notice,
+  Select,
   Switch,
   TextInput,
 } from '@/ui/components/primitives';
@@ -25,17 +27,29 @@ const ACTION_LABELS: Record<TrafficRuleAction['kind'], string> = {
   block: 'Bloqueo',
   redirect: 'Redirect',
   mock: 'Mock',
+  chaos: 'Chaos',
 };
 
 const ACTION_TONES: Record<TrafficRuleAction['kind'], 'danger' | 'warning' | 'info'> = {
   block: 'danger',
   redirect: 'warning',
   mock: 'info',
+  chaos: 'warning',
 };
 
 const MIN_STATUS = 100;
 const MAX_STATUS = 599;
 const DEFAULT_STATUS = 200;
+const MAX_DELAY_MS = 60000;
+
+const FAILURE_OPTIONS = [
+  { value: String(NETWORK_ERROR_STATUS), label: 'Error de red' },
+  { value: '500', label: '500 Server Error' },
+  { value: '503', label: '503 Service Unavailable' },
+  { value: '429', label: '429 Too Many Requests' },
+  { value: '401', label: '401 Unauthorized' },
+  { value: '404', label: '404 Not Found' },
+];
 
 export const RulesView = ({ state, update, activeTab }: ViewProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -104,6 +118,60 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
             />
             Tratar el filtro de URL como expresion regular
           </label>
+        </>
+      );
+    }
+
+    if (rule.action.kind === 'chaos') {
+      const action = rule.action;
+      return (
+        <>
+          <div className="grid-3">
+            <Field label="Delay (ms)" hint="Se suma a toda request que matchee">
+              <TextInput
+                type="number"
+                value={String(action.delayMs)}
+                onChange={(value) => {
+                  const parsed = Number.parseInt(value, 10);
+                  const delayMs = Number.isNaN(parsed) ? 0 : Math.min(Math.max(parsed, 0), MAX_DELAY_MS);
+                  mutateRule(rule.id, (current) =>
+                    current.action.kind === 'chaos' ? { ...current, action: { ...current.action, delayMs } } : current
+                  );
+                }}
+              />
+            </Field>
+            <Field label="Fallos (%)" hint="0 = nunca, 100 = siempre">
+              <TextInput
+                type="number"
+                value={String(action.failRate)}
+                onChange={(value) => {
+                  const parsed = Number.parseInt(value, 10);
+                  const failRate = Number.isNaN(parsed) ? 0 : Math.min(Math.max(parsed, MIN_FAIL_RATE), MAX_FAIL_RATE);
+                  mutateRule(rule.id, (current) =>
+                    current.action.kind === 'chaos' ? { ...current, action: { ...current.action, failRate } } : current
+                  );
+                }}
+              />
+            </Field>
+            <Field label="Como falla">
+              <Select
+                value={String(action.failStatus)}
+                options={FAILURE_OPTIONS}
+                onChange={(value) => {
+                  const failStatus = Number.parseInt(value, 10) || NETWORK_ERROR_STATUS;
+                  mutateRule(rule.id, (current) =>
+                    current.action.kind === 'chaos' ? { ...current, action: { ...current.action, failStatus } } : current
+                  );
+                }}
+              />
+            </Field>
+          </div>
+
+          <Notice tone={action.failRate > 0 || action.delayMs > 0 ? 'info' : 'warning'}>
+            {action.failRate > 0 || action.delayMs > 0
+              ? `Efecto: ${describeChaos(action)}. Solo alcanza a fetch, XHR y sendBeacon que dispare el JavaScript de la pagina.`
+              : 'Con delay 0 y 0% de fallos la regla no hace nada.'}
+          </Notice>
         </>
       );
     }
@@ -286,6 +354,9 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
           <Button small icon="plus" onClick={() => addRule('redirect')}>
             Redirect
           </Button>
+          <Button small icon="plus" title="Demora o hace fallar un porcentaje" onClick={() => addRule('chaos')}>
+            Chaos
+          </Button>
           <Button small variant="primary" icon="plus" onClick={() => addRule('mock')}>
             Mock
           </Button>
@@ -327,7 +398,11 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                 />
                 <Badge tone={ACTION_TONES[rule.action.kind]}>{ACTION_LABELS[rule.action.kind]}</Badge>
                 <span className="item-name">{rule.name}</span>
-                <span className="item-preview">{describeScope(rule.scope)}</span>
+                <span className="item-preview">
+                  {rule.action.kind === 'chaos'
+                    ? `${describeChaos(rule.action)} · ${describeScope(rule.scope)}`
+                    : describeScope(rule.scope)}
+                </span>
                 <IconButton
                   icon="trash"
                   title="Eliminar regla"

@@ -1,3 +1,4 @@
+import { MAX_FAIL_RATE, MIN_FAIL_RATE } from '@/lib/chaos';
 import { ALL_REQUEST_METHODS, ALL_RESOURCE_TYPES, createEmptyScope } from '@/lib/constants';
 import { createId } from '@/lib/ids';
 import { isRecord } from '@/lib/records';
@@ -33,6 +34,8 @@ const asBoolean = (value: unknown, fallback: boolean): boolean => (typeof value 
 
 const asNumber = (value: unknown, fallback: number): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+
+const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
 
 const asStringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
@@ -116,6 +119,13 @@ const coerceTrafficRuleAction = (value: unknown): TrafficRuleAction | null => {
         body: asString(value.body),
         delayMs: asNumber(value.delayMs, 0),
         headers: coerceHeaderEntries(value.headers),
+      };
+    case 'chaos':
+      return {
+        kind: 'chaos',
+        delayMs: Math.max(0, asNumber(value.delayMs, 0)),
+        failRate: clamp(asNumber(value.failRate, 0), MIN_FAIL_RATE, MAX_FAIL_RATE),
+        failStatus: Math.max(0, asNumber(value.failStatus, 0)),
       };
     default:
       return null;

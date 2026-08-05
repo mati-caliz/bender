@@ -59,7 +59,13 @@ export interface Profile {
 export type TrafficRuleAction =
   | { kind: 'block' }
   | { kind: 'redirect'; target: string; useRegex: boolean }
-  | { kind: 'mock'; status: number; contentType: string; body: string; delayMs: number; headers: HeaderEntry[] };
+  | { kind: 'mock'; status: number; contentType: string; body: string; delayMs: number; headers: HeaderEntry[] }
+  /**
+   * Demora y/o hace fallar un porcentaje de las requests que matchean, sin inventar
+   * un body. `failStatus: 0` simula un error de red; cualquier otro valor responde
+   * con ese status.
+   */
+  | { kind: 'chaos'; delayMs: number; failRate: number; failStatus: number };
 
 export interface TrafficRule {
   id: string;
@@ -309,8 +315,18 @@ export interface BridgeHandshake {
   type: 'connect';
 }
 
+export interface ChaosDefinition {
+  id: string;
+  name: string;
+  scope: Scope;
+  delayMs: number;
+  failRate: number;
+  failStatus: number;
+}
+
 export interface PageConfig {
   mocks: MockDefinition[];
+  chaos: ChaosDefinition[];
   captureBodies: boolean;
 }
 

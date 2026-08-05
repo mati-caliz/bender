@@ -1,6 +1,7 @@
+import { NETWORK_ERROR_STATUS, findMatchingChaos, shouldFail } from '@/lib/chaos';
 import { findMatchingMock } from '@/lib/mocks';
 import type { ScopeRequest } from '@/lib/scope';
-import type { BridgeHandshake, BridgePortMessage, MockDefinition } from '@/types';
+import type { BridgeHandshake, BridgePortMessage, ChaosDefinition, MockDefinition } from '@/types';
 
 const MOCKS_TIMEOUT_MS = 2000;
 const MAX_BODY_CHARS = 20000;
@@ -22,6 +23,7 @@ interface PendingRequest {
 const pendingRequests = new WeakMap<XMLHttpRequest, PendingRequest>();
 
 let mocks: MockDefinition[] = [];
+let chaosRules: ChaosDefinition[] = [];
 let captureBodies = false;
 let resolveMocksReady: (() => void) | null = null;
 const mocksReady = new Promise<void>((resolve) => {
@@ -35,6 +37,7 @@ const bridgePort = bridgeChannel.port1;
 bridgePort.onmessage = (event: MessageEvent<BridgePortMessage>) => {
   if (event.data.type !== 'page-config') return;
   mocks = Array.isArray(event.data.config.mocks) ? event.data.config.mocks : [];
+  chaosRules = Array.isArray(event.data.config.chaos) ? event.data.config.chaos : [];
   captureBodies = event.data.config.captureBodies;
   resolveMocksReady?.();
   resolveMocksReady = null;
@@ -43,13 +46,13 @@ bridgePort.onmessage = (event: MessageEvent<BridgePortMessage>) => {
 const handshake: BridgeHandshake = { channel: 'bender', type: 'connect' };
 window.postMessage(handshake, '*', [bridgeChannel.port2]);
 
-const reportHit = (mock: MockDefinition, url: string, method: string): void => {
+const reportHit = (rule: { name: string; status: number }, url: string, method: string): void => {
   const message: BridgePortMessage = {
     type: 'mock-hit',
     url,
     method,
-    ruleName: mock.name,
-    status: mock.status,
+    ruleName: rule.name,
+    status: rule.status,
   };
   bridgePort.postMessage(message);
 };
@@ -80,6 +83,26 @@ const resolveMocks = async (): Promise<MockDefinition[]> => {
   await mocksReady;
   return mocks;
 };
+
+interface ChaosOutcome {
+  delayMs: number;
+  failure: ChaosDefinition | null;
+}
+
+const NO_CHAOS: ChaosOutcome = { delayMs: 0, failure: null };
+
+/** Tira el dado una sola vez por request para que la demora y el fallo sean coherentes. */
+const resolveChaos = (request: ScopeRequest): ChaosOutcome => {
+  const chaos = findMatchingChaos(chaosRules, request);
+  if (!chaos) return NO_CHAOS;
+  return {
+    delayMs: chaos.delayMs,
+    failure: shouldFail(chaos.failRate, Math.random()) ? chaos : null,
+  };
+};
+
+const chaosError = (chaos: ChaosDefinition, url: string): Error =>
+  new TypeError(`Bender: la regla "${chaos.name}" corto la request a ${url}`);
 
 const absoluteUrl = (url: string): string => {
   try {
@@ -120,7 +143,21 @@ const mockHeaders = (mock: MockDefinition): Headers => {
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const url = requestUrlOf(input);
   const method = requestMethodOf(input, init);
-  const mock = findMatchingMock(await resolveMocks(), scopeRequestFor(url, method));
+  const request = scopeRequestFor(url, method);
+  const mock = findMatchingMock(await resolveMocks(), request);
+
+  // El chaos corre aunque haya un mock: demorar o romper un mock tambien es util.
+  const chaos = resolveChaos(request);
+  await wait(chaos.delayMs);
+  if (chaos.failure) {
+    if (chaos.failure.failStatus === NETWORK_ERROR_STATUS) throw chaosError(chaos.failure, url);
+    reportHit({ name: chaos.failure.name, status: chaos.failure.failStatus }, url, method);
+    return new Response(null, {
+      status: chaos.failure.failStatus,
+      statusText: `${chaos.failure.failStatus}`,
+    });
+  }
+
   if (!mock) {
     const response = await originalFetch(input, init);
     if (captureBodies) {
@@ -235,6 +272,27 @@ XMLHttpRequest.prototype.open = function patchedOpen(
   originalOpen.apply(this, args);
 };
 
+/** Una respuesta de status fijo y cuerpo vacio es un mock degenerado, asi que se reusa. */
+const chaosAsMock = (chaos: ChaosDefinition): MockDefinition => ({
+  id: chaos.id,
+  name: chaos.name,
+  scope: chaos.scope,
+  status: chaos.failStatus,
+  contentType: '',
+  body: '',
+  delayMs: 0,
+  headers: [],
+});
+
+const failXhr = (xhr: XMLHttpRequest, request: PendingRequest): void => {
+  Object.defineProperty(xhr, 'readyState', { configurable: true, get: () => READY_STATE_DONE });
+  Object.defineProperty(xhr, 'status', { configurable: true, get: () => 0 });
+  Object.defineProperty(xhr, 'responseURL', { configurable: true, get: () => request.url });
+  xhr.dispatchEvent(new Event('readystatechange'));
+  xhr.dispatchEvent(new ProgressEvent('error'));
+  xhr.dispatchEvent(new ProgressEvent('loadend'));
+};
+
 XMLHttpRequest.prototype.send = function patchedSend(this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
   const request = pendingRequests.get(this);
   if (!request) {
@@ -243,20 +301,45 @@ XMLHttpRequest.prototype.send = function patchedSend(this: XMLHttpRequest, body?
   }
 
   void resolveMocks().then((available) => {
-    const mock = findMatchingMock(available, scopeRequestFor(request.url, request.method));
-    if (mock) {
-      simulateXhr(this, mock, request);
-      return;
-    }
-    if (captureBodies) captureXhrBodies(this, request, body);
-    originalSend.call(this, body);
+    const scopeRequest = scopeRequestFor(request.url, request.method);
+    const mock = findMatchingMock(available, scopeRequest);
+    const chaos = resolveChaos(scopeRequest);
+
+    const proceed = (): void => {
+      if (chaos.failure) {
+        if (chaos.failure.failStatus === NETWORK_ERROR_STATUS) {
+          failXhr(this, request);
+          return;
+        }
+        simulateXhr(this, chaosAsMock(chaos.failure), request);
+        return;
+      }
+      if (mock) {
+        simulateXhr(this, mock, request);
+        return;
+      }
+      if (captureBodies) captureXhrBodies(this, request, body);
+      originalSend.call(this, body);
+    };
+
+    if (chaos.delayMs > 0) window.setTimeout(proceed, chaos.delayMs);
+    else proceed();
   });
 };
 
 if (originalSendBeacon) {
   navigator.sendBeacon = function patchedSendBeacon(url: string | URL, data?: BodyInit | null): boolean {
     const target = absoluteUrl(String(url));
-    const mock = findMatchingMock(mocks, scopeRequestFor(target, BEACON_METHOD));
+    const request = scopeRequestFor(target, BEACON_METHOD);
+
+    // sendBeacon es sincrono y devuelve un booleano: la demora no aplica, solo el fallo.
+    const chaos = resolveChaos(request);
+    if (chaos.failure) {
+      reportHit({ name: chaos.failure.name, status: chaos.failure.failStatus }, target, BEACON_METHOD);
+      return false;
+    }
+
+    const mock = findMatchingMock(mocks, request);
     if (!mock) return originalSendBeacon(url, data);
 
     reportHit(mock, target, BEACON_METHOD);
