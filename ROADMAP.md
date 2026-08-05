@@ -388,7 +388,7 @@ garantizado en versiones anteriores.
 
 ### 4.3 Tests del camino de mocks
 
-- [ ] `tests/`
+- [x] `tests/inject.test.ts` (nivel 1)
 
 `src/content/inject.ts` son 184 líneas de parcheo de `XMLHttpRequest` —la parte más frágil del
 repo— sin un solo test. Dos niveles posibles:
@@ -399,3 +399,19 @@ repo— sin un solo test. Dos niveles posibles:
    registro de userscripts y las reglas DNR).
 
 Empezar por el 1.
+
+Hecho el nivel 1: 18 tests sobre `fetch`, `XMLHttpRequest` y `sendBeacon`, cubriendo el mock (status,
+cuerpo, headers, `responseURL`, orden de eventos), el alcance, el reporte del hit por el puente y
+todo el camino de chaos (delay, fallo con status, error de red, y que el fallo gane sobre un mock).
+
+Detalle a tener en cuenta si se tocan estos tests: **jsdom no implementa transferables en
+`postMessage`**, así que el listener de `message` recibe el mensaje con `ports` vacío y el handshake
+nunca entregaría el port. El harness lo resuelve interceptando `window.postMessage` y tomando el
+port de la lista de transfer. El módulo corre sin modificar; lo único distinto es cómo lo observa el
+test.
+
+Se verificó que los tests no son vacíos mutando el status del error de red en `failXhr`: la suite
+falla como corresponde.
+
+**El nivel 2 (Playwright) sigue pendiente**, y es lo único que cubriría las reglas DNR y el registro
+de userscripts, que no pasan por `inject.ts`.
