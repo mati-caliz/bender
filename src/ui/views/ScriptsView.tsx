@@ -3,6 +3,7 @@ import { createUserScript } from '@/lib/factories';
 import { isValidMatchPattern, parseMatchPatterns } from '@/lib/match-patterns';
 import { sendMessage } from '@/lib/messages';
 import { SCRIPT_TEMPLATES, type ScriptTemplate } from '@/lib/script-templates';
+import type { ScriptError } from '@/lib/script-errors';
 import {
   describeHeader,
   headerHasData,
@@ -44,6 +45,34 @@ const isRunAt = (value: string): value is UserScriptRunAt =>
   value === 'document_start' || value === 'document_end' || value === 'document_idle';
 
 const isWorld = (value: string): value is UserScriptWorld => value === 'MAIN' || value === 'USER_SCRIPT';
+
+const ERROR_POLL_INTERVAL_MS = 2000;
+
+/** Lo que reventó al ejecutarse, que es distinto de que falle el registro. */
+const RuntimeErrorNotice = ({ error, onDismiss }: { error: ScriptError | undefined; onDismiss: () => void }) => {
+  if (!error) return null;
+
+  return (
+    <Notice tone="danger">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', minWidth: 0 }}>
+        <div className="row wrap">
+          <strong>Reventó al ejecutarse</strong>
+          <span className="text-small text-muted">línea {error.line}</span>
+          <div className="spacer" />
+          <Button small variant="ghost" onClick={onDismiss}>
+            Limpiar
+          </Button>
+        </div>
+        <code className="text-small" style={{ wordBreak: 'break-word' }}>
+          {error.message}
+        </code>
+        <span className="text-small text-muted truncate" title={error.tabUrl}>
+          en {error.tabUrl}
+        </span>
+      </div>
+    </Notice>
+  );
+};
 
 /**
  * Al pegar un script de Tampermonkey, ofrece cargar lo que dice su header en vez
@@ -91,12 +120,34 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [patternDraft, setPatternDraft] = useState('');
   const [status, setStatus] = useState<UserScriptsStatus | null>(null);
+  const [errors, setErrors] = useState<ScriptError[]>([]);
 
   useEffect(() => {
     void sendMessage({ type: 'userscripts/sync' })
       .then(setStatus)
       .catch(() => undefined);
   }, [state.userScripts]);
+
+  // Los errores llegan cuando la pagina corre el script, no cuando se registra.
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      void sendMessage({ type: 'scripts/errors' })
+        .then((list) => {
+          if (active && Array.isArray(list)) setErrors(list);
+        })
+        .catch(() => undefined);
+    };
+    refresh();
+    const handle = window.setInterval(refresh, ERROR_POLL_INTERVAL_MS);
+    return () => {
+      active = false;
+      window.clearInterval(handle);
+    };
+  }, []);
+
+  const errorFor = (scriptId: string): ScriptError | undefined =>
+    errors.find((error) => error.scriptId === scriptId);
 
   const mutateScript = (id: string, mutate: (script: UserScript) => UserScript) => {
     update((current) => ({
@@ -188,6 +239,11 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                 </Badge>
                 <span className="item-name">{script.name}</span>
                 <span className="item-preview">{script.matches.join(', ') || 'sin patrones — no se ejecuta'}</span>
+                {errorFor(script.id) ? (
+                  <span title="Reventó al ejecutarse. Abrilo para ver el detalle.">
+                    <Badge tone="danger">error</Badge>
+                  </span>
+                ) : null}
                 <IconButton
                   icon="trash"
                   title="Eliminar script"
@@ -321,6 +377,14 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                       </label>
                     </div>
                   </div>
+
+                  <RuntimeErrorNotice
+                    error={errorFor(script.id)}
+                    onDismiss={() => {
+                      void sendMessage({ type: 'scripts/errors-clear' });
+                      setErrors([]);
+                    }}
+                  />
 
                   <HeaderImportNotice
                     code={script.code}

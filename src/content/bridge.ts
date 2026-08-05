@@ -1,5 +1,6 @@
 import { MOCKS_STORAGE_KEY, readPageConfig, toPageConfig } from '@/lib/mocks';
 import type { ExtensionMessage } from '@/lib/messages';
+import { scriptIdFromSource } from '@/lib/script-errors';
 import type { BridgeHandshake, BridgePortMessage, CapturedBodies, PageConfig } from '@/types';
 
 let pagePort: MessagePort | null = null;
@@ -48,6 +49,27 @@ window.addEventListener('message', (event) => {
     if (portEvent.data.type === 'bodies') forwardBodies(portEvent.data.bodies);
   };
   publishToPage();
+});
+
+/**
+ * El bridge corre en el mundo aislado pero comparte el window con la pagina, asi
+ * que ve los errores no atrapados de los userscripts. El sourceURL que les pega
+ * el registro es lo unico que permite saber de cual vinieron.
+ */
+window.addEventListener('error', (event: ErrorEvent) => {
+  const scriptId = scriptIdFromSource(event.filename);
+  if (!scriptId) return;
+
+  sendToBackground({
+    type: 'scripts/error',
+    payload: {
+      scriptId,
+      message: event.message,
+      line: event.lineno,
+      tabUrl: window.location.href,
+      at: Date.now(),
+    },
+  });
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {

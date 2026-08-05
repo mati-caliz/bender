@@ -338,7 +338,8 @@ mayor, y el valor por línea de código no se acerca al resto del roadmap.
 
 - [x] parsear el header `// ==UserScript==` — `src/lib/userscript-header.ts`,
       `src/ui/views/ScriptsView.tsx`
-- [ ] mostrar errores de runtime del script
+- [x] mostrar errores de runtime — `src/lib/script-errors.ts`, `src/content/bridge.ts`,
+      `src/background/userscripts.ts`, `src/background/service-worker.ts`
 - [ ] reemplazar el `<textarea>` de `CodeEditor` por CodeMirror 6
 
 **Header de Tampermonkey: hecho.** Al pegar un script con `// ==UserScript==` aparece un aviso con
@@ -349,13 +350,28 @@ aplicarlo. Los `run-at` se traducen de `document-start` al `document_start` que 
 usuario acepta, porque el header puede traer patrones más amplios de los que quiere.
 **Verificación:** `tests/userscript-header.test.ts`.
 
-**Errores de runtime: pendiente, y hay que decidir algo antes.** Envolver el código en un try/catch
-es la parte fácil; el problema es por dónde vuelve el error. Los scripts en mundo `USER_SCRIPT`
-pueden usar `chrome.runtime.sendMessage` (ya está `messaging: true`), pero los de mundo `MAIN` —que
-es el default— no tienen APIs de extensión, y el único canal sería `window.postMessage`, que es
-justo el agujero que cerró 0.5: cualquier script de la página podría inyectar errores falsos. Es
-ruido en la UI y no ejecución de código, así que el riesgo es menor, pero contradice una decisión
-tomada a propósito. Definir si se acepta ese canal o si la feature queda solo para mundo aislado.
+**Errores de runtime: hecho, sin reabrir el canal de 0.5.** El problema era por dónde vuelve el
+error: los scripts de mundo `MAIN` —que es el default— no tienen APIs de extensión, y usar
+`window.postMessage` habría reabierto justo el agujero que cerró 0.5.
+
+La salida fue no inventar ningún canal. Al registrar el script se le pega un
+`//# sourceURL=bender-script-<id>.js`; los errores no atrapados salen igual por el evento `error` de
+window, que el bridge (mundo aislado, mismo window que la página) ya puede escuchar, y el `filename`
+alcanza para saber de qué script vinieron. No hace falta ni try/catch: no se toca la semántica de
+ejecución del script.
+
+El service worker guarda el último error de cada script en memoria (es ayuda de depuración de la
+sesión, no algo que valga persistir) y la vista los muestra: un badge rojo en la fila y el detalle
+—mensaje, línea y URL— al abrirlo.
+
+Limitación asumida y anotada en el código: la página puede declarar el mismo `sourceURL` y tirar un
+error falso. Lo peor que consigue es ensuciar la lista de la UI, no ejecutar nada, y por eso se
+prefirió esto antes que reabrir el canal de mensajes.
+
+**Verificación:** `tests/script-errors.test.ts` y `tests/bridge.test.ts`. Ojo con el alcance de este
+último: prueba que el bridge reconozca el `sourceURL` y reenvíe el error. Que Chrome propague al
+mundo aislado los errores de un userscript del mundo principal no se puede probar sin un navegador
+de verdad — eso es el nivel 2 de 4.3.
 
 **CodeMirror: pendiente, y conviene medir antes.** Son ~200 kB extra en un bundle que hoy pesa
 ~230 kB, en una extensión donde el popup tiene que abrir instantáneo. Vale la pena confirmar que el

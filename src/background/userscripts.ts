@@ -1,6 +1,7 @@
 import { errorMessage } from '@/lib/errors';
 import { sanitizeMatchPatterns, urlMatchesPatterns } from '@/lib/match-patterns';
 import { type NavigatorSpoofRegistration, navigatorSpoofRegistration } from '@/lib/navigator-spoof';
+import { withSourceUrl } from '@/lib/script-errors';
 import type { ToolkitState, UserScript, UserScriptsStatus } from '@/types';
 
 const REGISTERED_ID_PREFIX = 'bender-';
@@ -21,7 +22,7 @@ const toRegistered = (script: UserScript): chrome.userScripts.RegisteredUserScri
   id: `${REGISTERED_ID_PREFIX}${script.id}`,
   matches: sanitizeMatchPatterns(script.matches),
   excludeMatches: sanitizeMatchPatterns(script.excludeMatches),
-  js: [{ code: script.code }],
+  js: [{ code: withSourceUrl(script.code, script.id) }],
   runAt: script.runAt,
   world: script.world,
   allFrames: script.allFrames,

@@ -4,6 +4,7 @@ import { errorMessage } from '@/lib/errors';
 import { createProfile } from '@/lib/factories';
 import type { ExtensionMessage } from '@/lib/messages';
 import { publishPageConfig } from '@/lib/mocks';
+import type { ScriptError } from '@/lib/script-errors';
 import { readState, readStateDetailed, updateState, type DroppedItems } from '@/lib/state';
 import {
   clearNetworkLog,
@@ -185,6 +186,29 @@ chrome.commands.onCommand.addListener((command) => {
   }
 });
 
+/**
+ * Los errores de userscript viven en memoria del service worker: son ayuda para
+ * depurar la sesion, no algo que valga la pena persistir. Se guarda el ultimo de
+ * cada script para que un script roto en un loop no tape a los demas.
+ */
+const MAX_SCRIPT_ERRORS = 50;
+let scriptErrors = new Map<string, ScriptError>();
+
+const recordScriptError = (error: ScriptError): void => {
+  scriptErrors.delete(error.scriptId);
+  scriptErrors.set(error.scriptId, error);
+  if (scriptErrors.size > MAX_SCRIPT_ERRORS) {
+    const oldest = scriptErrors.keys().next();
+    if (!oldest.done) scriptErrors.delete(oldest.value);
+  }
+};
+
+const listScriptErrors = (): ScriptError[] => Array.from(scriptErrors.values());
+
+const clearScriptErrors = (): void => {
+  scriptErrors = new Map();
+};
+
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
   switch (message.type) {
     case 'engine/refresh':
@@ -206,6 +230,17 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
       return false;
     case 'network/bodies':
       recordCapturedBodies(message.payload, sender.tab?.id ?? -1);
+      sendResponse(null);
+      return false;
+    case 'scripts/error':
+      recordScriptError(message.payload);
+      sendResponse(null);
+      return false;
+    case 'scripts/errors':
+      sendResponse(listScriptErrors());
+      return false;
+    case 'scripts/errors-clear':
+      clearScriptErrors();
       sendResponse(null);
       return false;
     case 'userscripts/sync':
