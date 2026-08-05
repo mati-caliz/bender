@@ -404,6 +404,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                   <Field label={script.language === 'css' ? 'CSS' : 'JavaScript'}>
                     <CodeEditor
                       value={script.code}
+                      language={script.language === 'css' ? 'css' : 'javascript'}
                       minHeight={200}
                       onChange={(code) => mutateScript(script.id, (current) => ({ ...current, code }))}
                       toolbar={

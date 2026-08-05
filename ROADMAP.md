@@ -340,7 +340,8 @@ mayor, y el valor por línea de código no se acerca al resto del roadmap.
       `src/ui/views/ScriptsView.tsx`
 - [x] mostrar errores de runtime — `src/lib/script-errors.ts`, `src/content/bridge.ts`,
       `src/background/userscripts.ts`, `src/background/service-worker.ts`
-- [ ] reemplazar el `<textarea>` de `CodeEditor` por CodeMirror 6
+- [x] reemplazar el `<textarea>` de `CodeEditor` por CodeMirror 6 —
+      `src/ui/components/CodeMirrorEditor.tsx`
 
 **Header de Tampermonkey: hecho.** Al pegar un script con `// ==UserScript==` aparece un aviso con
 lo que trae (`@name`, `@description`, `@match`, `@include`, `@exclude`, `@run-at`) y un botón para
@@ -373,9 +374,23 @@ prefirió esto antes que reabrir el canal de mensajes.
 mundo aislado los errores de un userscript del mundo principal no se puede probar sin un navegador
 de verdad — eso es el nivel 2 de 4.3.
 
-**CodeMirror: pendiente, y conviene medir antes.** Son ~200 kB extra en un bundle que hoy pesa
-~230 kB, en una extensión donde el popup tiene que abrir instantáneo. Vale la pena confirmar que el
-peso se justifica frente al `<textarea>` actual, o buscar algo más liviano.
+**CodeMirror: hecho, en un chunk aparte.** Se midió antes de decidir, y la sospecha del peso quedó
+corta: CodeMirror pesa **433 kB** (150 kB gzip), más que toda la app junta. Meterlo en el bundle
+principal habría casi triplicado lo que el popup parsea al abrir, para una feature que solo se usa
+al editar un script.
+
+Va con `lazy` + `Suspense` en su propio chunk: `app.js` pasó de 259 kB a 261 kB —solo el wrapper— y
+los 433 kB se bajan recién cuando se muestra un editor. Mientras carga se ve el `<textarea>` de
+antes, que queda como fallback y sigue siendo usable.
+
+El editor trae números de línea, resaltado, historial, cierre de brackets e indentación con Tab. Los
+colores salen de las variables del tema, así que sigue al modo claro/oscuro y al acento sin
+mantener dos paletas. El documento inicial se toma una sola vez y los cambios de afuera se
+sincronizan solo si divergen, para no perder cursor ni historial al tipear.
+
+Verificado en el popup real: monta, resalta, hace wrapping a 400 px sin desbordar, y escribir
+actualiza el estado de React (el contador de líneas del toolbar sigue al documento) sin remontar el
+editor.
 
 ---
 
