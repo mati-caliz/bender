@@ -1,7 +1,7 @@
 import { NETWORK_LOG_KEY } from '@/lib/constants';
 import { errorMessage } from '@/lib/errors';
 import type { MockHitPayload } from '@/lib/messages';
-import type { EngineDiagnostic, NetworkEntry, NetworkPhase } from '@/types';
+import type { CapturedBodies, EngineDiagnostic, NetworkEntry, NetworkPhase } from '@/types';
 
 const FLUSH_DELAY_MS = 400;
 const PERSISTED_ENTRY_LIMIT = 200;
@@ -91,6 +91,9 @@ const createEntry = (details: chrome.webRequest.WebRequestBodyDetails): NetworkE
   matchedRuleIds: [],
   matchedRuleLabels: pendingRuleMatches.get(details.requestId)?.labels ?? [],
   source: 'network',
+  requestBody: null,
+  responseBody: null,
+  bodyTruncated: false,
 });
 
 const toHeaderList = (headers: chrome.webRequest.HttpHeader[] | undefined): Array<{ name: string; value: string }> =>
@@ -255,5 +258,23 @@ export const recordMockHit = (payload: MockHitPayload, tabId: number): void => {
     matchedRuleIds: [],
     matchedRuleLabels: [`Mock · ${payload.ruleName}`],
     source: 'mock',
+    requestBody: null,
+    responseBody: null,
+    bodyTruncated: false,
   });
+};
+
+export const recordCapturedBodies = (bodies: CapturedBodies, tabId: number): void => {
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    if (!entry || entry.source !== 'network') continue;
+    if (entry.tabId !== tabId || entry.url !== bodies.url || entry.method !== bodies.method) continue;
+    if (entry.responseBody !== null) continue;
+
+    entry.requestBody = bodies.requestBody;
+    entry.responseBody = bodies.responseBody;
+    entry.bodyTruncated = bodies.truncated;
+    scheduleFlush();
+    return;
+  }
 };

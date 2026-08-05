@@ -207,6 +207,7 @@ export const DEFAULT_USER_AGENT_CONFIG: UserAgentConfig = {
 export const DEFAULT_NETWORK_CONFIG: NetworkConfig = {
   enabled: false,
   maxEntries: 500,
+  captureBodies: false,
   onlyModified: false,
 };
 

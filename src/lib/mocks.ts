@@ -1,5 +1,6 @@
+import { isRecord } from '@/lib/records';
 import { requestMatchesScope, type ScopeRequest } from '@/lib/scope';
-import type { MockDefinition, ToolkitState } from '@/types';
+import type { MockDefinition, PageConfig, ToolkitState } from '@/types';
 
 export const MOCKS_STORAGE_KEY = 'benderMocks';
 
@@ -30,12 +31,24 @@ export const collectMockDefinitions = (state: ToolkitState): MockDefinition[] =>
 export const findMatchingMock = (mocks: MockDefinition[], request: ScopeRequest): MockDefinition | null =>
   mocks.find((mock) => requestMatchesScope(mock.scope, request)) ?? null;
 
-export const publishMocks = async (state: ToolkitState): Promise<void> => {
-  await chrome.storage.local.set({ [MOCKS_STORAGE_KEY]: collectMockDefinitions(state) });
+export const collectPageConfig = (state: ToolkitState): PageConfig => ({
+  mocks: collectMockDefinitions(state),
+  captureBodies: state.globalEnabled && state.network.enabled && state.network.captureBodies,
+});
+
+export const toPageConfig = (stored: unknown): PageConfig => {
+  if (!isRecord(stored)) return { mocks: [], captureBodies: false };
+  return {
+    mocks: Array.isArray(stored.mocks) ? (stored.mocks as MockDefinition[]) : [],
+    captureBodies: stored.captureBodies === true,
+  };
 };
 
-export const readMocks = async (): Promise<MockDefinition[]> => {
+export const publishPageConfig = async (state: ToolkitState): Promise<void> => {
+  await chrome.storage.local.set({ [MOCKS_STORAGE_KEY]: collectPageConfig(state) });
+};
+
+export const readPageConfig = async (): Promise<PageConfig> => {
   const stored = await chrome.storage.local.get(MOCKS_STORAGE_KEY);
-  const mocks = stored[MOCKS_STORAGE_KEY];
-  return Array.isArray(mocks) ? (mocks as MockDefinition[]) : [];
+  return toPageConfig(stored[MOCKS_STORAGE_KEY]);
 };

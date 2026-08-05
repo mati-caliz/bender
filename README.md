@@ -21,7 +21,8 @@ Extension de Chrome (Manifest V3) que reemplaza a ModHeader + Cookie-Editor + Ta
 - **Scripts**: JavaScript y CSS propios por sitio, con match patterns, momento de ejecucion y
   eleccion de mundo (el de la pagina o uno aislado).
 - **Trafico**: log en vivo de requests que muestra los headers finales que salieron y que regla de
-  Bender toco cada una.
+  Bender toco cada una, con cuerpos opcionales, copiado como cURL o `fetch`, export a HAR y un boton
+  para convertir cualquier response en un mock.
 - **Diseño**: inspector de box model, regla y medidor de espaciados que se dibujan sobre la pagina,
   mas cuentagotas, auditoria de paleta, tipografias, espaciados y variables `:root` del sitio.
 
@@ -89,6 +90,9 @@ practica: el CSS se aplica al cargar la pagina, no al instante de guardarlo.
 - El selector nativo de archivos puede cerrar el popup en Linux; para importar conviene el panel
   lateral o la pestaña completa (el cuadro de pegar JSON funciona en los tres).
 - Los mocks no cubren navegacion ni subrecursos; para eso esta el redirect.
+- Los cuerpos de las requests los lee la propia pagina, asi que valen las mismas limitaciones que los
+  mocks: solo lo que pide su JavaScript. Se cortan a los 20.000 caracteres y se pegan a la entrada
+  del log por URL + metodo, asi que dos requests identicas en vuelo pueden cruzarse.
 - Un nombre de header invalido segun RFC 7230 se ignora y queda avisado en Resumen y en Ajustes.
 - El inspector de diseño solo entra en el frame principal, y las variables `:root` de hojas de
   estilo cross-origin no se pueden leer. El cuentagotas depende de la API `EyeDropper`.

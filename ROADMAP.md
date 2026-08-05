@@ -151,8 +151,8 @@ diferencia entre destino e iniciador, que es lo que más confunde.
 
 - [x] `src/types/index.ts`, `src/lib/constants.ts`
 
-El flag está en el tipo y en los defaults y no se usa en ningún lado. O se implementa (ver 2.1) o se
-saca. Que no quede a medias.
+Se sacó al cerrar la fase 1 y volvió en 2.1 ya conectado de punta a punta, con su switch en
+Ajustes. Nunca quedó un flag muerto en el estado.
 
 ### 1.4 Cubrir `sendBeacon`
 
@@ -168,7 +168,7 @@ mock actual (status + body) no les aplica.
 
 ### 2.1 Capturar cuerpos de request y response
 
-- [ ] `src/content/inject.ts`, `src/content/bridge.ts`, `src/background/network-log.ts`,
+- [x] `src/content/inject.ts`, `src/content/bridge.ts`, `src/background/network-log.ts`,
       `src/ui/views/NetworkView.tsx`
 
 `webRequest` en MV3 no da cuerpos, pero `inject.ts` ya está parado arriba de `fetch` y XHR: clonar
@@ -177,9 +177,14 @@ de tamaño por entrada.
 
 Limitación a documentar: igual que los mocks, solo cubre lo que pide el JavaScript de la página.
 
+Hecho: `inject.ts` clona la response (y lee `responseText` en XHR), corta a 20.000 caracteres y manda
+todo por el port. `recordCapturedBodies` pega los cuerpos a la entrada del log buscando de atrás para
+adelante por tab + URL + método, porque no hay un id compartido entre `webRequest` y la página: dos
+requests idénticas en vuelo pueden cruzarse.
+
 ### 2.2 Convertir una response en mock
 
-- [ ] `src/ui/views/NetworkView.tsx`, `src/lib/factories.ts`
+- [x] `src/ui/views/NetworkView.tsx`, `src/lib/factories.ts`
 
 **La feature de mejor relación valor/código de todo el roadmap.** Las dos mitades ya existen: el log
 con los headers finales y el motor de mocks. Falta el botón que las une.
@@ -188,19 +193,19 @@ Desde una entrada del log, crear una `TrafficRule` de tipo `mock` con la URL com
 anclado, el status, el content-type y el body capturado (2.1), y saltar a Reglas con esa regla ya
 seleccionada.
 
-Depende de 2.1 para el body; sin eso se puede hacer igual dejando el cuerpo vacío, pero pierde la
-mitad de la gracia.
+Hecho con `createMockRuleFromEntry`: ancla la URL exacta con `|…|`, fija el método de la entrada y
+copia status, content-type y cuerpo capturado. Si no se capturó nada, el cuerpo queda vacío.
 
 ### 2.3 Copiar como cURL y como fetch
 
-- [ ] `src/ui/views/NetworkView.tsx`, `src/lib/format.ts`
+- [x] `src/ui/views/NetworkView.tsx`, `src/lib/format.ts`
 
 Con los headers finales que ya se capturan es casi todo formateo de strings. Cuidado con el escapeo
 de comillas en el body para cURL.
 
 ### 2.4 Exportar HAR
 
-- [ ] `src/background/network-log.ts` o un `src/lib/har.ts` nuevo, `src/ui/views/NetworkView.tsx`
+- [x] `src/background/network-log.ts` o un `src/lib/har.ts` nuevo, `src/ui/views/NetworkView.tsx`
 
 `NetworkEntry` ya tiene casi todos los campos que pide el formato. Reusar `downloadJson`.
 

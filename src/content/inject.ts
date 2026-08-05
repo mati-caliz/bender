@@ -3,6 +3,7 @@ import type { ScopeRequest } from '@/lib/scope';
 import type { BridgeHandshake, BridgePortMessage, MockDefinition } from '@/types';
 
 const MOCKS_TIMEOUT_MS = 2000;
+const MAX_BODY_CHARS = 20000;
 const READY_STATE_HEADERS_RECEIVED = 2;
 const READY_STATE_LOADING = 3;
 const READY_STATE_DONE = 4;
@@ -21,6 +22,7 @@ interface PendingRequest {
 const pendingRequests = new WeakMap<XMLHttpRequest, PendingRequest>();
 
 let mocks: MockDefinition[] = [];
+let captureBodies = false;
 let resolveMocksReady: (() => void) | null = null;
 const mocksReady = new Promise<void>((resolve) => {
   resolveMocksReady = resolve;
@@ -31,8 +33,9 @@ const bridgeChannel = new MessageChannel();
 const bridgePort = bridgeChannel.port1;
 
 bridgePort.onmessage = (event: MessageEvent<BridgePortMessage>) => {
-  if (event.data.type !== 'mocks') return;
-  mocks = Array.isArray(event.data.mocks) ? event.data.mocks : [];
+  if (event.data.type !== 'page-config') return;
+  mocks = Array.isArray(event.data.config.mocks) ? event.data.config.mocks : [];
+  captureBodies = event.data.config.captureBodies;
   resolveMocksReady?.();
   resolveMocksReady = null;
 };
@@ -50,6 +53,28 @@ const reportHit = (mock: MockDefinition, url: string, method: string): void => {
   };
   bridgePort.postMessage(message);
 };
+
+const truncateBody = (body: string): { body: string; truncated: boolean } =>
+  body.length > MAX_BODY_CHARS ? { body: body.slice(0, MAX_BODY_CHARS), truncated: true } : { body, truncated: false };
+
+const reportBodies = (url: string, method: string, requestBody: string | null, responseBody: string | null): void => {
+  const request = requestBody === null ? null : truncateBody(requestBody);
+  const response = responseBody === null ? null : truncateBody(responseBody);
+  const message: BridgePortMessage = {
+    type: 'bodies',
+    bodies: {
+      url,
+      method,
+      requestBody: request?.body ?? null,
+      responseBody: response?.body ?? null,
+      truncated: Boolean(request?.truncated || response?.truncated),
+    },
+  };
+  bridgePort.postMessage(message);
+};
+
+const readableRequestBody = (init?: RequestInit): string | null =>
+  typeof init?.body === 'string' ? init.body : null;
 
 const resolveMocks = async (): Promise<MockDefinition[]> => {
   await mocksReady;
@@ -96,7 +121,17 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
   const url = requestUrlOf(input);
   const method = requestMethodOf(input, init);
   const mock = findMatchingMock(await resolveMocks(), scopeRequestFor(url, method));
-  if (!mock) return originalFetch(input, init);
+  if (!mock) {
+    const response = await originalFetch(input, init);
+    if (captureBodies) {
+      void response
+        .clone()
+        .text()
+        .then((body) => reportBodies(url, method, readableRequestBody(init), body))
+        .catch(() => undefined);
+    }
+    return response;
+  }
 
   await wait(mock.delayMs);
   reportHit(mock, url, method);
@@ -168,6 +203,27 @@ const simulateXhr = (xhr: XMLHttpRequest, mock: MockDefinition, request: Pending
   }, mock.delayMs);
 };
 
+const readableXhrBody = (body?: Document | XMLHttpRequestBodyInit | null): string | null =>
+  typeof body === 'string' ? body : null;
+
+const xhrResponseText = (xhr: XMLHttpRequest): string | null => {
+  try {
+    return typeof xhr.responseText === 'string' ? xhr.responseText : null;
+  } catch {
+    return null;
+  }
+};
+
+const captureXhrBodies = (
+  xhr: XMLHttpRequest,
+  request: PendingRequest,
+  body?: Document | XMLHttpRequestBodyInit | null
+): void => {
+  xhr.addEventListener('load', () => {
+    reportBodies(request.url, request.method, readableXhrBody(body), xhrResponseText(xhr));
+  });
+};
+
 XMLHttpRequest.prototype.open = function patchedOpen(
   this: XMLHttpRequest,
   method: string,
@@ -192,6 +248,7 @@ XMLHttpRequest.prototype.send = function patchedSend(this: XMLHttpRequest, body?
       simulateXhr(this, mock, request);
       return;
     }
+    if (captureBodies) captureXhrBodies(this, request, body);
     originalSend.call(this, body);
   });
 };

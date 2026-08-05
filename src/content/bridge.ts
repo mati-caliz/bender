@@ -1,18 +1,22 @@
-import { MOCKS_STORAGE_KEY, readMocks } from '@/lib/mocks';
+import { MOCKS_STORAGE_KEY, readPageConfig, toPageConfig } from '@/lib/mocks';
 import type { ExtensionMessage } from '@/lib/messages';
-import type { BridgeHandshake, BridgePortMessage, MockDefinition } from '@/types';
+import type { BridgeHandshake, BridgePortMessage, CapturedBodies, PageConfig } from '@/types';
 
 let pagePort: MessagePort | null = null;
-let publishedMocks: MockDefinition[] | null = null;
+let publishedConfig: PageConfig | null = null;
 
 const publishToPage = (): void => {
-  if (!pagePort || !publishedMocks) return;
-  const message: BridgePortMessage = { type: 'mocks', mocks: publishedMocks };
+  if (!pagePort || !publishedConfig) return;
+  const message: BridgePortMessage = { type: 'page-config', config: publishedConfig };
   pagePort.postMessage(message);
 };
 
+const sendToBackground = (request: ExtensionMessage): void => {
+  void chrome.runtime.sendMessage(request).catch(() => undefined);
+};
+
 const forwardHit = (message: Extract<BridgePortMessage, { type: 'mock-hit' }>): void => {
-  const request: ExtensionMessage = {
+  sendToBackground({
     type: 'network/hit',
     payload: {
       url: message.url,
@@ -21,8 +25,11 @@ const forwardHit = (message: Extract<BridgePortMessage, { type: 'mock-hit' }>): 
       ruleName: message.ruleName,
       tabUrl: window.location.href,
     },
-  };
-  void chrome.runtime.sendMessage(request).catch(() => undefined);
+  });
+};
+
+const forwardBodies = (bodies: CapturedBodies): void => {
+  sendToBackground({ type: 'network/bodies', payload: bodies });
 };
 
 const isHandshake = (data: unknown): data is BridgeHandshake => {
@@ -38,18 +45,18 @@ window.addEventListener('message', (event) => {
   pagePort = port;
   port.onmessage = (portEvent: MessageEvent<BridgePortMessage>) => {
     if (portEvent.data.type === 'mock-hit') forwardHit(portEvent.data);
+    if (portEvent.data.type === 'bodies') forwardBodies(portEvent.data.bodies);
   };
   publishToPage();
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes[MOCKS_STORAGE_KEY]) return;
-  const mocks = changes[MOCKS_STORAGE_KEY].newValue;
-  publishedMocks = Array.isArray(mocks) ? (mocks as MockDefinition[]) : [];
+  publishedConfig = toPageConfig(changes[MOCKS_STORAGE_KEY].newValue);
   publishToPage();
 });
 
-void readMocks().then((mocks) => {
-  publishedMocks = mocks;
+void readPageConfig().then((config) => {
+  publishedConfig = config;
   publishToPage();
 });

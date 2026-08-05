@@ -3,13 +3,14 @@ import { compileRules, dependsOnTabs, type TabOrigin } from '@/lib/dnr';
 import { errorMessage } from '@/lib/errors';
 import { createProfile } from '@/lib/factories';
 import type { ExtensionMessage } from '@/lib/messages';
-import { publishMocks } from '@/lib/mocks';
+import { publishPageConfig } from '@/lib/mocks';
 import { readState, readStateDetailed, updateState, type DroppedItems } from '@/lib/state';
 import {
   clearNetworkLog,
   configureNetworkLog,
   listNetworkEntries,
   networkLogDiagnostics,
+  recordCapturedBodies,
   recordMockHit,
   restoreNetworkLog,
   setRuleLabels,
@@ -98,7 +99,7 @@ const applyEngine = async (): Promise<EngineStatus> => {
     maxEntries: state.network.maxEntries,
     onlyModified: state.network.onlyModified,
   });
-  await publishMocks(state);
+  await publishPageConfig(state);
   lastUserScriptsStatus = await syncUserScripts(state);
   if (lastUserScriptsStatus.error) {
     diagnostics.push({ level: 'warning', message: `Userscripts: ${lastUserScriptsStatus.error}` });
@@ -200,6 +201,10 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
       return false;
     case 'network/hit':
       recordMockHit(message.payload, sender.tab?.id ?? -1);
+      sendResponse(null);
+      return false;
+    case 'network/bodies':
+      recordCapturedBodies(message.payload, sender.tab?.id ?? -1);
       sendResponse(null);
       return false;
     case 'userscripts/sync':

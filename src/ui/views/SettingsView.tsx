@@ -5,7 +5,7 @@ import { sendMessage } from '@/lib/messages';
 import { normalizeState } from '@/lib/state';
 import { ImportDialog } from '@/ui/components/ImportDialog';
 import { ViewShell } from '@/ui/components/ViewShell';
-import { Button, Card, ConfirmBar, Field, Notice, Segmented, Select } from '@/ui/components/primitives';
+import { Button, Card, ConfirmBar, Field, Notice, Segmented, Select, Switch } from '@/ui/components/primitives';
 import { useToasts } from '@/ui/hooks/useToasts';
 import type { UpdateState } from '@/ui/views/types';
 import type { EngineStatus, ThemeMode, ToolkitState, UiConfig } from '@/types';
@@ -91,6 +91,22 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
             }}
           />
         </Field>
+        <label className="row" style={{ cursor: 'pointer' }}>
+          <Switch
+            checked={state.network.captureBodies}
+            onChange={(captureBodies) =>
+              update((current) => ({ ...current, network: { ...current.network, captureBodies } }))
+            }
+            small
+          />
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>Guardar los cuerpos de las requests</div>
+            <div className="field-hint">
+              Los lee la propia pagina, asi que solo cubre lo que pide su JavaScript y se corta a los 20.000
+              caracteres.
+            </div>
+          </div>
+        </label>
       </Card>
 
       <Card title="Backup">

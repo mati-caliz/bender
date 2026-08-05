@@ -97,6 +97,7 @@ export interface UserAgentConfig {
 export interface NetworkConfig {
   enabled: boolean;
   maxEntries: number;
+  captureBodies: boolean;
   onlyModified: boolean;
 }
 
@@ -181,6 +182,9 @@ export interface NetworkEntry {
   matchedRuleIds: number[];
   matchedRuleLabels: string[];
   source: 'network' | 'mock';
+  requestBody: string | null;
+  responseBody: string | null;
+  bodyTruncated: boolean;
 }
 
 export interface StoredItem {
@@ -273,6 +277,20 @@ export interface BridgeHandshake {
   type: 'connect';
 }
 
+export interface PageConfig {
+  mocks: MockDefinition[];
+  captureBodies: boolean;
+}
+
+export interface CapturedBodies {
+  url: string;
+  method: string;
+  requestBody: string | null;
+  responseBody: string | null;
+  truncated: boolean;
+}
+
 export type BridgePortMessage =
-  | { type: 'mocks'; mocks: MockDefinition[] }
-  | { type: 'mock-hit'; url: string; method: string; ruleName: string; status: number };
+  | { type: 'page-config'; config: PageConfig }
+  | { type: 'mock-hit'; url: string; method: string; ruleName: string; status: number }
+  | { type: 'bodies'; bodies: CapturedBodies };

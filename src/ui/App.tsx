@@ -143,7 +143,7 @@ export const App = () => {
       case 'useragent':
         return <UserAgentView state={state} update={update} activeTab={activeTab} />;
       case 'network':
-        return <NetworkView state={state} update={update} />;
+        return <NetworkView state={state} update={update} onNavigate={goTo} />;
       case 'cookies':
         return <CookiesView activeTab={activeTab} />;
       case 'storage':

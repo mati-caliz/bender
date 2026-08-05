@@ -1,4 +1,4 @@
-import type { EngineStatus, NetworkEntry, UserScriptsStatus } from '@/types';
+import type { CapturedBodies, EngineStatus, NetworkEntry, UserScriptsStatus } from '@/types';
 
 export interface MockHitPayload {
   url: string;
@@ -14,6 +14,7 @@ export type ExtensionMessage =
   | { type: 'network/list' }
   | { type: 'network/clear' }
   | { type: 'network/hit'; payload: MockHitPayload }
+  | { type: 'network/bodies'; payload: CapturedBodies }
   | { type: 'userscripts/sync' };
 
 export interface MessageResultMap {
@@ -22,6 +23,7 @@ export interface MessageResultMap {
   'network/list': NetworkEntry[];
   'network/clear': null;
   'network/hit': null;
+  'network/bodies': null;
   'userscripts/sync': UserScriptsStatus;
 }
 

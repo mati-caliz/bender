@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
-import { formatDuration, formatTime, shortUrl } from '@/lib/format';
+import { downloadJson } from '@/lib/download';
+import { createMockRuleFromEntry } from '@/lib/factories';
+import { formatDuration, formatTime, prettyJson, shortUrl } from '@/lib/format';
+import { toHar } from '@/lib/har';
 import { sendMessage } from '@/lib/messages';
+import { toCurl, toFetchSnippet } from '@/lib/request-snippets';
 import { Icon } from '@/ui/components/Icon';
 import { ViewShell } from '@/ui/components/ViewShell';
 import { Badge, Button, Card, EmptyState, Notice, SearchInput, Switch } from '@/ui/components/primitives';
+import { useToasts } from '@/ui/hooks/useToasts';
+import type { ViewId } from '@/ui/App';
 import type { UpdateState } from '@/ui/views/types';
 import type { NetworkEntry, ToolkitState } from '@/types';
 
 const POLL_INTERVAL_MS = 1000;
+const BODY_PREVIEW_LIMIT = 4000;
 const CLIENT_ERROR_STATUS = 400;
 const REDIRECT_STATUS = 300;
 
@@ -42,12 +49,24 @@ const HeaderTable = ({ headers }: { headers: Array<{ name: string; value: string
     <span className="field-hint">Sin datos capturados.</span>
   );
 
+const BodyBlock = ({ label, body, truncated }: { label: string; body: string; truncated: boolean }) => (
+  <div>
+    <div className="field-label">
+      {label}
+      {truncated ? <span className="text-muted"> · truncado</span> : null}
+    </div>
+    <pre className="code-block">{prettyJson(body).slice(0, BODY_PREVIEW_LIMIT)}</pre>
+  </div>
+);
+
 interface NetworkViewProps {
   state: ToolkitState;
   update: UpdateState;
+  onNavigate: (view: ViewId) => void;
 }
 
-export const NetworkView = ({ state, update }: NetworkViewProps) => {
+export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => {
+  const { notify } = useToasts();
   const [entries, setEntries] = useState<NetworkEntry[]>([]);
   const [filter, setFilter] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -80,12 +99,41 @@ export const NetworkView = ({ state, update }: NetworkViewProps) => {
 
   const selected = visible.find((entry) => entry.id === selectedId) ?? null;
 
+  const copyToClipboard = (value: string, message: string) => {
+    void navigator.clipboard
+      .writeText(value)
+      .then(() => notify(message, 'success'))
+      .catch(() => notify('No se pudo copiar al portapapeles', 'error'));
+  };
+
+  const exportHar = () => {
+    if (!visible.length) {
+      notify('No hay requests para exportar');
+      return;
+    }
+    const fileName = `bender-${new Date().toISOString().slice(0, 10)}.har`;
+    downloadJson(fileName, toHar(visible, chrome.runtime.getManifest().version));
+    notify('HAR exportado', 'success');
+  };
+
+  const createMockFrom = (entry: NetworkEntry) => {
+    update((current) => ({
+      ...current,
+      trafficRules: [...current.trafficRules, createMockRuleFromEntry(entry, current.trafficRules.length)],
+    }));
+    notify('Mock creado desde la response', 'success');
+    onNavigate('rules');
+  };
+
   return (
     <ViewShell
       title="Trafico"
       subtitle="Que request salio, con que headers finales y que regla de Bender la toco."
       actions={
         <>
+          <Button small icon="download" variant="ghost" onClick={exportHar}>
+            HAR
+          </Button>
           <Button
             small
             icon="trash"
@@ -187,6 +235,37 @@ export const NetworkView = ({ state, update }: NetworkViewProps) => {
                     <div>
                       <div className="field-label">Headers recibidos</div>
                       <HeaderTable headers={entry.responseHeaders} />
+                    </div>
+
+                    {entry.requestBody ? (
+                      <BodyBlock label="Cuerpo enviado" body={entry.requestBody} truncated={entry.bodyTruncated} />
+                    ) : null}
+
+                    {entry.responseBody ? (
+                      <BodyBlock label="Cuerpo recibido" body={entry.responseBody} truncated={entry.bodyTruncated} />
+                    ) : null}
+
+                    {state.network.captureBodies || entry.source === 'mock' ? null : (
+                      <span className="field-hint">
+                        Los cuerpos no se estan capturando: prendelo en Ajustes para verlos aca.
+                      </span>
+                    )}
+
+                    <div className="row wrap">
+                      <Button small icon="copy" onClick={() => copyToClipboard(toCurl(entry), 'cURL copiado')}>
+                        Copiar cURL
+                      </Button>
+                      <Button
+                        small
+                        icon="copy"
+                        variant="ghost"
+                        onClick={() => copyToClipboard(toFetchSnippet(entry), 'fetch copiado')}
+                      >
+                        Copiar fetch
+                      </Button>
+                      <Button small variant="ghost" icon="plus" onClick={() => createMockFrom(entry)}>
+                        Convertir en mock
+                      </Button>
                     </div>
                   </div>
                 ) : null}
