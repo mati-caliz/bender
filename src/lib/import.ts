@@ -3,7 +3,7 @@ import { createHeaderEntry } from '@/lib/factories';
 import { createId } from '@/lib/ids';
 import { isRecord } from '@/lib/records';
 import { sanitizeDomainList } from '@/lib/scope';
-import type { HeaderEntry, Profile, StoredItem } from '@/types';
+import type { CookieSnapshot, HeaderEntry, Profile, StoredItem } from '@/types';
 
 const asString = (value: unknown, fallback = ''): string => (typeof value === 'string' ? value : fallback);
 
@@ -68,17 +68,7 @@ export const parseProfiles = (text: string): Profile[] => {
   return profiles;
 };
 
-export interface ImportedCookie {
-  name: string;
-  value: string;
-  domain: string;
-  path: string;
-  secure: boolean;
-  httpOnly: boolean;
-  sameSite: chrome.cookies.SameSiteStatus;
-  hostOnly: boolean;
-  expirationDate: number | null;
-}
+export type ImportedCookie = Omit<CookieSnapshot, 'partitionKey'>;
 
 const readSameSite = (value: unknown): chrome.cookies.SameSiteStatus => {
   const raw = asString(value).toLowerCase();

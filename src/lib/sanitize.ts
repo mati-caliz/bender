@@ -2,6 +2,8 @@ import { ALL_REQUEST_METHODS, ALL_RESOURCE_TYPES, createEmptyScope } from '@/lib
 import { createId } from '@/lib/ids';
 import { isRecord } from '@/lib/records';
 import type {
+  CookieSnapshot,
+  CookieSnapshotSet,
   HeaderEntry,
   HeaderOperation,
   Profile,
@@ -20,6 +22,7 @@ const HEADER_OPERATIONS: HeaderOperation[] = ['set', 'append', 'remove'];
 const SCRIPT_LANGUAGES: UserScriptLanguage[] = ['javascript', 'css'];
 const SCRIPT_RUN_AT_VALUES: UserScriptRunAt[] = ['document_start', 'document_end', 'document_idle'];
 const SCRIPT_WORLDS: UserScriptWorld[] = ['MAIN', 'USER_SCRIPT'];
+const SAME_SITE_VALUES: chrome.cookies.SameSiteStatus[] = ['lax', 'strict', 'no_restriction', 'unspecified'];
 const DEFAULT_MOCK_STATUS = 200;
 const DEFAULT_MOCK_CONTENT_TYPE = 'application/json; charset=utf-8';
 
@@ -147,6 +150,39 @@ export const coerceUserScript = (value: unknown): UserScript | null => {
     allFrames: asBoolean(value.allFrames, false),
     code: asString(value.code),
     updatedAt: asNumber(value.updatedAt, 0),
+  };
+};
+
+export const coerceCookieSnapshot = (value: unknown): CookieSnapshot | null => {
+  if (!isRecord(value)) return null;
+  const name = asString(value.name);
+  if (!name) return null;
+
+  return {
+    name,
+    value: asString(value.value),
+    domain: asString(value.domain),
+    path: asString(value.path, '/') || '/',
+    secure: asBoolean(value.secure, false),
+    httpOnly: asBoolean(value.httpOnly, false),
+    sameSite: asOneOf(value.sameSite, SAME_SITE_VALUES, 'unspecified'),
+    hostOnly: asBoolean(value.hostOnly, true),
+    expirationDate: typeof value.expirationDate === 'number' ? value.expirationDate : null,
+  };
+};
+
+export const coerceCookieSnapshotSet = (value: unknown): CookieSnapshotSet | null => {
+  if (!isRecord(value)) return null;
+  const name = asString(value.name).trim();
+  if (!name) return null;
+
+  return {
+    id: asIdentifier(value.id),
+    name,
+    createdAt: asNumber(value.createdAt, 0),
+    cookies: Array.isArray(value.cookies)
+      ? value.cookies.map(coerceCookieSnapshot).filter((cookie): cookie is CookieSnapshot => cookie !== null)
+      : [],
   };
 };
 

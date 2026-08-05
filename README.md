@@ -15,8 +15,9 @@ Extension de Chrome (Manifest V3) que reemplaza a ModHeader + Cookie-Editor + Ta
   `X-Frame-Options`.
 - **User-Agent**: presets de mobile, desktop y bots, los client hints (`Sec-CH-UA-*`) y un switch para
   pisar tambien `navigator` dentro de la pagina.
-- **Cookies**: ABM completo con todos los atributos, apagado individual, filtro y decodificador de
-  JWT inline.
+- **Cookies**: ABM completo con todos los atributos, apagado individual, filtro, decodificador de
+  JWT inline y snapshots con nombre del set completo del dominio, para saltar entre usuarios
+  logueados de un click.
 - **Storage**: lo mismo para `localStorage` y `sessionStorage` del origen activo.
 - **Scripts**: JavaScript y CSS propios por sitio, con match patterns, momento de ejecucion y
   eleccion de mundo (el de la pagina o uno aislado).
@@ -73,6 +74,10 @@ descomprimidas, que es justo como se usa esta.
 **El apagado de cookies y storage es blando.** Apagar un item lo borra del navegador pero guarda una
 copia completa en `chrome.storage.local`; prenderlo lo restaura tal cual. Como no hay nada vigilando
 en background, si el sitio lo vuelve a crear reaparece con el badge `reaparecio`.
+
+**Restaurar un snapshot de cookies pisa el estado del dominio.** Borra las cookies vivas y escribe
+las del snapshot, no las mezcla; si una cookie del snapshot estaba apagada, restaurarla la vuelve a
+prender. Las `HttpOnly` entran igual porque las escribe `chrome.cookies`, no la pagina.
 
 **El spoof de `navigator` viaja como un userscript mas.** Es la unica via que corre codigo propio en
 el mundo MAIN en `document_start` de forma sincronica, antes de que la pagina lea `navigator`. Se

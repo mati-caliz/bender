@@ -1,6 +1,6 @@
 import type { ToggleRow } from '@/types';
 
-export const loadDisabledMap = async <TItem>(
+export const loadScopedMap = async <TItem>(
   storageKey: string,
   scope: string
 ): Promise<Record<string, TItem>> => {
@@ -12,7 +12,7 @@ export const loadDisabledMap = async <TItem>(
   return typeof scoped === 'object' && scoped !== null ? (scoped as Record<string, TItem>) : {};
 };
 
-export const saveDisabledMap = async <TItem>(
+export const saveScopedMap = async <TItem>(
   storageKey: string,
   scope: string,
   map: Record<string, TItem>

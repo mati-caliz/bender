@@ -14,6 +14,7 @@ export const ENGINE_STATUS_KEY = 'benderEngineStatus';
 export const NETWORK_LOG_KEY = 'benderNetworkLog';
 export const DISABLED_COOKIES_KEY = 'benderDisabledCookies';
 export const DISABLED_STORAGE_KEY = 'benderDisabledStorage';
+export const COOKIE_SNAPSHOTS_KEY = 'benderCookieSnapshots';
 export const DESIGN_PICKS_KEY = 'benderDesignPicks';
 
 export const SCHEMA_VERSION = 1;

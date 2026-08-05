@@ -1,23 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DISABLED_COOKIES_KEY } from '@/lib/constants';
+import {
+  deleteCookieSnapshotSet,
+  listCookieSnapshotSets,
+  saveCookieSnapshotSet,
+} from '@/lib/cookie-snapshots';
 import { errorMessage } from '@/lib/errors';
 import type { ImportedCookie } from '@/lib/import';
-import { computeToggleRows, loadDisabledMap, saveDisabledMap, withoutKey } from '@/lib/toggleable';
+import { computeToggleRows, loadScopedMap, saveScopedMap, withoutKey } from '@/lib/toggleable';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
-import type { ToggleRow } from '@/types';
-
-export interface CookieSnapshot {
-  name: string;
-  value: string;
-  domain: string;
-  path: string;
-  secure: boolean;
-  httpOnly: boolean;
-  sameSite: chrome.cookies.SameSiteStatus;
-  hostOnly: boolean;
-  expirationDate: number | null;
-  partitionKey?: chrome.cookies.CookiePartitionKey;
-}
+import type { CookieSnapshot, CookieSnapshotSet, ToggleRow } from '@/types';
 
 export const cookieKeyOf = (cookie: CookieSnapshot): string => `${cookie.name}\t${cookie.domain}\t${cookie.path}`;
 
@@ -71,11 +63,16 @@ export interface CookiesController {
   remove: (cookie: CookieSnapshot, wasOff: boolean) => Promise<void>;
   removeAll: () => Promise<void>;
   importCookies: (cookies: ImportedCookie[]) => Promise<number>;
+  snapshotSets: CookieSnapshotSet[];
+  saveSnapshotSet: (name: string) => Promise<void>;
+  restoreSnapshotSet: (set: CookieSnapshotSet) => Promise<void>;
+  deleteSnapshotSet: (id: string) => Promise<void>;
 }
 
 export const useCookies = (activeTab: ActiveTab): CookiesController => {
   const [liveCookies, setLiveCookies] = useState<CookieSnapshot[]>([]);
   const [disabled, setDisabled] = useState<Record<string, CookieSnapshot>>({});
+  const [snapshotSets, setSnapshotSets] = useState<CookieSnapshotSet[]>([]);
   const [error, setError] = useState<string | null>(null);
   const domain = activeTab.hostname;
 
@@ -83,12 +80,14 @@ export const useCookies = (activeTab: ActiveTab): CookiesController => {
     if (!activeTab.injectable) {
       setLiveCookies([]);
       setDisabled({});
+      setSnapshotSets([]);
       setError('Esta pestaña no tiene cookies http(s) para gestionar.');
       return;
     }
 
     setError(null);
-    void loadDisabledMap<CookieSnapshot>(DISABLED_COOKIES_KEY, domain).then(setDisabled);
+    void loadScopedMap<CookieSnapshot>(DISABLED_COOKIES_KEY, domain).then(setDisabled);
+    void listCookieSnapshotSets(domain).then(setSnapshotSets);
     void chrome.cookies
       .getAll({ url: activeTab.url, partitionKey: {} })
       .catch(() => chrome.cookies.getAll({ url: activeTab.url }))
@@ -104,7 +103,7 @@ export const useCookies = (activeTab: ActiveTab): CookiesController => {
   const persistDisabled = useCallback(
     async (map: Record<string, CookieSnapshot>) => {
       setDisabled(map);
-      await saveDisabledMap(DISABLED_COOKIES_KEY, domain, map);
+      await saveScopedMap(DISABLED_COOKIES_KEY, domain, map);
     },
     [domain]
   );
@@ -173,6 +172,39 @@ export const useCookies = (activeTab: ActiveTab): CookiesController => {
     [domain, liveCookies, persistDisabled, runAndReload]
   );
 
+  const saveSnapshotSet = useCallback(
+    async (name: string) =>
+      runAndReload('No se pudo guardar el snapshot.', async () => {
+        setSnapshotSets(await saveCookieSnapshotSet(domain, name, liveCookies));
+      }),
+    [domain, liveCookies, runAndReload]
+  );
+
+  const deleteSnapshotSet = useCallback(
+    async (id: string) =>
+      runAndReload('No se pudo borrar el snapshot.', async () => {
+        setSnapshotSets(await deleteCookieSnapshotSet(domain, id));
+      }),
+    [domain, runAndReload]
+  );
+
+  const restoreSnapshotSet = useCallback(
+    async (set: CookieSnapshotSet) =>
+      runAndReload('No se pudo restaurar el snapshot.', async () => {
+        await Promise.all(liveCookies.map((cookie) => chrome.cookies.remove(toRemoveDetails(cookie, domain))));
+        for (const cookie of set.cookies) {
+          await chrome.cookies.set(toSetDetails(cookie, domain));
+        }
+
+        const restoredKeys = new Set(set.cookies.map(cookieKeyOf));
+        const stillDisabled = Object.fromEntries(
+          Object.entries(disabled).filter(([key]) => !restoredKeys.has(key))
+        );
+        await persistDisabled(stillDisabled);
+      }),
+    [disabled, domain, liveCookies, persistDisabled, runAndReload]
+  );
+
   const importCookies = useCallback(
     async (cookies: ImportedCookie[]) => {
       let failed = 0;
@@ -201,5 +233,9 @@ export const useCookies = (activeTab: ActiveTab): CookiesController => {
     remove,
     removeAll,
     importCookies,
+    snapshotSets,
+    saveSnapshotSet,
+    restoreSnapshotSet,
+    deleteSnapshotSet,
   };
 };

@@ -17,9 +17,10 @@ import {
   TextArea,
   TextInput,
 } from '@/ui/components/primitives';
-import { cookieKeyOf, useCookies, type CookieSnapshot } from '@/ui/hooks/useCookies';
+import { cookieKeyOf, useCookies } from '@/ui/hooks/useCookies';
 import { useToasts } from '@/ui/hooks/useToasts';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
+import type { CookieSnapshot } from '@/types';
 
 const SAME_SITE_OPTIONS = [
   { value: 'lax', label: 'SameSite: Lax' },
@@ -163,6 +164,7 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
   const [draft, setDraft] = useState<CookieSnapshot | null>(null);
   const [newCookie, setNewCookie] = useState<CookieSnapshot | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [snapshotName, setSnapshotName] = useState('');
   const [importing, setImporting] = useState(false);
 
   const normalizedFilter = filter.trim().toLowerCase();
@@ -216,6 +218,69 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
           }}
         />
       ) : null}
+
+      <Card
+        title="Snapshots"
+        subtitle="Guarda el set completo de cookies del dominio y volve a el de un click."
+      >
+        <div className="toolbar">
+          <TextInput
+            value={snapshotName}
+            placeholder="Nombre del snapshot (admin, user readonly…)"
+            onChange={setSnapshotName}
+          />
+          <Button
+            small
+            icon="plus"
+            disabled={!snapshotName.trim() || !cookies.liveCookies.length}
+            onClick={() => {
+              const name = snapshotName.trim();
+              void cookies.saveSnapshotSet(name).then(() => notify(`Snapshot "${name}" guardado`, 'success'));
+              setSnapshotName('');
+            }}
+          >
+            Guardar actual
+          </Button>
+        </div>
+
+        {cookies.snapshotSets.length ? (
+          <div className="list" style={{ marginTop: 8 }}>
+            {cookies.snapshotSets.map((set) => (
+              <div key={set.id} className="row" style={{ gap: 8, padding: '6px 0' }}>
+                <strong className="text-small">{set.name}</strong>
+                <span className="text-small text-muted">
+                  {set.cookies.length} cookie(s) · {new Date(set.createdAt).toLocaleString()}
+                </span>
+                <div className="spacer" />
+                <Button
+                  small
+                  icon="refresh"
+                  disabled={!activeTab.injectable}
+                  onClick={() =>
+                    void cookies
+                      .restoreSnapshotSet(set)
+                      .then(() => notify(`Snapshot "${set.name}" restaurado`, 'success'))
+                  }
+                >
+                  Restaurar
+                </Button>
+                <Button
+                  small
+                  variant="danger"
+                  icon="trash"
+                  onClick={() => void cookies.deleteSnapshotSet(set.id).then(() => notify('Snapshot borrado'))}
+                >
+                  Borrar
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-small text-muted" style={{ margin: 0 }}>
+            Todavia no guardaste ninguno. Restaurar borra las cookies actuales del dominio y escribe las del snapshot.
+          </p>
+        )}
+      </Card>
 
       <div className="toolbar">
         <SearchInput value={filter} onChange={setFilter} placeholder="Filtrar por nombre o valor…" />

@@ -192,6 +192,26 @@ export interface StoredItem {
   value: string;
 }
 
+export interface CookieSnapshot {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  secure: boolean;
+  httpOnly: boolean;
+  sameSite: chrome.cookies.SameSiteStatus;
+  hostOnly: boolean;
+  expirationDate: number | null;
+  partitionKey?: chrome.cookies.CookiePartitionKey;
+}
+
+export interface CookieSnapshotSet {
+  id: string;
+  name: string;
+  createdAt: number;
+  cookies: CookieSnapshot[];
+}
+
 export interface ToggleRow<T> {
   key: string;
   item: T;

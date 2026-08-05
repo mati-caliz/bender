@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DISABLED_STORAGE_KEY } from '@/lib/constants';
 import { errorMessage } from '@/lib/errors';
-import { computeToggleRows, loadDisabledMap, saveDisabledMap, withoutKey } from '@/lib/toggleable';
+import { computeToggleRows, loadScopedMap, saveScopedMap, withoutKey } from '@/lib/toggleable';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
 import type { StorageArea, StoredItem, ToggleRow } from '@/types';
 
@@ -69,7 +69,7 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
     }
 
     setError(null);
-    void loadDisabledMap<StoredItem>(DISABLED_STORAGE_KEY, scope).then(setDisabled);
+    void loadScopedMap<StoredItem>(DISABLED_STORAGE_KEY, scope).then(setDisabled);
     void runInPage(pageReadAll, [area])
       .then((result) => setItems(result ?? []))
       .catch((readError: unknown) => {
@@ -83,7 +83,7 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
   const persistDisabled = useCallback(
     async (map: Record<string, StoredItem>) => {
       setDisabled(map);
-      await saveDisabledMap(DISABLED_STORAGE_KEY, scope, map);
+      await saveScopedMap(DISABLED_STORAGE_KEY, scope, map);
     },
     [scope]
   );
