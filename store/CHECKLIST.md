@@ -165,11 +165,19 @@ El código ya lo contempla (`src/background/network-log.ts:185` y `:200` chequea
 suscribirse), así que no rompe nada. Pero **la columna "qué regla tocó esta request" va a
 aparecer siempre vacía** para quien instale desde la Store.
 
-Opciones:
-- Dejarlo así y aclarar en la descripción que esa columna requiere carga descomprimida.
+**Ya se sacó esa promesa de la descripción de la ficha**, que antes decía "muestra los headers
+finales que salieron y qué regla de Bender tocó cada request". Prometer en la ficha una función
+que el usuario no va a ver es, además de una mala experiencia, incumplimiento de la política de
+funcionalidad declarada: es motivo de rechazo y también de baja posterior por reportes. Si
+volvés a tocar la descripción, no la reintroduzcas.
+
+Queda pendiente decidir qué hacer con la función en sí:
+- Dejarla como está: la columna existe y solo se llena en carga descomprimida.
 - Derivar la info de forma aproximada matcheando las reglas contra la request en el propio log.
 
-No bloquea la publicación, pero conviene decidirlo antes de que llegue el primer reporte.
+El permiso `declarativeNetRequestFeedback` se mantiene declarado: el código lo ejerce de verdad
+(`onRuleMatchedDebug`), que es lo que verifica el análisis estático de Google, y es la única vía
+posible para esa función. No bloquea la publicación.
 
 ### 2. Encoding del README
 

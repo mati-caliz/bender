@@ -18,23 +18,31 @@ Copiar y pegar cada bloque en el campo correspondiente del Developer Dashboard.
 ## Descripción corta (máx. 132 caracteres)
 
 ```
-Headers, cookies, storage, CORS, user-agent, mocks, userscripts y log de red. Todo local, en una sola extensión para devs.
+Inspeccioná y modificá el tráfico HTTP, las cookies y el storage de un sitio mientras lo desarrollás. Todo local.
 ```
 
-*121 caracteres.*
+*112 caracteres.*
+
+> **No enumeres funciones acá.** La descripción corta es el primer lugar donde un revisor
+> evalúa el propósito único. Una lista de siete cosas ("headers, cookies, storage, CORS,
+> user-agent, mocks, userscripts...") se lee como un bundle de utilidades sin relación
+> entre sí, que es causa directa de rechazo. Un solo propósito, y las funciones como el
+> *cómo*, en la descripción larga.
 
 ---
 
 ## Descripción detallada
 
 ```
-Bender reemplaza a ModHeader + Cookie-Editor + Tampermonkey + "Allow CORS" en una sola herramienta, pensada para el día a día de desarrollo web.
+Bender es una herramienta de desarrollo web con un solo propósito: dejarte inspeccionar y modificar lo que pasa entre el navegador y el sitio que estás construyendo, sin tocar el código del sitio ni levantar un proxy.
+
+Todo lo que sigue son formas de hacer eso mismo: ver una request, cambiarla, repetirla bajo otras condiciones y comprobar el resultado.
 
 Todo corre en tu navegador. Bender no tiene servidores, no manda datos a ningún lado y no incluye analytics ni telemetría.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-RED
+MODIFICAR LA REQUEST
 
 ▸ HEADERS
 Perfiles de headers de request y response con set / append / remove. Varios perfiles activos a la vez, alcance por dominio, filtro por URL, por tipo de recurso o solo la pestaña activa. Valores dinámicos: {{uuid}}, {{timestamp}}, {{tabUrl}} y más.
@@ -52,11 +60,11 @@ Un switch que reescribe Access-Control-Allow-*, con opción de reflejar el orige
 Presets de mobile, desktop y bots, los client hints Sec-CH-UA-* y un switch para pisar también navigator dentro de la página.
 
 ▸ TRÁFICO
-Log en vivo que muestra los headers finales que salieron y qué regla de Bender tocó cada request. Cuerpos opcionales, copiado como cURL o fetch, export a HAR, y un botón para convertir cualquier response en un mock.
+Log en vivo que muestra los headers finales que efectivamente salieron, para comprobar que la modificación se aplicó. Cuerpos opcionales, copiado como cURL o fetch, export a HAR, y un botón para convertir cualquier response en un mock.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-SITIO
+INSPECCIONAR EL SITIO
 
 ▸ COOKIES
 ABM completo con todos los atributos, apagado individual, filtro, decodificador de JWT inline y snapshots con nombre del set completo del dominio: saltás entre usuarios logueados de un click.
@@ -65,12 +73,9 @@ ABM completo con todos los atributos, apagado individual, filtro, decodificador 
 Lo mismo para localStorage y sessionStorage del origen activo.
 
 ▸ SCRIPTS
-JavaScript y CSS propios por sitio, con match patterns, momento de ejecución y elección de mundo (el de la página o uno aislado).
+El equivalente a pegar un snippet en la consola, pero que persiste. JavaScript y CSS que escribís vos, aplicados a los sitios que elegís, con match patterns, momento de ejecución y elección de mundo (el de la página o uno aislado). No trae scripts precargados ni descarga scripts de ningún repositorio: todo el código lo escribís vos y se guarda solo en tu equipo.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-DISEÑO
-
+▸ DISEÑO
 Inspector de box model, regla y medidor de espaciados que se dibujan sobre la página. Cuentagotas, auditoría de paleta, tipografías, espaciados y variables :root del sitio.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -158,6 +163,14 @@ La interfaz de la extensión se puede abrir en el panel lateral de Chrome, adem�
 Bender es una herramienta de desarrollo de propósito general: modifica headers, gestiona cookies y storage, y registra tráfico en los sitios donde el usuario está trabajando. No es posible saber de antemano en qué dominios desarrolla cada usuario -- pueden ser localhost, entornos de staging internos o dominios de producción propios --, y una lista fija de hosts haría la extensión inservible. Ningún dato de esos sitios sale del navegador del usuario: la extensión no realiza ninguna petición de red hacia servidores externos.
 ```
 
+### Content script en el mundo MAIN (no hay campo propio: tenerlo listo por si preguntan)
+
+```
+El paquete declara dos content scripts. `bridge.js` corre en el mundo aislado y solo pasa mensajes entre la página y el service worker. `inject.js` corre en el mundo MAIN porque necesita envolver window.fetch, XMLHttpRequest y navigator.sendBeacon del propio documento: es la única forma de que un mock definido por el usuario devuelva una respuesta simulada, o de que una regla de latencia o de fallo simulado afecte a las llamadas que hace el JavaScript del sitio. Es exactamente la técnica que usa cualquier librería de mocking en el browser.
+
+Ese wrapper es transparente y pasivo por defecto: si el usuario no tiene ninguna regla activa que matchee la URL, delega en la función original sin tocar argumentos ni respuesta. No lee, acumula ni transmite el contenido de las requests: los cuerpos solo se retienen en memoria si el usuario enciende explícitamente la captura de cuerpos en el log, y se descartan al cerrar el navegador. El código de `inject.js` es estático, viene en el paquete y se puede leer entero con los source maps incluidos.
+```
+
 ### Justificación de código remoto
 
 ```
@@ -171,7 +184,9 @@ La extensión NO usa código remoto. Todo el JavaScript y CSS se distribuye dent
 **Propósito único declarado:**
 
 ```
-Herramienta de desarrollo web que permite inspeccionar y modificar headers HTTP, cookies, almacenamiento web y tráfico de red del navegador durante el desarrollo y testing de sitios.
+Bender tiene un único propósito: ser una herramienta de depuración web que le permite al desarrollador inspeccionar y modificar la comunicación entre el navegador y un sitio mientras lo está construyendo o probando.
+
+Todas las funciones son medios para ese fin y operan sobre el mismo objeto -- la sesión del navegador con un sitio -- desde una única interfaz y un único almacén de configuración. Los headers y las reglas de tráfico modifican la request; el log verifica el resultado de esa modificación; las cookies y el storage son el estado del lado del cliente que determina cómo responde el sitio; los scripts del usuario y el inspector de diseño actúan sobre el documento que devuelve. Ninguna de estas funciones tiene sentido ni utilidad fuera del contexto de depurar un sitio web, y ninguna opera de forma independiente de las demás.
 ```
 
 **Recolección de datos — dejar TODAS las casillas SIN marcar:**

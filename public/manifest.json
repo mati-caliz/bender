@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Bender",
   "version": "1.0.0",
-  "description": "Doblale las requests al navegador: headers, cookies, storage, mocks, userscripts y logger de red en una sola extension.",
+  "description": "Herramienta de desarrollo web para inspeccionar y modificar el tráfico HTTP, las cookies y el storage de un sitio.",
   "minimum_chrome_version": "120",
   "permissions": [
     "declarativeNetRequest",
