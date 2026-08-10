@@ -24,6 +24,7 @@ import { useToasts } from '@/ui/hooks/useToasts';
 import { useWebStorage } from '@/ui/hooks/useWebStorage';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
 import type { StorageArea, StoredItem } from '@/types';
+import { usePendingImport } from '@/ui/hooks/usePendingImport';
 
 const AREA_OPTIONS: Array<{ value: StorageArea; label: string }> = [
   { value: 'local', label: 'localStorage' },
@@ -105,7 +106,7 @@ export const StorageView = ({ activeTab }: { activeTab: ActiveTab }) => {
   const [draft, setDraft] = useState<StoredItem | null>(null);
   const [newItem, setNewItem] = useState<StoredItem | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [importing, setImporting] = usePendingImport('storage');
 
   const normalizedFilter = filter.trim().toLowerCase();
   const visible = normalizedFilter
@@ -239,6 +240,7 @@ export const StorageView = ({ activeTab }: { activeTab: ActiveTab }) => {
 
       {importing ? (
         <ImportDialog
+          viewId="storage"
           title={`Importar a ${area}Storage`}
           description="Acepta un objeto { key: valor } o un array de { key, value }."
           allowAppend={false}

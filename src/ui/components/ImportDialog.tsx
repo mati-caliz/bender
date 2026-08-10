@@ -1,6 +1,8 @@
 import { useRef, useState, type DragEvent } from 'react';
+import { IMPORT_PARAM, SURFACE_PARAM } from '@/lib/constants';
 import { readFileAsText } from '@/lib/download';
 import { errorMessage } from '@/lib/errors';
+import type { ViewId } from '@/ui/App';
 import { Button, Dialog, Notice } from '@/ui/components/primitives';
 
 export type ImportMode = 'replace' | 'append';
@@ -8,12 +10,20 @@ export type ImportMode = 'replace' | 'append';
 interface ImportDialogProps {
   title: string;
   description: string;
+  viewId: ViewId;
   allowAppend?: boolean;
   onClose: () => void;
   onImport: (text: string, mode: ImportMode) => void;
 }
 
-export const ImportDialog = ({ title, description, allowAppend = true, onClose, onImport }: ImportDialogProps) => {
+export const ImportDialog = ({
+  title,
+  description,
+  viewId,
+  allowAppend = true,
+  onClose,
+  onImport,
+}: ImportDialogProps) => {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +40,12 @@ export const ImportDialog = ({ title, description, allowAppend = true, onClose, 
     } catch (importError) {
       setError(errorMessage(importError, 'No se pudo importar.'));
     }
+  };
+
+  const openInTab = () => {
+    const url = chrome.runtime.getURL(`index.html?${SURFACE_PARAM}=tab&${IMPORT_PARAM}=${viewId}`);
+    void chrome.tabs.create({ url });
+    window.close();
   };
 
   const handleDrop = (event: DragEvent<HTMLTextAreaElement>) => {
@@ -75,11 +91,8 @@ export const ImportDialog = ({ title, description, allowAppend = true, onClose, 
       />
 
       <div className="row">
-        <Button
-          icon="upload"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Elegir archivo
+        <Button icon="upload" onClick={isPopup ? openInTab : () => fileInputRef.current?.click()}>
+          {isPopup ? 'Elegir archivo en una pestaña' : 'Elegir archivo'}
         </Button>
         <span className="field-hint">Tambien podes arrastrar el archivo sobre el cuadro.</span>
         <input
@@ -96,8 +109,8 @@ export const ImportDialog = ({ title, description, allowAppend = true, onClose, 
 
       {isPopup ? (
         <Notice>
-          Si el selector de archivos cierra el popup, abri Bender en el panel lateral o en una pestaña con los botones
-          de arriba a la derecha.
+          Chrome cierra el popup apenas se abre el selector de archivos y se pierde lo que hayas cargado. Con el boton
+          de arriba seguis el import en una pestaña, o pega el JSON aca mismo.
         </Notice>
       ) : null}
     </Dialog>

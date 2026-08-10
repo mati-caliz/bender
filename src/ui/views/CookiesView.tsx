@@ -21,6 +21,7 @@ import { cookieKeyOf, useCookies } from '@/ui/hooks/useCookies';
 import { useToasts } from '@/ui/hooks/useToasts';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
 import type { CookieSnapshot } from '@/types';
+import { usePendingImport } from '@/ui/hooks/usePendingImport';
 
 const SAME_SITE_OPTIONS = [
   { value: 'lax', label: 'SameSite: Lax' },
@@ -165,7 +166,7 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
   const [newCookie, setNewCookie] = useState<CookieSnapshot | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [snapshotName, setSnapshotName] = useState('');
-  const [importing, setImporting] = useState(false);
+  const [importing, setImporting] = usePendingImport('cookies');
 
   const normalizedFilter = filter.trim().toLowerCase();
   const visible = normalizedFilter
@@ -362,6 +363,7 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
 
       {importing ? (
         <ImportDialog
+          viewId="cookies"
           title="Importar cookies"
           description="Acepta el formato de chrome.cookies.getAll y los exports de Cookie-Editor."
           allowAppend={false}

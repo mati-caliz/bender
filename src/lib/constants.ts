@@ -19,6 +19,9 @@ export const DESIGN_PICKS_KEY = 'benderDesignPicks';
 
 export const SCHEMA_VERSION = 1;
 
+export const SURFACE_PARAM = 'surface';
+export const IMPORT_PARAM = 'import';
+
 export const ALL_RESOURCE_TYPES: ResourceType[] = [
   'main_frame',
   'sub_frame',

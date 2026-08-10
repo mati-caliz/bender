@@ -25,6 +25,7 @@ import {
 import { useToasts } from '@/ui/hooks/useToasts';
 import type { ViewProps } from '@/ui/views/types';
 import type { HeaderEntry, Profile } from '@/types';
+import { usePendingImport } from '@/ui/hooks/usePendingImport';
 
 type HeaderDirection = 'requestHeaders' | 'responseHeaders';
 
@@ -51,7 +52,7 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
   const [direction, setDirection] = useState<HeaderDirection>('requestHeaders');
   const [showScope, setShowScope] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [importing, setImporting] = usePendingImport('headers');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
 
@@ -444,6 +445,7 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
 
       {importing ? (
         <ImportDialog
+          viewId="headers"
           title="Importar perfiles"
           description="Acepta exports de Bender, de ModHeader y del dev-toolkit viejo. Al agregar, un perfil que ya exista se actualiza en su lugar y el resto queda intacto."
           onClose={() => setImporting(false)}

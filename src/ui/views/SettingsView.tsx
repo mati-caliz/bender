@@ -9,6 +9,7 @@ import { Button, Card, ConfirmBar, Field, Notice, Segmented, Select, Switch } fr
 import { useToasts } from '@/ui/hooks/useToasts';
 import type { UpdateState } from '@/ui/views/types';
 import type { EngineStatus, ThemeMode, ToolkitState, UiConfig } from '@/types';
+import { usePendingImport } from '@/ui/hooks/usePendingImport';
 
 const THEME_OPTIONS: Array<{ value: ThemeMode; label: string }> = [
   { value: 'system', label: 'Sistema' },
@@ -38,7 +39,7 @@ interface SettingsViewProps {
 
 export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
   const { notify } = useToasts();
-  const [importing, setImporting] = useState(false);
+  const [importing, setImporting] = usePendingImport('settings');
   const [confirmReset, setConfirmReset] = useState(false);
 
   return (
@@ -200,6 +201,7 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
 
       {importing ? (
         <ImportDialog
+          viewId="settings"
           title="Importar backup"
           description="Pega un backup completo de Bender. Reemplaza toda la configuracion actual."
           allowAppend={false}

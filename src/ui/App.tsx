@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { IMPORT_PARAM, SURFACE_PARAM } from '@/lib/constants';
 import { Icon, type IconName } from '@/ui/components/Icon';
 import { Badge, IconButton, Switch } from '@/ui/components/primitives';
 import { useActiveTab } from '@/ui/hooks/useActiveTab';
@@ -78,12 +79,32 @@ const NAV_ENTRIES: NavEntry[] = [
   { id: 'design', label: 'Diseño', icon: 'ruler', group: 'Diseño' },
 ];
 
-const SURFACE_PARAM = 'surface';
 const NARROW_BREAKPOINT_PX = 620;
 
 const readSurface = (): 'popup' | 'panel' | 'tab' => {
   const surface = new URLSearchParams(window.location.search).get(SURFACE_PARAM);
   return surface === 'popup' || surface === 'panel' ? surface : 'tab';
+};
+
+const VIEW_IDS: ViewId[] = [
+  'overview',
+  'headers',
+  'rules',
+  'cors',
+  'useragent',
+  'network',
+  'cookies',
+  'storage',
+  'scripts',
+  'design',
+  'settings',
+];
+
+const isViewId = (value: string | null): value is ViewId => VIEW_IDS.some((id) => id === value);
+
+const readPendingImportView = (): ViewId | null => {
+  const pending = new URLSearchParams(window.location.search).get(IMPORT_PARAM);
+  return isViewId(pending) ? pending : null;
 };
 
 export const App = () => {
@@ -100,8 +121,13 @@ export const App = () => {
   useEffect(() => {
     if (!ready || viewRestored.current) return;
     viewRestored.current = true;
+    const pendingImportView = readPendingImportView();
+    if (pendingImportView) {
+      setView(pendingImportView);
+      return;
+    }
     const stored = state.ui.lastView;
-    setView(NAV_ENTRIES.some((entry) => entry.id === stored) ? (stored as ViewId) : 'overview');
+    setView(isViewId(stored) ? stored : 'overview');
   }, [ready, state.ui.lastView]);
 
   useEffect(() => {
@@ -245,7 +271,7 @@ export const App = () => {
               icon="external"
               title="Abrir en una pestaña"
               onClick={() => {
-                void chrome.tabs.create({ url: chrome.runtime.getURL('index.html?surface=tab') });
+                void chrome.tabs.create({ url: chrome.runtime.getURL(`index.html?${SURFACE_PARAM}=tab`) });
                 window.close();
               }}
             />
