@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bender",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Herramienta de desarrollo web para inspeccionar y modificar el tráfico HTTP, las cookies y el storage de un sitio.",
   "minimum_chrome_version": "120",
   "permissions": [
