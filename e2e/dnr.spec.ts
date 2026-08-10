@@ -32,7 +32,7 @@ test('un perfil activo agrega el header a la request', async ({ context, server,
     profiles: [
       profile({
         requestHeaders: [
-          { id: 'h1', name: 'X-Bender', value: 'anduvo', operation: 'set', enabled: true, comment: '' },
+          { id: 'h1', name: 'X-Bender', value: 'anduvo', variants: [], operation: 'set', enabled: true, comment: '' },
         ],
       }),
     ],
@@ -51,7 +51,7 @@ test('con Bender apagado el header no se agrega', async ({ context, server, appl
     profiles: [
       profile({
         requestHeaders: [
-          { id: 'h1', name: 'X-Bender', value: 'anduvo', operation: 'set', enabled: true, comment: '' },
+          { id: 'h1', name: 'X-Bender', value: 'anduvo', variants: [], operation: 'set', enabled: true, comment: '' },
         ],
       }),
     ],
@@ -71,7 +71,7 @@ test('un perfil apagado no aplica', async ({ context, server, applyState }) => {
       profile({
         enabled: false,
         requestHeaders: [
-          { id: 'h1', name: 'X-Bender', value: 'anduvo', operation: 'set', enabled: true, comment: '' },
+          { id: 'h1', name: 'X-Bender', value: 'anduvo', variants: [], operation: 'set', enabled: true, comment: '' },
         ],
       }),
     ],
@@ -90,7 +90,7 @@ test('el alcance por filtro de URL limita a que requests se aplica', async ({ co
       profile({
         scope: { ...createEmptyScope(), urlFilter: '/api/si' },
         requestHeaders: [
-          { id: 'h1', name: 'X-Bender', value: 'solo-aca', operation: 'set', enabled: true, comment: '' },
+          { id: 'h1', name: 'X-Bender', value: 'solo-aca', variants: [], operation: 'set', enabled: true, comment: '' },
         ],
       }),
     ],

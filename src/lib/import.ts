@@ -14,20 +14,65 @@ const readOperation = (entry: Record<string, unknown>): HeaderOperation => {
   return 'set';
 };
 
+const readVariants = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((variant): variant is string => typeof variant === 'string') : [];
+
+/**
+ * ModHeader repite el mismo header una vez por cada valor que uno quiere tener a mano y deja
+ * prendido el que esta usando. Eso se junta en una sola fila multi-valor, salvo que haya mas de
+ * uno prendido (perderiamos el que gana) o que sean appends, que si se acumulan de verdad.
+ */
+const collapseVariants = (entries: HeaderEntry[]): HeaderEntry[] => {
+  const groups = new Map<string, HeaderEntry[]>();
+  for (const entry of entries) {
+    const key = `${entry.name.toLowerCase()}:${entry.operation}`;
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
+  }
+
+  const collapsed: HeaderEntry[] = [];
+  const emitted = new Set<string>();
+  for (const entry of entries) {
+    const key = `${entry.name.toLowerCase()}:${entry.operation}`;
+    if (emitted.has(key)) continue;
+    const group = groups.get(key) ?? [entry];
+    const enabledEntries = group.filter((candidate) => candidate.enabled);
+
+    if (group.length === 1 || entry.operation === 'append' || enabledEntries.length > 1) {
+      collapsed.push(entry);
+      if (group.length === 1) emitted.add(key);
+      continue;
+    }
+
+    emitted.add(key);
+    const active = enabledEntries[0] ?? group[0];
+    if (!active) continue;
+    const variants = group
+      .filter((candidate) => candidate !== active)
+      .map((candidate) => candidate.value)
+      .filter((value, index, all) => value.trim() && all.indexOf(value) === index && value !== active.value);
+    collapsed.push({ ...active, enabled: enabledEntries.length > 0, variants: [...active.variants, ...variants] });
+  }
+
+  return collapsed;
+};
+
 const readHeaderList = (value: unknown): HeaderEntry[] => {
   if (!Array.isArray(value)) return [];
-  return value
+  const entries = value
     .filter(isRecord)
     .map((entry) =>
       createHeaderEntry({
         name: asString(entry.name).trim(),
         value: asString(entry.value),
+        variants: readVariants(entry.variants),
         operation: readOperation(entry),
         enabled: entry.enabled !== false,
         comment: asString(entry.comment),
       })
     )
     .filter((entry) => entry.name.length > 0);
+
+  return collapseVariants(entries);
 };
 
 const readUrlFilter = (value: unknown): string => {

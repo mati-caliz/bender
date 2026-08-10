@@ -79,6 +79,7 @@ export const coerceHeaderEntry = (value: unknown): HeaderEntry | null => {
     id: asIdentifier(value.id),
     name: asString(value.name),
     value: asString(value.value),
+    variants: asStringList(value.variants),
     operation: asOneOf(value.operation, HEADER_OPERATIONS, 'set'),
     enabled: asBoolean(value.enabled, true),
     comment: asString(value.comment),

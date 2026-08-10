@@ -22,6 +22,7 @@ export const createHeaderEntry = (overrides: Partial<HeaderEntry> = {}): HeaderE
   id: createId(),
   name: '',
   value: '',
+  variants: [],
   operation: 'set',
   enabled: true,
   comment: '',

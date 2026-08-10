@@ -21,6 +21,7 @@ const header = (id: string, name: string, value: string, comment = '') => ({
   id,
   name,
   value,
+  variants: [] as string[],
   operation: 'set' as const,
   enabled: true,
   comment,

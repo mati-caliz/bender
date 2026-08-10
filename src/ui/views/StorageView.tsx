@@ -20,11 +20,11 @@ import {
   TextArea,
   TextInput,
 } from '@/ui/components/primitives';
+import { usePendingImport } from '@/ui/hooks/usePendingImport';
 import { useToasts } from '@/ui/hooks/useToasts';
 import { useWebStorage } from '@/ui/hooks/useWebStorage';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
 import type { StorageArea, StoredItem } from '@/types';
-import { usePendingImport } from '@/ui/hooks/usePendingImport';
 
 const AREA_OPTIONS: Array<{ value: StorageArea; label: string }> = [
   { value: 'local', label: 'localStorage' },

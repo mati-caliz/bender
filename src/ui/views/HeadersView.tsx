@@ -8,6 +8,7 @@ import { createId } from '@/lib/ids';
 import { mergeProfiles, parseProfiles } from '@/lib/import';
 import { PLACEHOLDERS } from '@/lib/placeholders';
 import { describeScope } from '@/lib/scope';
+import { HeaderValueField } from '@/ui/components/HeaderValueField';
 import { Icon } from '@/ui/components/Icon';
 import { ImportDialog } from '@/ui/components/ImportDialog';
 import { ScopeEditor } from '@/ui/components/ScopeEditor';
@@ -22,10 +23,10 @@ import {
   Switch,
   TextInput,
 } from '@/ui/components/primitives';
+import { usePendingImport } from '@/ui/hooks/usePendingImport';
 import { useToasts } from '@/ui/hooks/useToasts';
 import type { ViewProps } from '@/ui/views/types';
 import type { HeaderEntry, Profile } from '@/types';
-import { usePendingImport } from '@/ui/hooks/usePendingImport';
 
 type HeaderDirection = 'requestHeaders' | 'responseHeaders';
 
@@ -329,15 +330,10 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                       )
                     }
                   />
-                  <TextInput
-                    value={header.value}
-                    mono
-                    placeholder={header.operation === 'remove' ? '(no aplica)' : 'valor'}
-                    disabled={header.operation === 'remove'}
-                    onChange={(value) =>
-                      mutateHeaders((current) =>
-                        current.map((entry) => (entry.id === header.id ? { ...entry, value } : entry))
-                      )
+                  <HeaderValueField
+                    entry={header}
+                    onChange={(updated) =>
+                      mutateHeaders((current) => current.map((entry) => (entry.id === header.id ? updated : entry)))
                     }
                   />
                   <Select
@@ -365,6 +361,7 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                             createHeaderEntry({
                               name: header.name,
                               value: header.value,
+                              variants: [...header.variants],
                               operation: header.operation,
                               comment: header.comment,
                               enabled: false,

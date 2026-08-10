@@ -42,6 +42,51 @@ describe('parseProfiles', () => {
     expect(profiles[0]?.requestHeaders.map((header) => header.enabled)).toEqual([true, false]);
   });
 
+  it('junta los headers repetidos en una fila con varios valores', () => {
+    const [profile] = parseProfiles(
+      JSON.stringify([
+        {
+          profile: 'Mati',
+          headers: [
+            { name: 'x-version-override', value: 'banners-mx', enabled: false },
+            { name: 'x-version-override', value: 'ifood-cruz', enabled: true },
+            { name: 'x-version-override', value: 'errores-js', enabled: false },
+          ],
+        },
+      ])
+    );
+    expect(profile?.requestHeaders).toHaveLength(1);
+    expect(profile?.requestHeaders[0]?.value).toBe('ifood-cruz');
+    expect(profile?.requestHeaders[0]?.enabled).toBe(true);
+    expect(profile?.requestHeaders[0]?.variants).toEqual(['banners-mx', 'errores-js']);
+  });
+
+  it('no junta repetidos si hay mas de uno prendido ni si son append', () => {
+    const [profile] = parseProfiles(
+      JSON.stringify([
+        {
+          profile: 'Mati',
+          headers: [
+            { name: 'x-dos', value: 'a', enabled: true },
+            { name: 'x-dos', value: 'b', enabled: true },
+            { name: 'x-append', value: 'uno', appendMode: true },
+            { name: 'x-append', value: 'dos', appendMode: true },
+          ],
+        },
+      ])
+    );
+    expect(profile?.requestHeaders.map((header) => header.value)).toEqual(['a', 'b', 'uno', 'dos']);
+  });
+
+  it('conserva los valores alternativos de un export de Bender', () => {
+    const [profile] = parseProfiles(
+      JSON.stringify([
+        { name: 'Bender', requestHeaders: [{ name: 'x-uow', value: 'tute', variants: ['otro'] }] },
+      ])
+    );
+    expect(profile?.requestHeaders[0]?.variants).toEqual(['otro']);
+  });
+
   it('traduce appendMode a la operacion append', () => {
     const [profile] = parseProfiles(
       JSON.stringify([{ profile: 'Append', headers: [{ name: 'Cookie', value: 'a=1', appendMode: true }] }])

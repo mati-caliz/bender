@@ -6,10 +6,10 @@ import { normalizeState } from '@/lib/state';
 import { ImportDialog } from '@/ui/components/ImportDialog';
 import { ViewShell } from '@/ui/components/ViewShell';
 import { Button, Card, ConfirmBar, Field, Notice, Segmented, Select, Switch } from '@/ui/components/primitives';
+import { usePendingImport } from '@/ui/hooks/usePendingImport';
 import { useToasts } from '@/ui/hooks/useToasts';
 import type { UpdateState } from '@/ui/views/types';
 import type { EngineStatus, ThemeMode, ToolkitState, UiConfig } from '@/types';
-import { usePendingImport } from '@/ui/hooks/usePendingImport';
 
 const THEME_OPTIONS: Array<{ value: ThemeMode; label: string }> = [
   { value: 'system', label: 'Sistema' },

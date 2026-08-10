@@ -18,10 +18,10 @@ import {
   TextInput,
 } from '@/ui/components/primitives';
 import { cookieKeyOf, useCookies } from '@/ui/hooks/useCookies';
+import { usePendingImport } from '@/ui/hooks/usePendingImport';
 import { useToasts } from '@/ui/hooks/useToasts';
 import type { ActiveTab } from '@/ui/hooks/useActiveTab';
 import type { CookieSnapshot } from '@/types';
-import { usePendingImport } from '@/ui/hooks/usePendingImport';
 
 const SAME_SITE_OPTIONS = [
   { value: 'lax', label: 'SameSite: Lax' },
