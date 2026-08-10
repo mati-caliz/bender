@@ -184,6 +184,8 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
           <span className="kv-value">{status.appliedRuleCount}</span>
           <span className="kv-key">Perfiles activos</span>
           <span className="kv-value">{status.activeProfileCount}</span>
+          <span className="kv-key">Headers activos</span>
+          <span className="kv-value">{status.activeHeaderCount}</span>
         </div>
         {status.diagnostics.length ? (
           status.diagnostics.map((diagnostic, index) => (

@@ -24,7 +24,13 @@ const BADGE_OFF_COLOR = '#64748b';
 const BADGE_ERROR_COLOR = '#ef4444';
 const HTTP_URL_PATTERN = /^https?:/;
 
-let lastStatus: EngineStatus = { appliedRuleCount: 0, activeProfileCount: 0, diagnostics: [], updatedAt: 0 };
+let lastStatus: EngineStatus = {
+  appliedRuleCount: 0,
+  activeProfileCount: 0,
+  activeHeaderCount: 0,
+  diagnostics: [],
+  updatedAt: 0,
+};
 let lastUserScriptsStatus: UserScriptsStatus = { supported: true, registeredCount: 0, error: null };
 
 const collectTabOrigins = async (): Promise<TabOrigin[]> => {
@@ -54,7 +60,7 @@ const updateBadge = (state: ToolkitState, status: EngineStatus): void => {
   }
 
   const hasErrors = status.diagnostics.some((diagnostic) => diagnostic.level === 'error');
-  void chrome.action.setBadgeText({ text: status.appliedRuleCount ? String(status.appliedRuleCount) : '' });
+  void chrome.action.setBadgeText({ text: status.activeHeaderCount ? String(status.activeHeaderCount) : '' });
   void chrome.action.setBadgeBackgroundColor({ color: hasErrors ? BADGE_ERROR_COLOR : state.ui.accent });
 };
 
@@ -111,6 +117,7 @@ const applyEngine = async (): Promise<EngineStatus> => {
   lastStatus = {
     appliedRuleCount: compiled.rules.length,
     activeProfileCount: compiled.activeProfileCount,
+    activeHeaderCount: compiled.activeHeaderCount,
     diagnostics,
     updatedAt: Date.now(),
   };

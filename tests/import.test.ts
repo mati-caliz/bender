@@ -23,6 +23,48 @@ describe('parseProfiles', () => {
     expect(profile?.scope.urlFilter).toBe('staging\\.example\\.com');
   });
 
+  it('lee un backup de ModHeader con profile, color y headers deshabilitados', () => {
+    const profiles = parseProfiles(
+      JSON.stringify([
+        {
+          profile: 'Mati',
+          color: '#014461',
+          headers: [
+            { name: 'x-uow', value: 'tute', enabled: true },
+            { name: 'x-version-override', value: 'banners-mx', enabled: false },
+          ],
+        },
+        { profile: 'Secuencialidad', color: '#a344d3', headers: [{ name: 'X-SkipCache', value: 'true' }] },
+      ])
+    );
+    expect(profiles.map((profile) => profile.name)).toEqual(['Mati', 'Secuencialidad']);
+    expect(profiles[0]?.color).toBe('#014461');
+    expect(profiles[0]?.requestHeaders.map((header) => header.enabled)).toEqual([true, false]);
+  });
+
+  it('traduce appendMode a la operacion append', () => {
+    const [profile] = parseProfiles(
+      JSON.stringify([{ profile: 'Append', headers: [{ name: 'Cookie', value: 'a=1', appendMode: true }] }])
+    );
+    expect(profile?.requestHeaders[0]?.operation).toBe('append');
+  });
+
+  it('ignora los urlFilters deshabilitados', () => {
+    const [profile] = parseProfiles(
+      JSON.stringify([
+        {
+          profile: 'Filtros',
+          headers: [{ name: 'x', value: '1' }],
+          urlFilters: [
+            { enabled: false, urlRegex: 'viejo\\.example\\.com' },
+            { enabled: true, urlRegex: 'nuevo\\.example\\.com' },
+          ],
+        },
+      ])
+    );
+    expect(profile?.scope.urlFilter).toBe('nuevo\\.example\\.com');
+  });
+
   it('acepta el objeto envuelto en { profiles }', () => {
     const profiles = parseProfiles(
       JSON.stringify({ profiles: [{ name: 'Uno', headers: [{ name: 'x', value: '1' }] }] })

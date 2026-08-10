@@ -176,6 +176,7 @@ export interface EngineDiagnostic {
 export interface EngineStatus {
   appliedRuleCount: number;
   activeProfileCount: number;
+  activeHeaderCount: number;
   diagnostics: EngineDiagnostic[];
   updatedAt: number;
 }

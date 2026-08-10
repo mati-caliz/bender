@@ -38,6 +38,12 @@ export interface CompiledRules {
   labels: Record<number, string>;
   diagnostics: EngineDiagnostic[];
   activeProfileCount: number;
+  activeHeaderCount: number;
+}
+
+interface CompiledProfileRules {
+  rules: chrome.declarativeNetRequest.Rule[];
+  headerCount: number;
 }
 
 interface ModifyHeaderSpec {
@@ -135,8 +141,9 @@ const compileProfileRules = (
   nextId: () => number,
   labels: Record<number, string>,
   diagnostics: EngineDiagnostic[]
-): chrome.declarativeNetRequest.Rule[] => {
+): CompiledProfileRules => {
   const rules: chrome.declarativeNetRequest.Rule[] = [];
+  let headerCount = 0;
 
   profiles.forEach((profile, index) => {
     const condition = scopeToCondition(profile.scope, context);
@@ -147,6 +154,7 @@ const compileProfileRules = (
     const responseHeaders = compileHeaderEntries(profile.responseHeaders, owner, placeholders, diagnostics);
     if (!requestHeaders.length && !responseHeaders.length) return;
 
+    headerCount += requestHeaders.length + responseHeaders.length;
     const id = nextId();
     labels[id] = `Perfil · ${profile.name}`;
     rules.push({
@@ -161,7 +169,7 @@ const compileProfileRules = (
     });
   });
 
-  return rules;
+  return { rules, headerCount };
 };
 
 const corsResponseHeaders = (cors: CorsConfig, originValue: string): ModifyHeaderSpec[] => {
@@ -430,7 +438,7 @@ export const compileRules = (state: ToolkitState, context: CompileContext): Comp
   const diagnostics: EngineDiagnostic[] = [];
 
   if (!state.globalEnabled) {
-    return { rules: [], labels, diagnostics, activeProfileCount: 0 };
+    return { rules: [], labels, diagnostics, activeProfileCount: 0, activeHeaderCount: 0 };
   }
 
   let currentId = FIRST_RULE_ID;
@@ -440,12 +448,19 @@ export const compileRules = (state: ToolkitState, context: CompileContext): Comp
   const placeholders: PlaceholderContext = { tabUrl: activeTab?.url ?? null, now: Date.now() };
 
   const enabledProfiles = state.profiles.filter((profile) => profile.enabled);
+  const profileRules = compileProfileRules(enabledProfiles, context, placeholders, nextId, labels, diagnostics);
   const rules = [
-    ...compileProfileRules(enabledProfiles, context, placeholders, nextId, labels, diagnostics),
+    ...profileRules.rules,
     ...compileCorsRules(state.cors, context, nextId, labels, diagnostics),
     ...compileUserAgentRule(state.userAgent, context, nextId, labels, diagnostics),
     ...compileTrafficRules(state, context, nextId, labels, diagnostics),
   ];
 
-  return { rules, labels, diagnostics, activeProfileCount: enabledProfiles.length };
+  return {
+    rules,
+    labels,
+    diagnostics,
+    activeProfileCount: enabledProfiles.length,
+    activeHeaderCount: profileRules.headerCount,
+  };
 };

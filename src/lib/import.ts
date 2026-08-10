@@ -3,9 +3,16 @@ import { createHeaderEntry } from '@/lib/factories';
 import { createId } from '@/lib/ids';
 import { isRecord } from '@/lib/records';
 import { sanitizeDomainList } from '@/lib/scope';
-import type { CookieSnapshot, HeaderEntry, Profile, StoredItem } from '@/types';
+import type { CookieSnapshot, HeaderEntry, HeaderOperation, Profile, StoredItem } from '@/types';
 
 const asString = (value: unknown, fallback = ''): string => (typeof value === 'string' ? value : fallback);
+
+const readOperation = (entry: Record<string, unknown>): HeaderOperation => {
+  const explicit = asString(entry.operation).toLowerCase();
+  if (explicit === 'append' || explicit === 'remove' || explicit === 'set') return explicit;
+  if (entry.appendMode === true || asString(entry.appendMode).toLowerCase() === 'append') return 'append';
+  return 'set';
+};
 
 const readHeaderList = (value: unknown): HeaderEntry[] => {
   if (!Array.isArray(value)) return [];
@@ -15,6 +22,7 @@ const readHeaderList = (value: unknown): HeaderEntry[] => {
       createHeaderEntry({
         name: asString(entry.name).trim(),
         value: asString(entry.value),
+        operation: readOperation(entry),
         enabled: entry.enabled !== false,
         comment: asString(entry.comment),
       })
@@ -24,8 +32,9 @@ const readHeaderList = (value: unknown): HeaderEntry[] => {
 
 const readUrlFilter = (value: unknown): string => {
   if (!Array.isArray(value)) return '';
-  const first = value.find(isRecord);
-  return first ? asString(first.urlRegex ?? first.urlFilter ?? first.url) : '';
+  const candidates = value.filter(isRecord).filter((entry) => entry.enabled !== false);
+  const withPattern = candidates.find((entry) => asString(entry.urlRegex ?? entry.urlFilter ?? entry.url).trim());
+  return withPattern ? asString(withPattern.urlRegex ?? withPattern.urlFilter ?? withPattern.url).trim() : '';
 };
 
 export const parseProfiles = (text: string): Profile[] => {

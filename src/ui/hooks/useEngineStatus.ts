@@ -3,7 +3,13 @@ import { ENGINE_STATUS_KEY } from '@/lib/constants';
 import { sendMessage } from '@/lib/messages';
 import type { EngineStatus } from '@/types';
 
-const EMPTY_STATUS: EngineStatus = { appliedRuleCount: 0, activeProfileCount: 0, diagnostics: [], updatedAt: 0 };
+const EMPTY_STATUS: EngineStatus = {
+  appliedRuleCount: 0,
+  activeProfileCount: 0,
+  activeHeaderCount: 0,
+  diagnostics: [],
+  updatedAt: 0,
+};
 
 const isEngineStatus = (value: unknown): value is EngineStatus =>
   typeof value === 'object' && value !== null && 'appliedRuleCount' in value;
