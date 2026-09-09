@@ -220,7 +220,7 @@ Todas las funciones son medios para ese fin y operan sobre el mismo objeto -- la
 |---|---|
 | **Política de privacidad** | `https://matiascaliz.com.ar/bender/privacidad` |
 | **Sitio web** | `https://matiascaliz.com.ar` *(opcional)* |
-| **Correo de soporte** | mati-caliz |
+| **Soporte** | https://github.com/mati-caliz/bender/issues |
 
 El campo **Sitio web** es opcional. No pongas el repositorio: es privado, así que el enlace
 daría 404 al revisor y a cualquier usuario, que es peor que dejarlo vacío. Tu página personal

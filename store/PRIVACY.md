@@ -74,4 +74,4 @@ extensión en la Chrome Web Store.
 
 ## Contacto
 
-Por dudas sobre privacidad: **mati-caliz**
+Por dudas sobre privacidad, abrí un issue en **https://github.com/mati-caliz/bender/issues**.
