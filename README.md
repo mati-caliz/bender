@@ -33,8 +33,8 @@ ancho.
 ## Instalar
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm run build
 ```
 
 Despues, en `chrome://extensions`: activar **Modo de desarrollador**, **Cargar descomprimida** y
@@ -43,7 +43,7 @@ elegir la carpeta `dist/`.
 Hace falta Chrome 120 o mas nuevo (por `chrome.userScripts`) y el modo desarrollador prendido: sin
 el, Chrome no expone esa API y la pestaña Scripts avisa.
 
-Para desarrollar, `npm run dev` deja Vite y esbuild en watch; los cambios de UI necesitan cerrar y
+Para desarrollar, `pnpm run dev` deja Vite y esbuild en watch; los cambios de UI necesitan cerrar y
 volver a abrir el popup, y los del service worker un click en ↻ dentro de `chrome://extensions`.
 
 ## Decisiones que no se leen en el codigo

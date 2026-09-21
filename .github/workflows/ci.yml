@@ -18,21 +18,23 @@ jobs:
 
       # 24 porque el script `clean` usa `fs` como global de `node -e`, que no esta
       # garantizado en versiones anteriores.
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - run: npm run lint
+      - run: pnpm run lint
 
-      - run: npm run typecheck
+      - run: pnpm run typecheck
 
-      - run: npm test
+      - run: pnpm test
 
       # El build es parte del check: la extension tiene que poder empaquetarse.
-      - run: npm run build
+      - run: pnpm run build
 
   # Aparte del job rapido: baja un Chromium de ~115 MB y necesita el dist ya armado.
   e2e:
@@ -40,18 +42,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
-      - run: npm run build
+      - run: pnpm run build
 
-      - run: npx playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium
 
-      - run: npm run test:e2e
+      - run: pnpm run test:e2e
 
       - uses: actions/upload-artifact@v4
         if: failure()

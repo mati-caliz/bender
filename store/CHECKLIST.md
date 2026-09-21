@@ -4,8 +4,8 @@
 
 | Chequeo | Resultado |
 |---|---|
-| `npm run typecheck` | ✅ Sin errores |
-| `npm test` | ✅ 262 tests, 21 archivos |
+| `pnpm run typecheck` | ✅ Sin errores |
+| `pnpm test` | ✅ 262 tests, 21 archivos |
 | `eval()` / `new Function()` | ✅ Ninguno |
 | Código remoto (script/módulo/fetch a URL externa) | ✅ Ninguno |
 | `innerHTML` / `document.write` | ✅ Ninguno |
@@ -69,8 +69,8 @@ por HTTPS y sin advertencia de certificado.
 ## Generar el paquete
 
 ```bash
-npm run build
-npm run zip
+pnpm run build
+pnpm run zip
 ```
 
 Sale `bender-1.0.0.zip`. El script valida que la versión del `manifest.json` coincida con la
@@ -100,7 +100,7 @@ Requisito: mínimo 1, máximo 5. **1280x800** o 640x400, PNG o JPEG, sin bordes 
 Están automatizadas. Con `dist/` ya construido:
 
 ```bash
-npm run screenshots:capture
+pnpm run screenshots:capture
 ```
 
 Levanta un Chrome con la extensión cargada, siembra datos inventados
@@ -133,7 +133,7 @@ Si las querés igual, sacalas a mano con la extensión instalada de verdad: DevT
 ### Capturas hechas a mano
 
 Si alguna te sale en otro tamaño, no la recortes. Dejala en `store/screenshots/raw/` y
-corré `npm run screenshots`: cada imagen se escala para entrar completa y se centra
+corré `pnpm run screenshots`: cada imagen se escala para entrar completa y se centra
 sobre el fondo `#0a0d16` de Bender.
 
 ---

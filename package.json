@@ -3,9 +3,10 @@
   "version": "1.1.0",
   "private": true,
   "description": "Extension MV3 para manipular headers, cookies, storage y trafico de red",
+  "packageManager": "pnpm@10.10.0",
   "type": "module",
   "scripts": {
-    "build": "npm run clean && npm run build:app && npm run build:content",
+    "build": "pnpm run clean && pnpm run build:app && pnpm run build:content",
     "build:app": "vite build",
     "build:content": "node scripts/build-content.mjs",
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\"",

@@ -404,7 +404,7 @@ No hay linter. Con `typecheck` y `vitest` ya armados es lo único que falta. Rec
 no usa `eslint-disable`: si una regla molesta, se arregla el código o se saca la regla de la config.
 
 Hecho con flat config: `js.recommended` + `typescript-eslint` **type-checked** + `react-hooks`.
-`npm run lint` corre con `--max-warnings 0`, así que la salida limpia es la única salida válida.
+`pnpm run lint` corre con `--max-warnings 0`, así que la salida limpia es la única salida válida.
 
 Se respetó la regla de no usar `eslint-disable`. De los 27 hallazgos iniciales, se **arreglaron** los
 que eran deuda real: los `as` innecesarios en `sendMessage`, las lecturas de `chrome.storage` que
