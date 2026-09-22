@@ -1,8 +1,9 @@
 name: CI
 
+# Sin disparador por push: cada commit a main gastaba minutos de Actions.
+# La verificación se corre local en el VPS antes de pushear.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
   pull_request:
 
 # Un push encima de otro cancela la corrida vieja: solo importa el ultimo commit.
