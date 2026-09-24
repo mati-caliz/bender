@@ -1,18 +1,18 @@
-import { collectChaosDefinitions } from '@/lib/chaos';
-import { isRecord } from '@/lib/records';
-import { requestMatchesScope, type ScopeRequest } from '@/lib/scope';
-import type { ChaosDefinition, MockDefinition, PageConfig, ToolkitState } from '@/types';
+import { collectChaosDefinitions } from "@/lib/chaos";
+import { isRecord } from "@/lib/records";
+import { requestMatchesScope, type ScopeRequest } from "@/lib/scope";
+import type { ChaosDefinition, MockDefinition, PageConfig, ToolkitState } from "@/types";
 
-export const MOCKS_STORAGE_KEY = 'benderMocks';
+export const MOCKS_STORAGE_KEY = "benderMocks";
 
 export const collectMockDefinitions = (state: ToolkitState): MockDefinition[] => {
   if (!state.globalEnabled) return [];
 
   return state.trafficRules
-    .filter((rule) => rule.enabled && rule.action.kind === 'mock')
+    .filter((rule) => rule.enabled && rule.action.kind === "mock")
     .map((rule) => {
       const action = rule.action;
-      if (action.kind !== 'mock') return null;
+      if (action.kind !== "mock") return null;
       return {
         id: rule.id,
         name: rule.name,

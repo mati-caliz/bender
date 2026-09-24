@@ -1,6 +1,6 @@
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
-export type JsonKind = 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null';
+export type JsonKind = "object" | "array" | "string" | "number" | "boolean" | "null";
 
 export interface JsonNode {
   /** Identifica al nodo dentro del arbol; sirve de key de React y de estado de plegado. */
@@ -17,37 +17,37 @@ export interface JsonNode {
 const MAX_PREVIEW_CHARS = 48;
 
 export const jsonKindOf = (value: JsonValue): JsonKind => {
-  if (value === null) return 'null';
-  if (Array.isArray(value)) return 'array';
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
   const type = typeof value;
-  if (type === 'object') return 'object';
-  if (type === 'number') return 'number';
-  if (type === 'boolean') return 'boolean';
-  return 'string';
+  if (type === "object") return "object";
+  if (type === "number") return "number";
+  if (type === "boolean") return "boolean";
+  return "string";
 };
 
-export const isBranch = (kind: JsonKind): boolean => kind === 'object' || kind === 'array';
+export const isBranch = (kind: JsonKind): boolean => kind === "object" || kind === "array";
 
 const clip = (text: string): string =>
   text.length > MAX_PREVIEW_CHARS ? `${text.slice(0, MAX_PREVIEW_CHARS - 1)}…` : text;
 
 const isJsonObject = (value: JsonValue): value is { [key: string]: JsonValue } =>
-  value !== null && typeof value === 'object' && !Array.isArray(value);
+  value !== null && typeof value === "object" && !Array.isArray(value);
 
 export const previewOf = (value: JsonValue): string => {
   if (Array.isArray(value)) return `[${value.length}]`;
   if (isJsonObject(value)) return `{${Object.keys(value).length}}`;
-  if (typeof value === 'string') return clip(`"${value}"`);
+  if (typeof value === "string") return clip(`"${value}"`);
   return String(value);
 };
 
 /** El valor crudo de una hoja: el texto sin comillas, para que copiarlo sirva. */
 const rawOf = (value: JsonValue): string | null => {
   if (Array.isArray(value) || isJsonObject(value)) return null;
-  return typeof value === 'string' ? value : String(value);
+  return typeof value === "string" ? value : String(value);
 };
 
-export const buildJsonTree = (value: JsonValue, label = '', path = '$'): JsonNode => {
+export const buildJsonTree = (value: JsonValue, label = "", path = "$"): JsonNode => {
   const kind = jsonKindOf(value);
   let children: JsonNode[] = [];
 
@@ -66,7 +66,7 @@ export const buildJsonTree = (value: JsonValue, label = '', path = '$'): JsonNod
  */
 export const parseJsonTree = (text: string): JsonNode | null => {
   const trimmed = text.trim();
-  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return null;
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return null;
 
   try {
     const parsed: unknown = JSON.parse(trimmed);

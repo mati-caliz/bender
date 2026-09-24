@@ -1,7 +1,7 @@
-import type { NetworkEntry } from '@/types';
+import type { NetworkEntry } from "@/types";
 
 const SHELL_QUOTE_ESCAPE = "'\\''";
-const DEFAULT_METHOD = 'GET';
+const DEFAULT_METHOD = "GET";
 
 const shellQuote = (value: string): string => `'${value.split("'").join(SHELL_QUOTE_ESCAPE)}'`;
 
@@ -14,7 +14,7 @@ export const toCurl = (entry: NetworkEntry): string => {
   }
   if (entry.requestBody) lines.push(`--data-raw ${shellQuote(entry.requestBody)}`);
 
-  return lines.join(' \\\n  ');
+  return lines.join(" \\\n  ");
 };
 
 export const toFetchSnippet = (entry: NetworkEntry): string => {

@@ -1,9 +1,9 @@
-import { CUSTOM_USER_AGENT_PRESET_ID, USER_AGENT_PRESETS } from '@/lib/constants';
-import { ScopeEditor } from '@/ui/components/ScopeEditor';
-import { ViewShell } from '@/ui/components/ViewShell';
-import { Badge, Card, Notice, Switch, TextArea } from '@/ui/components/primitives';
-import type { ViewProps } from '@/ui/views/types';
-import type { UserAgentConfig } from '@/types';
+import { CUSTOM_USER_AGENT_PRESET_ID, USER_AGENT_PRESETS } from "@/lib/constants";
+import { ScopeEditor } from "@/ui/components/ScopeEditor";
+import { ViewShell } from "@/ui/components/ViewShell";
+import { Badge, Card, Notice, Switch, TextArea } from "@/ui/components/primitives";
+import type { ViewProps } from "@/ui/views/types";
+import type { UserAgentConfig } from "@/types";
 
 export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
   const userAgent = state.userAgent;
@@ -29,11 +29,14 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
         <div style={{ minWidth: 0 }}>
           <div className="quick-toggle-title">Suplantar User-Agent</div>
           <div className="quick-toggle-hint truncate">
-            {userAgent.enabled ? userAgent.value : 'Se manda el User-Agent real del navegador'}
+            {userAgent.enabled ? userAgent.value : "Se manda el User-Agent real del navegador"}
           </div>
         </div>
         <div className="spacer" />
-        <Switch checked={userAgent.enabled} onChange={(enabled) => mutate((config) => ({ ...config, enabled }))} />
+        <Switch
+          checked={userAgent.enabled}
+          onChange={(enabled) => mutate((config) => ({ ...config, enabled }))}
+        />
       </div>
 
       <Card title="Presets">
@@ -45,8 +48,10 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
                 <button
                   key={preset.id}
                   type="button"
-                  className={preset.id === userAgent.presetId ? 'btn primary small' : 'btn small'}
-                  onClick={() => mutate((config) => ({ ...config, presetId: preset.id, value: preset.value }))}
+                  className={preset.id === userAgent.presetId ? "btn primary small" : "btn small"}
+                  onClick={() =>
+                    mutate((config) => ({ ...config, presetId: preset.id, value: preset.value }))
+                  }
                 >
                   {preset.label}
                 </button>
@@ -59,7 +64,9 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
       <Card
         title="Valor enviado"
         actions={
-          userAgent.presetId === CUSTOM_USER_AGENT_PRESET_ID ? <Badge tone="accent">personalizado</Badge> : null
+          userAgent.presetId === CUSTOM_USER_AGENT_PRESET_ID ? (
+            <Badge tone="accent">personalizado</Badge>
+          ) : null
         }
       >
         <TextArea
@@ -67,7 +74,9 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
           mono
           rows={3}
           placeholder="Mozilla/5.0 …"
-          onChange={(value) => mutate((config) => ({ ...config, value, presetId: CUSTOM_USER_AGENT_PRESET_ID }))}
+          onChange={(value) =>
+            mutate((config) => ({ ...config, value, presetId: CUSTOM_USER_AGENT_PRESET_ID }))
+          }
         />
         <label className="checkbox">
           <input
@@ -93,13 +102,14 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
         </label>
         {userAgent.spoofNavigator ? (
           <Notice>
-            El spoof de <code>navigator</code> se registra como userscript en <code>document_start</code>, asi que
-            necesita el modo desarrollador. Se aplica por dominio: ignora el filtro de URL y "solo la pestaña activa".
+            El spoof de <code>navigator</code> se registra como userscript en <code>document_start</code>, asi
+            que necesita el modo desarrollador. Se aplica por dominio: ignora el filtro de URL y "solo la
+            pestaña activa".
           </Notice>
         ) : (
           <Notice>
-            El User-Agent viaja en la request, pero <code>navigator.userAgent</code> dentro de la pagina sigue siendo el
-            real. Prendé la opcion de arriba si el sitio detecta el dispositivo por JavaScript.
+            El User-Agent viaja en la request, pero <code>navigator.userAgent</code> dentro de la pagina sigue
+            siendo el real. Prendé la opcion de arriba si el sitio detecta el dispositivo por JavaScript.
           </Notice>
         )}
       </Card>

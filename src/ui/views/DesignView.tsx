@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { contrastRatio, isLightColor, parseCssColor, toHslString, toRgbString } from '@/lib/color';
-import { downloadJson } from '@/lib/download';
-import { formatDateTime } from '@/lib/format';
-import { Icon } from '@/ui/components/Icon';
-import { ViewShell } from '@/ui/components/ViewShell';
+import { useEffect, useMemo, useState } from "react";
+import { contrastRatio, isLightColor, parseCssColor, toHslString, toRgbString } from "@/lib/color";
+import { downloadJson } from "@/lib/download";
+import { formatDateTime } from "@/lib/format";
+import { Icon } from "@/ui/components/Icon";
+import { ViewShell } from "@/ui/components/ViewShell";
 import {
   Badge,
   Button,
@@ -15,43 +15,44 @@ import {
   Notice,
   Segmented,
   TextInput,
-} from '@/ui/components/primitives';
-import { useDesignInspector } from '@/ui/hooks/useDesignInspector';
-import { useDesignPicks } from '@/ui/hooks/useDesignPicks';
-import { useToasts } from '@/ui/hooks/useToasts';
-import type { ActiveTab } from '@/ui/hooks/useActiveTab';
-import type { ColorUsage, DesignPick, DesignTool, ValueUsage } from '@/types';
+} from "@/ui/components/primitives";
+import { useDesignInspector } from "@/ui/hooks/useDesignInspector";
+import { useDesignPicks } from "@/ui/hooks/useDesignPicks";
+import { useToasts } from "@/ui/hooks/useToasts";
+import type { ActiveTab } from "@/ui/hooks/useActiveTab";
+import type { ColorUsage, DesignPick, DesignTool, ValueUsage } from "@/types";
 
 const AA_NORMAL_RATIO = 4.5;
 const AA_LARGE_RATIO = 3;
 const AAA_NORMAL_RATIO = 7;
 const CONTRAST_DECIMALS = 2;
-const DEFAULT_FOREGROUND = '#111827';
-const DEFAULT_BACKGROUND = '#ffffff';
+const DEFAULT_FOREGROUND = "#111827";
+const DEFAULT_BACKGROUND = "#ffffff";
 const MAX_VISIBLE_TOKENS = 24;
 
 const TOOL_OPTIONS: Array<{ value: DesignTool; label: string }> = [
-  { value: 'inspect', label: 'Inspector' },
-  { value: 'ruler', label: 'Regla' },
-  { value: 'spacing', label: 'Espaciado' },
+  { value: "inspect", label: "Inspector" },
+  { value: "ruler", label: "Regla" },
+  { value: "spacing", label: "Espaciado" },
 ];
 
 const TOOL_HINTS: Record<DesignTool, string> = {
-  inspect: 'Pasá el mouse por la pagina para ver el box model. Click congela el elemento y copia su selector.',
-  ruler: 'Arrastrá sobre la pagina para medir cualquier distancia, con guias en todo el viewport.',
-  spacing: 'Click fija un elemento base y al pasar por otro te muestra el gap horizontal y vertical.',
+  inspect:
+    "Pasá el mouse por la pagina para ver el box model. Click congela el elemento y copia su selector.",
+  ruler: "Arrastrá sobre la pagina para medir cualquier distancia, con guias en todo el viewport.",
+  spacing: "Click fija un elemento base y al pasar por otro te muestra el gap horizontal y vertical.",
 };
 
-const ROLE_LABELS: Record<ColorUsage['roles'][number], string> = {
-  text: 'texto',
-  background: 'fondo',
-  border: 'borde',
+const ROLE_LABELS: Record<ColorUsage["roles"][number], string> = {
+  text: "texto",
+  background: "fondo",
+  border: "borde",
 };
 
-const PICK_ICONS: Record<DesignPick['kind'], 'eye' | 'droplet' | 'ruler'> = {
-  color: 'droplet',
-  element: 'eye',
-  measure: 'ruler',
+const PICK_ICONS: Record<DesignPick["kind"], "eye" | "droplet" | "ruler"> = {
+  color: "droplet",
+  element: "eye",
+  measure: "ruler",
 };
 
 const sortedNumericValues = (usages: ValueUsage[]): ValueUsage[] =>
@@ -68,7 +69,11 @@ const Swatch = ({ hex, caption, onSelect, title }: SwatchProps) => {
   const parsed = parseCssColor(hex);
   return (
     <button type="button" className="swatch-tile" onClick={onSelect} title={title}>
-      <span className="swatch-color" style={{ background: hex }} data-light={parsed ? isLightColor(parsed) : false} />
+      <span
+        className="swatch-color"
+        style={{ background: hex }}
+        data-light={parsed ? isLightColor(parsed) : false}
+      />
       <span className="swatch-hex mono">{hex}</span>
       <span className="swatch-caption">{caption}</span>
     </button>
@@ -91,7 +96,7 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
   const { notify } = useToasts();
   const inspector = useDesignInspector(activeTab);
   const { picks, remove, clear } = useDesignPicks();
-  const [tool, setTool] = useState<DesignTool>('inspect');
+  const [tool, setTool] = useState<DesignTool>("inspect");
   const [foreground, setForeground] = useState(DEFAULT_FOREGROUND);
   const [background, setBackground] = useState(DEFAULT_BACKGROUND);
 
@@ -103,8 +108,8 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
 
   useEffect(() => {
     if (!audit) return;
-    const textColor = audit.colors.find((color) => color.roles.includes('text'));
-    const backgroundColor = audit.colors.find((color) => color.roles.includes('background'));
+    const textColor = audit.colors.find((color) => color.roles.includes("text"));
+    const backgroundColor = audit.colors.find((color) => color.roles.includes("background"));
     if (textColor) setForeground(textColor.hex);
     if (backgroundColor) setBackground(backgroundColor.hex);
   }, [audit]);
@@ -115,7 +120,7 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
     foregroundColor && backgroundColor ? contrastRatio(foregroundColor, backgroundColor) : null;
 
   const copyValue = (value: string, message: string) => {
-    void navigator.clipboard.writeText(value).then(() => notify(message, 'success'));
+    void navigator.clipboard.writeText(value).then(() => notify(message, "success"));
   };
 
   return (
@@ -124,12 +129,18 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
       subtitle={
         audit
           ? `${activeTab.hostname} · ${audit.elementCount} elementos · raiz ${audit.rootFontSize}px`
-          : 'Inspector visual, regla y tokens de la pagina'
+          : "Inspector visual, regla y tokens de la pagina"
       }
       actions={
         <>
-          <Button small icon="refresh" variant="ghost" onClick={inspector.runAudit} disabled={inspector.loading}>
-            {inspector.loading ? 'Analizando…' : 'Reanalizar'}
+          <Button
+            small
+            icon="refresh"
+            variant="ghost"
+            onClick={inspector.runAudit}
+            disabled={inspector.loading}
+          >
+            {inspector.loading ? "Analizando…" : "Reanalizar"}
           </Button>
           <Button
             small
@@ -137,8 +148,8 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
             disabled={!audit}
             onClick={() => {
               if (!audit) return;
-              downloadJson(`tokens-${activeTab.hostname || 'pagina'}.json`, audit);
-              notify('Tokens exportados', 'success');
+              downloadJson(`tokens-${activeTab.hostname || "pagina"}.json`, audit);
+              notify("Tokens exportados", "success");
             }}
           >
             Exportar tokens
@@ -150,7 +161,7 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
 
       <Card
         title="Inspector en la pagina"
-        subtitle={inspector.overlay.active ? 'Activo · Esc en la pagina lo cierra' : 'Inactivo'}
+        subtitle={inspector.overlay.active ? "Activo · Esc en la pagina lo cierra" : "Inactivo"}
         actions={
           inspector.overlay.active ? (
             <Button small variant="danger" icon="x" onClick={() => void inspector.close()}>
@@ -167,31 +178,38 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
             disabled={!activeTab.injectable}
             onClick={() => void inspector.activate(tool)}
           >
-            {inspector.overlay.active ? 'Cambiar herramienta' : 'Activar'}
+            {inspector.overlay.active ? "Cambiar herramienta" : "Activar"}
           </Button>
         </div>
         <p className="view-subtitle">{TOOL_HINTS[tool]}</p>
         <p className="view-subtitle">
-          En la pagina tenés una barra flotante con el cuentagotas (guarda el color y lo copia) y el boton de guardar.
-          Las teclas 1, 2 y 3 cambian de herramienta.
+          En la pagina tenés una barra flotante con el cuentagotas (guarda el color y lo copia) y el boton de
+          guardar. Las teclas 1, 2 y 3 cambian de herramienta.
         </p>
       </Card>
 
-      <Card title="Paleta de la pagina" subtitle={audit ? `${audit.colors.length} colores detectados` : undefined}>
+      <Card
+        title="Paleta de la pagina"
+        subtitle={audit ? `${audit.colors.length} colores detectados` : undefined}
+      >
         {audit && audit.colors.length ? (
           <div className="swatch-grid">
             {audit.colors.map((color) => (
               <Swatch
                 key={color.hex}
                 hex={color.hex}
-                caption={`${color.roles.map((role) => ROLE_LABELS[role]).join(' · ')} · ${color.count}`}
+                caption={`${color.roles.map((role) => ROLE_LABELS[role]).join(" · ")} · ${color.count}`}
                 title="Click para copiar el hex"
                 onSelect={() => copyValue(color.hex, `${color.hex} copiado`)}
               />
             ))}
           </div>
         ) : (
-          <EmptyState icon="droplet" title="Sin colores" text="Analiza una pagina http(s) para ver su paleta." />
+          <EmptyState
+            icon="droplet"
+            title="Sin colores"
+            text="Analiza una pagina http(s) para ver su paleta."
+          />
         )}
       </Card>
 
@@ -217,12 +235,12 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
         </div>
 
         <div className="row wrap">
-          <Badge tone={contrast && contrast >= AA_NORMAL_RATIO ? 'success' : 'danger'}>
-            {contrast ? `${contrast.toFixed(CONTRAST_DECIMALS)}:1` : 'color invalido'}
+          <Badge tone={contrast && contrast >= AA_NORMAL_RATIO ? "success" : "danger"}>
+            {contrast ? `${contrast.toFixed(CONTRAST_DECIMALS)}:1` : "color invalido"}
           </Badge>
-          <Badge tone={contrast && contrast >= AA_LARGE_RATIO ? 'success' : 'warning'}>AA grande</Badge>
-          <Badge tone={contrast && contrast >= AA_NORMAL_RATIO ? 'success' : 'warning'}>AA normal</Badge>
-          <Badge tone={contrast && contrast >= AAA_NORMAL_RATIO ? 'success' : 'warning'}>AAA normal</Badge>
+          <Badge tone={contrast && contrast >= AA_LARGE_RATIO ? "success" : "warning"}>AA grande</Badge>
+          <Badge tone={contrast && contrast >= AA_NORMAL_RATIO ? "success" : "warning"}>AA normal</Badge>
+          <Badge tone={contrast && contrast >= AAA_NORMAL_RATIO ? "success" : "warning"}>AAA normal</Badge>
           <div className="spacer" />
           {foregroundColor ? (
             <>
@@ -268,10 +286,10 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
               <div key={font.family} className="font-row">
                 <div>
                   <div className="font-name" style={{ fontFamily: font.family }}>
-                    {font.family.split(',')[0]?.replace(/["']/g, '')}
+                    {font.family.split(",")[0]?.replace(/["']/g, "")}
                   </div>
                   <div className="font-meta mono">
-                    {font.sizes.map((size) => `${size}px`).join(' · ')} — pesos {font.weights.join(' · ')}
+                    {font.sizes.map((size) => `${size}px`).join(" · ")} — pesos {font.weights.join(" · ")}
                   </div>
                 </div>
                 <div className="spacer" />
@@ -302,7 +320,11 @@ export const DesignView = ({ activeTab }: { activeTab: ActiveTab }) => {
             })}
           </div>
         ) : (
-          <EmptyState icon="code" title="Sin variables en :root" text="Puede que la pagina use hojas de estilo cross-origin." />
+          <EmptyState
+            icon="code"
+            title="Sin variables en :root"
+            text="Puede que la pagina use hojas de estilo cross-origin."
+          />
         )}
       </Card>
 

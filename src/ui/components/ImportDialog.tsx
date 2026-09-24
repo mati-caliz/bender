@@ -1,11 +1,11 @@
-import { useRef, useState, type DragEvent } from 'react';
-import { IMPORT_PARAM, SURFACE_PARAM } from '@/lib/constants';
-import { readFileAsText } from '@/lib/download';
-import { errorMessage } from '@/lib/errors';
-import type { ViewId } from '@/ui/App';
-import { Button, Dialog, Notice } from '@/ui/components/primitives';
+import { useRef, useState, type DragEvent } from "react";
+import { IMPORT_PARAM, SURFACE_PARAM } from "@/lib/constants";
+import { readFileAsText } from "@/lib/download";
+import { errorMessage } from "@/lib/errors";
+import type { ViewId } from "@/ui/App";
+import { Button, Dialog, Notice } from "@/ui/components/primitives";
 
-export type ImportMode = 'replace' | 'append';
+export type ImportMode = "replace" | "append";
 
 interface ImportDialogProps {
   title: string;
@@ -24,21 +24,21 @@ export const ImportDialog = ({
   onClose,
   onImport,
 }: ImportDialogProps) => {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isPopup = document.body.dataset.surface === 'popup';
+  const isPopup = document.body.dataset.surface === "popup";
 
   const submit = (mode: ImportMode) => {
     if (!text.trim()) {
-      setError('Pega el JSON o elegi un archivo.');
+      setError("Pega el JSON o elegi un archivo.");
       return;
     }
     try {
       onImport(text, mode);
       onClose();
     } catch (importError) {
-      setError(errorMessage(importError, 'No se pudo importar.'));
+      setError(errorMessage(importError, "No se pudo importar."));
     }
   };
 
@@ -64,12 +64,16 @@ export const ImportDialog = ({
             Cancelar
           </Button>
           {allowAppend ? (
-            <Button onClick={() => submit('append')} icon="plus" title="No toca lo que no venga en el archivo">
+            <Button
+              onClick={() => submit("append")}
+              icon="plus"
+              title="No toca lo que no venga en el archivo"
+            >
               Agregar a lo actual
             </Button>
           ) : null}
-          <Button variant="primary" icon="download" onClick={() => submit('replace')}>
-            {allowAppend ? 'Reemplazar todo' : 'Importar'}
+          <Button variant="primary" icon="download" onClick={() => submit("replace")}>
+            {allowAppend ? "Reemplazar todo" : "Importar"}
           </Button>
         </>
       }
@@ -92,7 +96,7 @@ export const ImportDialog = ({
 
       <div className="row">
         <Button icon="upload" onClick={isPopup ? openInTab : () => fileInputRef.current?.click()}>
-          {isPopup ? 'Elegir archivo en una pestaña' : 'Elegir archivo'}
+          {isPopup ? "Elegir archivo en una pestaña" : "Elegir archivo"}
         </Button>
         <span className="field-hint">Tambien podes arrastrar el archivo sobre el cuadro.</span>
         <input
@@ -109,8 +113,8 @@ export const ImportDialog = ({
 
       {isPopup ? (
         <Notice>
-          Chrome cierra el popup apenas se abre el selector de archivos y se pierde lo que hayas cargado. Con el boton
-          de arriba seguis el import en una pestaña, o pega el JSON aca mismo.
+          Chrome cierra el popup apenas se abre el selector de archivos y se pierde lo que hayas cargado. Con
+          el boton de arriba seguis el import en una pestaña, o pega el JSON aca mismo.
         </Notice>
       ) : null}
     </Dialog>

@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
-import { branchPaths, isBranch, type JsonNode } from '@/lib/json-tree';
-import { Icon } from '@/ui/components/Icon';
-import { Button, CopyButton } from '@/ui/components/primitives';
+import { useMemo, useState } from "react";
+import { branchPaths, isBranch, type JsonNode } from "@/lib/json-tree";
+import { Icon } from "@/ui/components/Icon";
+import { Button, CopyButton } from "@/ui/components/primitives";
 
 /** Cuantos niveles quedan abiertos al entrar, para no tapar la pantalla con un JSON grande. */
 const DEFAULT_OPEN_DEPTH = 2;
@@ -30,10 +30,10 @@ const JsonRow = ({ node, depth, open, onToggle }: RowProps) => {
             type="button"
             className="json-caret"
             aria-expanded={expanded}
-            aria-label={expanded ? `Plegar ${node.label || 'raiz'}` : `Desplegar ${node.label || 'raiz'}`}
+            aria-label={expanded ? `Plegar ${node.label || "raiz"}` : `Desplegar ${node.label || "raiz"}`}
             onClick={() => onToggle(node.path)}
           >
-            <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={12} />
+            <Icon name={expanded ? "chevron-down" : "chevron-right"} size={12} />
           </button>
         ) : (
           <span className="json-caret" />
@@ -42,7 +42,7 @@ const JsonRow = ({ node, depth, open, onToggle }: RowProps) => {
         {node.label ? <span className="json-key">{node.label}</span> : null}
         <span className={`json-value json-${node.kind}`}>{node.preview}</span>
 
-        {node.raw !== null ? <CopyButton value={node.raw} title={`Copiar ${node.label || 'valor'}`} /> : null}
+        {node.raw !== null ? <CopyButton value={node.raw} title={`Copiar ${node.label || "valor"}`} /> : null}
       </div>
 
       {expanded
@@ -74,10 +74,10 @@ export const JsonTree = ({ root }: { root: JsonNode }) => {
         <Button
           small
           variant="ghost"
-          icon={allOpen ? 'chevron-right' : 'chevron-down'}
+          icon={allOpen ? "chevron-right" : "chevron-down"}
           onClick={() => setOpen(allOpen ? new Set() : new Set(allBranches))}
         >
-          {allOpen ? 'Plegar todo' : 'Desplegar todo'}
+          {allOpen ? "Plegar todo" : "Desplegar todo"}
         </Button>
       </div>
       <div className="json-tree-body">

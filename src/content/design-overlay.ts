@@ -1,7 +1,7 @@
-import { isLightColor, parseCssColor, toHex } from '@/lib/color';
-import { appendDesignPick } from '@/lib/design-picks';
-import { createId } from '@/lib/ids';
-import type { DesignCommand, DesignOverlayState, DesignPickKind, DesignTool } from '@/types';
+import { isLightColor, parseCssColor, toHex } from "@/lib/color";
+import { appendDesignPick } from "@/lib/design-picks";
+import { createId } from "@/lib/ids";
+import type { DesignCommand, DesignOverlayState, DesignPickKind, DesignTool } from "@/types";
 
 interface OverlayWindow extends Window {
   benderDesignOverlayInstalled?: boolean;
@@ -37,8 +37,8 @@ interface PanelRow {
   color?: string;
 }
 
-const HOST_ID = 'bender-design-overlay';
-const CURSOR_STYLE_ID = 'bender-design-cursor';
+const HOST_ID = "bender-design-overlay";
+const CURSOR_STYLE_ID = "bender-design-cursor";
 const PANEL_WIDTH = 268;
 const PANEL_MARGIN = 14;
 const PANEL_FLIP_THRESHOLD = PANEL_WIDTH + PANEL_MARGIN * 3;
@@ -95,12 +95,12 @@ const OVERLAY_STYLES = `
 `;
 
 const TOOL_LABELS: Record<DesignTool, string> = {
-  inspect: 'Inspector',
-  ruler: 'Regla',
-  spacing: 'Espaciado',
+  inspect: "Inspector",
+  ruler: "Regla",
+  spacing: "Espaciado",
 };
 
-const TOOL_ORDER: DesignTool[] = ['inspect', 'ruler', 'spacing'];
+const TOOL_ORDER: DesignTool[] = ["inspect", "ruler", "spacing"];
 
 const overlayWindow = window as OverlayWindow;
 
@@ -120,7 +120,7 @@ const collapseShorthand = (values: [string, string, string, string]): string => 
   const [top, right, bottom, left] = values;
   if (top === right && right === bottom && bottom === left) return top;
   if (top === bottom && right === left) return `${top} ${right}`;
-  return values.join(' ');
+  return values.join(" ");
 };
 
 const describeSelector = (element: Element): string => {
@@ -134,15 +134,15 @@ const describeSelector = (element: Element): string => {
       break;
     }
     const classes = Array.from(current.classList)
-      .filter((name) => !name.startsWith('bender-'))
+      .filter((name) => !name.startsWith("bender-"))
       .slice(0, MAX_SELECTOR_CLASSES)
       .map((name) => `.${name}`)
-      .join('');
+      .join("");
     parts.unshift(`${tag}${classes}`);
     current = current.parentElement;
   }
 
-  return parts.join(' > ');
+  return parts.join(" > ");
 };
 
 const readableColor = (input: string): string => {
@@ -174,23 +174,23 @@ const shrinkBox = (box: Box, top: number, right: number, bottom: number, left: n
 const edgeStyle = (styles: CSSStyleDeclaration, property: string): number =>
   Number.parseFloat(styles.getPropertyValue(property)) || 0;
 
-const host = document.createElement('div');
+const host = document.createElement("div");
 host.id = HOST_ID;
-const shadow = host.attachShadow({ mode: 'open' });
-const styleSheet = document.createElement('style');
+const shadow = host.attachShadow({ mode: "open" });
+const styleSheet = document.createElement("style");
 styleSheet.textContent = OVERLAY_STYLES;
-const layer = document.createElement('div');
-layer.className = 'layer';
-const dynamicLayer = document.createElement('div');
-const panel = document.createElement('div');
-panel.className = 'panel';
-panel.style.display = 'none';
-const hud = document.createElement('div');
-hud.className = 'hud';
+const layer = document.createElement("div");
+layer.className = "layer";
+const dynamicLayer = document.createElement("div");
+const panel = document.createElement("div");
+panel.className = "panel";
+panel.style.display = "none";
+const hud = document.createElement("div");
+hud.className = "hud";
 layer.append(dynamicLayer, panel, hud);
 shadow.append(styleSheet, layer);
 
-let activeTool: DesignTool = 'inspect';
+let activeTool: DesignTool = "inspect";
 let hoveredElement: Element | null = null;
 let pinnedElement: Element | null = null;
 let frozen = false;
@@ -199,7 +199,7 @@ let dragOrigin: Point | null = null;
 let measureBox: Box | null = null;
 
 const createNode = (className: string, text?: string): HTMLDivElement => {
-  const node = document.createElement('div');
+  const node = document.createElement("div");
   node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
@@ -213,47 +213,48 @@ const positionNode = (node: HTMLDivElement, box: Box): HTMLDivElement => {
   return node;
 };
 
-const createTag = (text: string, position: Point, variant = ''): HTMLDivElement => {
+const createTag = (text: string, position: Point, variant = ""): HTMLDivElement => {
   const node = createNode(`tag ${variant}`.trim(), text);
   node.style.left = `${Math.max(2, Math.min(position.x, window.innerWidth - PANEL_MARGIN))}px`;
   node.style.top = `${Math.max(2, position.y)}px`;
   return node;
 };
 
-const createGuide = (box: Box, className = 'guide'): HTMLDivElement => positionNode(createNode(className), box);
+const createGuide = (box: Box, className = "guide"): HTMLDivElement =>
+  positionNode(createNode(className), box);
 
 const renderPanel = (title: string, rows: PanelRow[], accentColor?: string): void => {
-  const heading = createNode('panel-title');
+  const heading = createNode("panel-title");
   if (accentColor) {
-    const swatch = createNode('swatch');
+    const swatch = createNode("swatch");
     swatch.style.background = accentColor;
     heading.append(swatch);
   }
   heading.append(document.createTextNode(title));
 
   const rowNodes = rows.map((row) => {
-    const rowNode = createNode('panel-row');
-    const value = createNode('panel-value');
+    const rowNode = createNode("panel-row");
+    const value = createNode("panel-value");
     if (row.color) {
-      const swatch = createNode('swatch');
+      const swatch = createNode("swatch");
       swatch.style.background = row.color;
       value.append(swatch);
     }
     value.append(document.createTextNode(row.value));
-    rowNode.append(createNode('panel-key', row.key), value);
+    rowNode.append(createNode("panel-key", row.key), value);
     return rowNode;
   });
 
   panel.replaceChildren(heading, ...rowNodes);
-  panel.style.display = 'block';
+  panel.style.display = "block";
   const flip = pointer.x > window.innerWidth - PANEL_FLIP_THRESHOLD;
-  panel.style.left = flip ? `${PANEL_MARGIN}px` : '';
-  panel.style.right = flip ? '' : `${PANEL_MARGIN}px`;
+  panel.style.left = flip ? `${PANEL_MARGIN}px` : "";
+  panel.style.right = flip ? "" : `${PANEL_MARGIN}px`;
   panel.style.top = `${PANEL_MARGIN}px`;
 };
 
 const hidePanel = (): void => {
-  panel.style.display = 'none';
+  panel.style.display = "none";
   panel.replaceChildren();
 };
 
@@ -264,38 +265,50 @@ const inspectRows = (element: Element, styles: CSSStyleDeclaration, rect: DOMRec
     styles.paddingBottom,
     styles.paddingLeft,
   ]);
-  const margin = collapseShorthand([styles.marginTop, styles.marginRight, styles.marginBottom, styles.marginLeft]);
+  const margin = collapseShorthand([
+    styles.marginTop,
+    styles.marginRight,
+    styles.marginBottom,
+    styles.marginLeft,
+  ]);
   const radius = collapseShorthand([
     styles.borderTopLeftRadius,
     styles.borderTopRightRadius,
     styles.borderBottomRightRadius,
     styles.borderBottomLeftRadius,
   ]);
-  const fontFamily = (styles.fontFamily.split(',')[0] ?? styles.fontFamily).replace(/["']/g, '');
+  const fontFamily = (styles.fontFamily.split(",")[0] ?? styles.fontFamily).replace(/["']/g, "");
   const textColor = readableColor(styles.color);
   const backgroundColor = readableColor(styles.backgroundColor);
 
   const rows: PanelRow[] = [
-    { key: 'Tamaño', value: `${round(rect.width)} × ${round(rect.height)}` },
-    { key: 'Display', value: `${styles.display}${styles.position === 'static' ? '' : ` · ${styles.position}`}` },
-    { key: 'Texto', value: textColor, color: styles.color },
-    { key: 'Fondo', value: backgroundColor, color: styles.backgroundColor },
-    { key: 'Fuente', value: `${fontFamily} ${styles.fontWeight}` },
-    { key: 'Tamaño fuente', value: `${styles.fontSize} / ${styles.lineHeight}` },
-    { key: 'Padding', value: padding },
-    { key: 'Margin', value: margin },
+    { key: "Tamaño", value: `${round(rect.width)} × ${round(rect.height)}` },
+    {
+      key: "Display",
+      value: `${styles.display}${styles.position === "static" ? "" : ` · ${styles.position}`}`,
+    },
+    { key: "Texto", value: textColor, color: styles.color },
+    { key: "Fondo", value: backgroundColor, color: styles.backgroundColor },
+    { key: "Fuente", value: `${fontFamily} ${styles.fontWeight}` },
+    { key: "Tamaño fuente", value: `${styles.fontSize} / ${styles.lineHeight}` },
+    { key: "Padding", value: padding },
+    { key: "Margin", value: margin },
   ];
 
-  if (radius !== '0px') rows.push({ key: 'Radio', value: radius });
-  if (styles.borderTopWidth !== '0px') {
-    rows.push({ key: 'Borde', value: `${styles.borderTopWidth} ${styles.borderTopStyle}`, color: styles.borderTopColor });
+  if (radius !== "0px") rows.push({ key: "Radio", value: radius });
+  if (styles.borderTopWidth !== "0px") {
+    rows.push({
+      key: "Borde",
+      value: `${styles.borderTopWidth} ${styles.borderTopStyle}`,
+      color: styles.borderTopColor,
+    });
   }
-  if (styles.boxShadow !== 'none') rows.push({ key: 'Sombra', value: styles.boxShadow });
+  if (styles.boxShadow !== "none") rows.push({ key: "Sombra", value: styles.boxShadow });
   if (element instanceof HTMLImageElement) {
-    rows.push({ key: 'Natural', value: `${element.naturalWidth} × ${element.naturalHeight}` });
+    rows.push({ key: "Natural", value: `${element.naturalWidth} × ${element.naturalHeight}` });
   }
-  if (styles.display.includes('flex') || styles.display.includes('grid')) {
-    rows.push({ key: 'Gap', value: `${styles.rowGap} / ${styles.columnGap}` });
+  if (styles.display.includes("flex") || styles.display.includes("grid")) {
+    rows.push({ key: "Gap", value: `${styles.rowGap} / ${styles.columnGap}` });
   }
 
   return rows;
@@ -314,35 +327,35 @@ const renderInspect = (): void => {
   const borderBox = boxFromRect(rect);
   const marginBox = expandBox(
     borderBox,
-    edgeStyle(styles, 'margin-top'),
-    edgeStyle(styles, 'margin-right'),
-    edgeStyle(styles, 'margin-bottom'),
-    edgeStyle(styles, 'margin-left')
+    edgeStyle(styles, "margin-top"),
+    edgeStyle(styles, "margin-right"),
+    edgeStyle(styles, "margin-bottom"),
+    edgeStyle(styles, "margin-left"),
   );
   const paddingBox = shrinkBox(
     borderBox,
-    edgeStyle(styles, 'border-top-width'),
-    edgeStyle(styles, 'border-right-width'),
-    edgeStyle(styles, 'border-bottom-width'),
-    edgeStyle(styles, 'border-left-width')
+    edgeStyle(styles, "border-top-width"),
+    edgeStyle(styles, "border-right-width"),
+    edgeStyle(styles, "border-bottom-width"),
+    edgeStyle(styles, "border-left-width"),
   );
   const contentBox = shrinkBox(
     paddingBox,
-    edgeStyle(styles, 'padding-top'),
-    edgeStyle(styles, 'padding-right'),
-    edgeStyle(styles, 'padding-bottom'),
-    edgeStyle(styles, 'padding-left')
+    edgeStyle(styles, "padding-top"),
+    edgeStyle(styles, "padding-right"),
+    edgeStyle(styles, "padding-bottom"),
+    edgeStyle(styles, "padding-left"),
   );
 
-  const label = `${describeSelector(element).split(' > ').pop() ?? ''}  ${round(rect.width)} × ${round(rect.height)}`;
+  const label = `${describeSelector(element).split(" > ").pop() ?? ""}  ${round(rect.width)} × ${round(rect.height)}`;
   const labelAbove = rect.top > LABEL_OFFSET;
 
   dynamicLayer.replaceChildren(
-    positionNode(createNode('box box-margin'), marginBox),
-    positionNode(createNode('box box-border'), borderBox),
-    positionNode(createNode('box box-padding'), paddingBox),
-    positionNode(createNode('box box-content'), contentBox),
-    createTag(label, { x: rect.left, y: labelAbove ? rect.top - LABEL_OFFSET : rect.bottom + 4 }, 'accent')
+    positionNode(createNode("box box-margin"), marginBox),
+    positionNode(createNode("box box-border"), borderBox),
+    positionNode(createNode("box box-padding"), paddingBox),
+    positionNode(createNode("box box-content"), contentBox),
+    createTag(label, { x: rect.left, y: labelAbove ? rect.top - LABEL_OFFSET : rect.bottom + 4 }, "accent"),
   );
 
   renderPanel(describeSelector(element), inspectRows(element, styles, rect), styles.backgroundColor);
@@ -353,7 +366,7 @@ const renderRuler = (): void => {
     dynamicLayer.replaceChildren(
       createGuide({ left: 0, top: pointer.y, width: window.innerWidth, height: GUIDE_THICKNESS }),
       createGuide({ left: pointer.x, top: 0, width: GUIDE_THICKNESS, height: window.innerHeight }),
-      createTag(`${round(pointer.x)} , ${round(pointer.y)}`, { x: pointer.x + 10, y: pointer.y + 10 })
+      createTag(`${round(pointer.x)} , ${round(pointer.y)}`, { x: pointer.x + 10, y: pointer.y + 10 }),
     );
     hidePanel();
     return;
@@ -367,23 +380,33 @@ const renderRuler = (): void => {
     createGuide({ left: 0, top: box.top + box.height, width: window.innerWidth, height: GUIDE_THICKNESS }),
     createGuide({ left: box.left, top: 0, width: GUIDE_THICKNESS, height: window.innerHeight }),
     createGuide({ left: box.left + box.width, top: 0, width: GUIDE_THICKNESS, height: window.innerHeight }),
-    positionNode(createNode('measure-rect'), box),
-    createTag(formatPx(box.width), { x: box.left + box.width / 2 - LABEL_OFFSET, y: box.top - LABEL_OFFSET }, 'accent'),
-    createTag(formatPx(box.height), { x: box.left + box.width + 6, y: box.top + box.height / 2 }, 'accent')
+    positionNode(createNode("measure-rect"), box),
+    createTag(
+      formatPx(box.width),
+      { x: box.left + box.width / 2 - LABEL_OFFSET, y: box.top - LABEL_OFFSET },
+      "accent",
+    ),
+    createTag(formatPx(box.height), { x: box.left + box.width + 6, y: box.top + box.height / 2 }, "accent"),
   );
 
-  renderPanel('Medición', [
-    { key: 'Ancho', value: formatWithRem(box.width) },
-    { key: 'Alto', value: formatWithRem(box.height) },
-    { key: 'Diagonal', value: formatPx(diagonal) },
-    { key: 'Origen', value: `${round(box.left)} , ${round(box.top)}` },
-    { key: 'Relación', value: box.height ? `${round(box.width / box.height)} : 1` : '—' },
+  renderPanel("Medición", [
+    { key: "Ancho", value: formatWithRem(box.width) },
+    { key: "Alto", value: formatWithRem(box.height) },
+    { key: "Diagonal", value: formatPx(diagonal) },
+    { key: "Origen", value: `${round(box.left)} , ${round(box.top)}` },
+    { key: "Relación", value: box.height ? `${round(box.width / box.height)} : 1` : "—" },
   ]);
 };
 
 const gapBetween = (first: Box, second: Box): { horizontal: number; vertical: number } => ({
-  horizontal: Math.max(0, Math.max(first.left - (second.left + second.width), second.left - (first.left + first.width))),
-  vertical: Math.max(0, Math.max(first.top - (second.top + second.height), second.top - (first.top + first.height))),
+  horizontal: Math.max(
+    0,
+    Math.max(first.left - (second.left + second.width), second.left - (first.left + first.width)),
+  ),
+  vertical: Math.max(
+    0,
+    Math.max(first.top - (second.top + second.height), second.top - (first.top + first.height)),
+  ),
 });
 
 const renderSpacing = (): void => {
@@ -395,66 +418,78 @@ const renderSpacing = (): void => {
     }
     const rect = boxFromRect(hoveredElement.getBoundingClientRect());
     dynamicLayer.replaceChildren(
-      positionNode(createNode('outline'), rect),
-      createTag('Click para fijar el elemento base', { x: rect.left, y: rect.top - LABEL_OFFSET }, 'accent')
+      positionNode(createNode("outline"), rect),
+      createTag("Click para fijar el elemento base", { x: rect.left, y: rect.top - LABEL_OFFSET }, "accent"),
     );
-    renderPanel('Espaciado', [
-      { key: 'Base', value: 'sin fijar' },
-      { key: 'Ayuda', value: 'Click fija · click de nuevo libera' },
+    renderPanel("Espaciado", [
+      { key: "Base", value: "sin fijar" },
+      { key: "Ayuda", value: "Click fija · click de nuevo libera" },
     ]);
     return;
   }
 
   const baseBox = boxFromRect(pinnedElement.getBoundingClientRect());
-  const nodes: HTMLDivElement[] = [positionNode(createNode('outline pinned'), baseBox)];
+  const nodes: HTMLDivElement[] = [positionNode(createNode("outline pinned"), baseBox)];
 
   if (!hoveredElement || hoveredElement === pinnedElement) {
     dynamicLayer.replaceChildren(...nodes);
     renderPanel(describeSelector(pinnedElement), [
-      { key: 'Base', value: `${round(baseBox.width)} × ${round(baseBox.height)}` },
-      { key: 'Ayuda', value: 'Pasá el mouse por otro elemento' },
+      { key: "Base", value: `${round(baseBox.width)} × ${round(baseBox.height)}` },
+      { key: "Ayuda", value: "Pasá el mouse por otro elemento" },
     ]);
     return;
   }
 
   const targetBox = boxFromRect(hoveredElement.getBoundingClientRect());
   const gaps = gapBetween(baseBox, targetBox);
-  nodes.push(positionNode(createNode('outline'), targetBox));
+  nodes.push(positionNode(createNode("outline"), targetBox));
 
   if (gaps.horizontal > 0) {
-    const leftEdge = baseBox.left < targetBox.left ? baseBox.left + baseBox.width : targetBox.left + targetBox.width;
-    const centerY = (Math.max(baseBox.top, targetBox.top) + Math.min(baseBox.top + baseBox.height, targetBox.top + targetBox.height)) / 2;
+    const leftEdge =
+      baseBox.left < targetBox.left ? baseBox.left + baseBox.width : targetBox.left + targetBox.width;
+    const centerY =
+      (Math.max(baseBox.top, targetBox.top) +
+        Math.min(baseBox.top + baseBox.height, targetBox.top + targetBox.height)) /
+      2;
     const guideY = Number.isFinite(centerY) ? centerY : baseBox.top + baseBox.height / 2;
     nodes.push(
-      createGuide({ left: leftEdge, top: guideY, width: gaps.horizontal, height: GUIDE_THICKNESS }, 'gap'),
-      createTag(formatPx(gaps.horizontal), { x: leftEdge + gaps.horizontal / 2 - LABEL_OFFSET, y: guideY - LABEL_OFFSET }, 'pink')
+      createGuide({ left: leftEdge, top: guideY, width: gaps.horizontal, height: GUIDE_THICKNESS }, "gap"),
+      createTag(
+        formatPx(gaps.horizontal),
+        { x: leftEdge + gaps.horizontal / 2 - LABEL_OFFSET, y: guideY - LABEL_OFFSET },
+        "pink",
+      ),
     );
   }
 
   if (gaps.vertical > 0) {
-    const topEdge = baseBox.top < targetBox.top ? baseBox.top + baseBox.height : targetBox.top + targetBox.height;
-    const centerX = (Math.max(baseBox.left, targetBox.left) + Math.min(baseBox.left + baseBox.width, targetBox.left + targetBox.width)) / 2;
+    const topEdge =
+      baseBox.top < targetBox.top ? baseBox.top + baseBox.height : targetBox.top + targetBox.height;
+    const centerX =
+      (Math.max(baseBox.left, targetBox.left) +
+        Math.min(baseBox.left + baseBox.width, targetBox.left + targetBox.width)) /
+      2;
     const guideX = Number.isFinite(centerX) ? centerX : baseBox.left + baseBox.width / 2;
     nodes.push(
-      createGuide({ left: guideX, top: topEdge, width: GUIDE_THICKNESS, height: gaps.vertical }, 'gap'),
-      createTag(formatPx(gaps.vertical), { x: guideX + 6, y: topEdge + gaps.vertical / 2 }, 'pink')
+      createGuide({ left: guideX, top: topEdge, width: GUIDE_THICKNESS, height: gaps.vertical }, "gap"),
+      createTag(formatPx(gaps.vertical), { x: guideX + 6, y: topEdge + gaps.vertical / 2 }, "pink"),
     );
   }
 
   dynamicLayer.replaceChildren(...nodes);
-  renderPanel('Espaciado', [
-    { key: 'Base', value: describeSelector(pinnedElement) },
-    { key: 'Destino', value: describeSelector(hoveredElement) },
-    { key: 'Gap horizontal', value: gaps.horizontal ? formatWithRem(gaps.horizontal) : 'se solapan' },
-    { key: 'Gap vertical', value: gaps.vertical ? formatWithRem(gaps.vertical) : 'se solapan' },
-    { key: 'Δ izquierda', value: formatPx(targetBox.left - baseBox.left) },
-    { key: 'Δ arriba', value: formatPx(targetBox.top - baseBox.top) },
+  renderPanel("Espaciado", [
+    { key: "Base", value: describeSelector(pinnedElement) },
+    { key: "Destino", value: describeSelector(hoveredElement) },
+    { key: "Gap horizontal", value: gaps.horizontal ? formatWithRem(gaps.horizontal) : "se solapan" },
+    { key: "Gap vertical", value: gaps.vertical ? formatWithRem(gaps.vertical) : "se solapan" },
+    { key: "Δ izquierda", value: formatPx(targetBox.left - baseBox.left) },
+    { key: "Δ arriba", value: formatPx(targetBox.top - baseBox.top) },
   ]);
 };
 
 const render = (): void => {
-  if (activeTool === 'inspect') renderInspect();
-  else if (activeTool === 'ruler') renderRuler();
+  if (activeTool === "inspect") renderInspect();
+  else if (activeTool === "ruler") renderRuler();
   else renderSpacing();
   syncHud();
 };
@@ -472,26 +507,27 @@ const savePick = (kind: DesignPickKind, label: string, detail: string, color: st
 };
 
 const saveCurrent = (): void => {
-  if (activeTool === 'ruler' && measureBox) {
+  if (activeTool === "ruler" && measureBox) {
     savePick(
-      'measure',
+      "measure",
       `${round(measureBox.width)} × ${round(measureBox.height)} px`,
       `Medición en ${window.location.pathname}`,
-      null
+      null,
     );
     return;
   }
 
-  const element = activeTool === 'spacing' ? (pinnedElement ?? hoveredElement) : (frozen ? pinnedElement : hoveredElement);
+  const element =
+    activeTool === "spacing" ? (pinnedElement ?? hoveredElement) : frozen ? pinnedElement : hoveredElement;
   if (!element) return;
 
   const styles = window.getComputedStyle(element);
   const rect = element.getBoundingClientRect();
   savePick(
-    'element',
+    "element",
     describeSelector(element),
     `${round(rect.width)} × ${round(rect.height)} · texto ${readableColor(styles.color)} · fondo ${readableColor(styles.backgroundColor)}`,
-    parseCssColor(styles.backgroundColor) ? readableColor(styles.backgroundColor) : null
+    parseCssColor(styles.backgroundColor) ? readableColor(styles.backgroundColor) : null,
   );
 };
 
@@ -499,7 +535,7 @@ const pickColorFromScreen = (): void => {
   const eyeDropperWindow = window as EyeDropperWindow;
   const EyeDropperConstructor = eyeDropperWindow.EyeDropper;
   if (!EyeDropperConstructor) {
-    renderPanel('Cuentagotas', [{ key: 'Error', value: 'Este navegador no expone EyeDropper' }]);
+    renderPanel("Cuentagotas", [{ key: "Error", value: "Este navegador no expone EyeDropper" }]);
     return;
   }
 
@@ -508,14 +544,14 @@ const pickColorFromScreen = (): void => {
     .then((result) => {
       const parsed = parseCssColor(result.sRGBHex);
       const hex = parsed ? toHex(parsed) : result.sRGBHex;
-      savePick('color', hex, `Cuentagotas en ${window.location.hostname}`, hex);
+      savePick("color", hex, `Cuentagotas en ${window.location.hostname}`, hex);
       renderPanel(
-        'Color guardado',
+        "Color guardado",
         [
-          { key: 'Hex', value: hex, color: hex },
-          { key: 'Luminancia', value: parsed && isLightColor(parsed) ? 'clara' : 'oscura' },
+          { key: "Hex", value: hex, color: hex },
+          { key: "Luminancia", value: parsed && isLightColor(parsed) ? "clara" : "oscura" },
         ],
-        hex
+        hex,
       );
       void navigator.clipboard.writeText(hex).catch(() => undefined);
     })
@@ -523,11 +559,11 @@ const pickColorFromScreen = (): void => {
 };
 
 const createHudButton = (label: string, onClick: () => void, tool?: DesignTool): HTMLButtonElement => {
-  const button = document.createElement('button');
-  button.type = 'button';
+  const button = document.createElement("button");
+  button.type = "button";
   button.textContent = label;
   if (tool) button.dataset.tool = tool;
-  button.addEventListener('click', (event) => {
+  button.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
     onClick();
@@ -536,21 +572,21 @@ const createHudButton = (label: string, onClick: () => void, tool?: DesignTool):
 };
 
 const buildHud = (): void => {
-  const separator = () => createNode('hud-separator');
+  const separator = () => createNode("hud-separator");
   hud.replaceChildren(
-    createNode('hud-brand', 'Bender'),
+    createNode("hud-brand", "Bender"),
     ...TOOL_ORDER.map((tool) => createHudButton(TOOL_LABELS[tool], () => setTool(tool), tool)),
     separator(),
-    createHudButton('Cuentagotas', pickColorFromScreen),
-    createHudButton('Guardar', saveCurrent),
+    createHudButton("Cuentagotas", pickColorFromScreen),
+    createHudButton("Guardar", saveCurrent),
     separator(),
-    createNode('hud-hint', 'Esc cierra'),
-    createHudButton('✕', destroyOverlay)
+    createNode("hud-hint", "Esc cierra"),
+    createHudButton("✕", destroyOverlay),
   );
 };
 
 const syncHud = (): void => {
-  for (const button of Array.from(hud.querySelectorAll('button'))) {
+  for (const button of Array.from(hud.querySelectorAll("button"))) {
     if (button.dataset.tool) button.dataset.active = String(button.dataset.tool === activeTool);
   }
 };
@@ -560,7 +596,7 @@ const setTool = (tool: DesignTool): void => {
   frozen = false;
   measureBox = null;
   dragOrigin = null;
-  if (tool !== 'spacing') pinnedElement = null;
+  if (tool !== "spacing") pinnedElement = null;
   render();
 };
 
@@ -587,7 +623,7 @@ const handlePointerMove = (event: MouseEvent): void => {
   if (frozen) return;
   const element = elementFromEvent(event);
   if (element === hoveredElement) {
-    if (activeTool === 'ruler') render();
+    if (activeTool === "ruler") render();
     return;
   }
   hoveredElement = element;
@@ -596,7 +632,7 @@ const handlePointerMove = (event: MouseEvent): void => {
 
 const handleMouseDown = (event: MouseEvent): void => {
   if (event.target === host) return;
-  if (activeTool !== 'ruler') return;
+  if (activeTool !== "ruler") return;
   event.preventDefault();
   event.stopPropagation();
   dragOrigin = { x: event.clientX, y: event.clientY };
@@ -608,7 +644,8 @@ const handleMouseUp = (event: MouseEvent): void => {
   event.preventDefault();
   event.stopPropagation();
   dragOrigin = null;
-  if (measureBox && (measureBox.width < MIN_DRAG_SIZE || measureBox.height < MIN_DRAG_SIZE)) measureBox = null;
+  if (measureBox && (measureBox.width < MIN_DRAG_SIZE || measureBox.height < MIN_DRAG_SIZE))
+    measureBox = null;
   render();
 };
 
@@ -618,18 +655,19 @@ const handleClick = (event: MouseEvent): void => {
   event.stopPropagation();
 
   const element = elementFromEvent(event);
-  if (activeTool === 'inspect') {
+  if (activeTool === "inspect") {
     frozen = !frozen;
     pinnedElement = frozen ? element : null;
-    if (frozen && element) void navigator.clipboard.writeText(describeSelector(element)).catch(() => undefined);
-  } else if (activeTool === 'spacing') {
+    if (frozen && element)
+      void navigator.clipboard.writeText(describeSelector(element)).catch(() => undefined);
+  } else if (activeTool === "spacing") {
     pinnedElement = pinnedElement === element ? null : element;
   }
   render();
 };
 
 const handleKeyDown = (event: KeyboardEvent): void => {
-  if (event.key === 'Escape') {
+  if (event.key === "Escape") {
     event.preventDefault();
     destroyOverlay();
     return;
@@ -643,34 +681,38 @@ const handleKeyDown = (event: KeyboardEvent): void => {
 };
 
 const handleViewportChange = (): void => {
-  if (activeTool === 'ruler' && !measureBox) return;
+  if (activeTool === "ruler" && !measureBox) return;
   render();
 };
 
-const cursorStyle = document.createElement('style');
+const cursorStyle = document.createElement("style");
 cursorStyle.id = CURSOR_STYLE_ID;
 cursorStyle.textContent = `*, *::before, *::after { cursor: crosshair !important; }`;
 
 function destroyOverlay(): void {
-  document.removeEventListener('mousemove', handlePointerMove, true);
-  document.removeEventListener('mousedown', handleMouseDown, true);
-  document.removeEventListener('mouseup', handleMouseUp, true);
-  document.removeEventListener('click', handleClick, true);
-  document.removeEventListener('keydown', handleKeyDown, true);
-  window.removeEventListener('scroll', handleViewportChange, true);
-  window.removeEventListener('resize', handleViewportChange);
+  document.removeEventListener("mousemove", handlePointerMove, true);
+  document.removeEventListener("mousedown", handleMouseDown, true);
+  document.removeEventListener("mouseup", handleMouseUp, true);
+  document.removeEventListener("click", handleClick, true);
+  document.removeEventListener("keydown", handleKeyDown, true);
+  window.removeEventListener("scroll", handleViewportChange, true);
+  window.removeEventListener("resize", handleViewportChange);
   chrome.runtime.onMessage.removeListener(handleCommand);
   host.remove();
   cursorStyle.remove();
   overlayWindow.benderDesignOverlayInstalled = false;
 }
 
-function handleCommand(message: unknown, _sender: chrome.runtime.MessageSender, respond: (response: DesignOverlayState) => void): boolean | undefined {
+function handleCommand(
+  message: unknown,
+  _sender: chrome.runtime.MessageSender,
+  respond: (response: DesignOverlayState) => void,
+): boolean | undefined {
   const command = message as Partial<DesignCommand> | null;
-  if (!command || command.channel !== 'bender-design') return undefined;
+  if (!command || command.channel !== "bender-design") return undefined;
 
-  if (command.type === 'set-tool' && command.tool) setTool(command.tool);
-  if (command.type === 'close') {
+  if (command.type === "set-tool" && command.tool) setTool(command.tool);
+  if (command.type === "close") {
     respond({ active: false, tool: activeTool });
     destroyOverlay();
     return true;
@@ -683,13 +725,13 @@ function handleCommand(message: unknown, _sender: chrome.runtime.MessageSender, 
 const installOverlay = (): void => {
   document.documentElement.append(host, cursorStyle);
   buildHud();
-  document.addEventListener('mousemove', handlePointerMove, true);
-  document.addEventListener('mousedown', handleMouseDown, true);
-  document.addEventListener('mouseup', handleMouseUp, true);
-  document.addEventListener('click', handleClick, true);
-  document.addEventListener('keydown', handleKeyDown, true);
-  window.addEventListener('scroll', handleViewportChange, true);
-  window.addEventListener('resize', handleViewportChange);
+  document.addEventListener("mousemove", handlePointerMove, true);
+  document.addEventListener("mousedown", handleMouseDown, true);
+  document.addEventListener("mouseup", handleMouseUp, true);
+  document.addEventListener("click", handleClick, true);
+  document.addEventListener("keydown", handleKeyDown, true);
+  window.addEventListener("scroll", handleViewportChange, true);
+  window.addEventListener("resize", handleViewportChange);
   chrome.runtime.onMessage.addListener(handleCommand);
   overlayWindow.benderDesignOverlayInstalled = true;
   render();

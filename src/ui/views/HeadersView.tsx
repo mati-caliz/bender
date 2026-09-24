@@ -1,18 +1,18 @@
-import { useState } from 'react';
-import { PROFILE_COLORS } from '@/lib/constants';
-import { downloadJson } from '@/lib/download';
-import { forgetFromEnvironments } from '@/lib/environments';
-import { createHeaderEntry, createProfile } from '@/lib/factories';
-import { slugify } from '@/lib/format';
-import { createId } from '@/lib/ids';
-import { mergeProfiles, parseProfiles } from '@/lib/import';
-import { PLACEHOLDERS } from '@/lib/placeholders';
-import { describeScope } from '@/lib/scope';
-import { HeaderValueField } from '@/ui/components/HeaderValueField';
-import { Icon } from '@/ui/components/Icon';
-import { ImportDialog } from '@/ui/components/ImportDialog';
-import { ScopeEditor } from '@/ui/components/ScopeEditor';
-import { ViewShell } from '@/ui/components/ViewShell';
+import { useState } from "react";
+import { PROFILE_COLORS } from "@/lib/constants";
+import { downloadJson } from "@/lib/download";
+import { forgetFromEnvironments } from "@/lib/environments";
+import { createHeaderEntry, createProfile } from "@/lib/factories";
+import { slugify } from "@/lib/format";
+import { createId } from "@/lib/ids";
+import { mergeProfiles, parseProfiles } from "@/lib/import";
+import { PLACEHOLDERS } from "@/lib/placeholders";
+import { describeScope } from "@/lib/scope";
+import { HeaderValueField } from "@/ui/components/HeaderValueField";
+import { Icon } from "@/ui/components/Icon";
+import { ImportDialog } from "@/ui/components/ImportDialog";
+import { ScopeEditor } from "@/ui/components/ScopeEditor";
+import { ViewShell } from "@/ui/components/ViewShell";
 import {
   Badge,
   Button,
@@ -22,18 +22,18 @@ import {
   Select,
   Switch,
   TextInput,
-} from '@/ui/components/primitives';
-import { usePendingImport } from '@/ui/hooks/usePendingImport';
-import { useToasts } from '@/ui/hooks/useToasts';
-import type { ViewProps } from '@/ui/views/types';
-import type { HeaderEntry, Profile } from '@/types';
+} from "@/ui/components/primitives";
+import { usePendingImport } from "@/ui/hooks/usePendingImport";
+import { useToasts } from "@/ui/hooks/useToasts";
+import type { ViewProps } from "@/ui/views/types";
+import type { HeaderEntry, Profile } from "@/types";
 
-type HeaderDirection = 'requestHeaders' | 'responseHeaders';
+type HeaderDirection = "requestHeaders" | "responseHeaders";
 
 const OPERATION_OPTIONS = [
-  { value: 'set', label: 'set' },
-  { value: 'append', label: 'append' },
-  { value: 'remove', label: 'remove' },
+  { value: "set", label: "set" },
+  { value: "append", label: "append" },
+  { value: "remove", label: "remove" },
 ];
 
 const initialsOf = (profile: Profile): string =>
@@ -41,23 +41,24 @@ const initialsOf = (profile: Profile): string =>
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((word) => word[0] ?? '')
-    .join('')
-    .toUpperCase() || '?';
+    .map((word) => word[0] ?? "")
+    .join("")
+    .toUpperCase() || "?";
 
-const isHeaderOperation = (value: string): value is HeaderEntry['operation'] =>
-  value === 'set' || value === 'append' || value === 'remove';
+const isHeaderOperation = (value: string): value is HeaderEntry["operation"] =>
+  value === "set" || value === "append" || value === "remove";
 
 export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
   const { notify } = useToasts();
-  const [direction, setDirection] = useState<HeaderDirection>('requestHeaders');
+  const [direction, setDirection] = useState<HeaderDirection>("requestHeaders");
   const [showScope, setShowScope] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [importing, setImporting] = usePendingImport('headers');
+  const [importing, setImporting] = usePendingImport("headers");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
 
-  const selected = state.profiles.find((profile) => profile.id === state.selectedProfileId) ?? state.profiles[0] ?? null;
+  const selected =
+    state.profiles.find((profile) => profile.id === state.selectedProfileId) ?? state.profiles[0] ?? null;
 
   const mutateProfile = (mutate: (profile: Profile) => Profile) => {
     if (!selected) return;
@@ -104,8 +105,8 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
             icon="download"
             disabled={!state.profiles.length}
             onClick={() => {
-              downloadJson('bender-perfiles.json', state.profiles);
-              notify('Perfiles exportados', 'success');
+              downloadJson("bender-perfiles.json", state.profiles);
+              notify("Perfiles exportados", "success");
             }}
           >
             Exportar todos
@@ -127,7 +128,10 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
       ) : null}
 
       {selected ? (
-        <div className="headers-layout" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+        <div
+          className="headers-layout"
+          style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden" }}
+        >
           <div className="profile-rail">
             {state.profiles.map((profile) => (
               <button
@@ -144,17 +148,23 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                 {profile.enabled ? <span className="avatar-dot" /> : null}
               </button>
             ))}
-            <button type="button" className="profile-avatar" style={{ background: 'var(--surface-active)', color: 'var(--text-secondary)' }} title="Nuevo perfil" onClick={addProfile}>
+            <button
+              type="button"
+              className="profile-avatar"
+              style={{ background: "var(--surface-active)", color: "var(--text-secondary)" }}
+              title="Nuevo perfil"
+              onClick={addProfile}
+            >
               <Icon name="plus" size={16} />
             </button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
             <div
               className="card-header"
               style={{
-                background: selected.enabled ? selected.color : 'var(--bg-elevated)',
-                color: selected.enabled ? 'white' : 'var(--text)',
+                background: selected.enabled ? selected.color : "var(--bg-elevated)",
+                color: selected.enabled ? "white" : "var(--text)",
               }}
             >
               <Switch
@@ -165,7 +175,13 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
               <input
                 className="input"
                 value={selected.name}
-                style={{ background: 'transparent', border: 0, fontWeight: 600, color: 'inherit', maxWidth: 200 }}
+                style={{
+                  background: "transparent",
+                  border: 0,
+                  fontWeight: 600,
+                  color: "inherit",
+                  maxWidth: 200,
+                }}
                 onChange={(event) => {
                   const name = event.target.value;
                   mutateProfile((profile) => ({ ...profile, name }));
@@ -176,7 +192,14 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                 type="color"
                 value={selected.color}
                 title="Color del perfil"
-                style={{ width: 26, height: 26, padding: 0, border: 0, background: 'transparent', cursor: 'pointer' }}
+                style={{
+                  width: 26,
+                  height: 26,
+                  padding: 0,
+                  border: 0,
+                  background: "transparent",
+                  cursor: "pointer",
+                }}
                 onChange={(event) => {
                   const color = event.target.value;
                   mutateProfile((profile) => ({ ...profile, color }));
@@ -193,7 +216,7 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                 title="Exportar solo este perfil"
                 onClick={() => {
                   downloadJson(`bender-perfil-${slugify(selected.name)}.json`, [selected]);
-                  notify(`Perfil "${selected.name}" exportado`, 'success');
+                  notify(`Perfil "${selected.name}" exportado`, "success");
                 }}
               />
               <IconButton
@@ -202,11 +225,20 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                 onClick={() =>
                   update((current) => {
                     const clone: Profile = { ...selected, id: createId(), name: `${selected.name} (copia)` };
-                    return { ...current, profiles: [...current.profiles, clone], selectedProfileId: clone.id };
+                    return {
+                      ...current,
+                      profiles: [...current.profiles, clone],
+                      selectedProfileId: clone.id,
+                    };
                   })
                 }
               />
-              <IconButton icon="trash" title="Eliminar perfil" tone="danger" onClick={() => setConfirmDelete(true)} />
+              <IconButton
+                icon="trash"
+                title="Eliminar perfil"
+                tone="danger"
+                onClick={() => setConfirmDelete(true)}
+              />
             </div>
 
             {confirmDelete ? (
@@ -226,25 +258,25 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                       };
                     });
                     setConfirmDelete(false);
-                    notify('Perfil eliminado');
+                    notify("Perfil eliminado");
                   }}
                 />
               </div>
             ) : null}
 
-            <div className="toolbar" style={{ padding: '10px 10px 6px' }}>
+            <div className="toolbar" style={{ padding: "10px 10px 6px" }}>
               <div className="segmented">
                 <button
                   type="button"
-                  aria-pressed={direction === 'requestHeaders'}
-                  onClick={() => setDirection('requestHeaders')}
+                  aria-pressed={direction === "requestHeaders"}
+                  onClick={() => setDirection("requestHeaders")}
                 >
                   Request ({selected.requestHeaders.length})
                 </button>
                 <button
                   type="button"
-                  aria-pressed={direction === 'responseHeaders'}
-                  onClick={() => setDirection('responseHeaders')}
+                  aria-pressed={direction === "responseHeaders"}
+                  onClick={() => setDirection("responseHeaders")}
                 >
                   Response ({selected.responseHeaders.length})
                 </button>
@@ -253,16 +285,18 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
               <Button
                 small
                 variant="ghost"
-                icon={showScope ? 'chevron-down' : 'chevron-right'}
+                icon={showScope ? "chevron-down" : "chevron-right"}
                 onClick={() => setShowScope((current) => !current)}
               >
                 Alcance
               </Button>
-              <Badge tone={selected.scope.activeTabOnly ? 'accent' : 'neutral'}>{describeScope(selected.scope)}</Badge>
+              <Badge tone={selected.scope.activeTabOnly ? "accent" : "neutral"}>
+                {describeScope(selected.scope)}
+              </Badge>
             </div>
 
             {showScope ? (
-              <div style={{ padding: '0 10px 10px' }}>
+              <div style={{ padding: "0 10px 10px" }}>
                 <div className="card" style={{ padding: 12 }}>
                   <ScopeEditor
                     scope={selected.scope}
@@ -315,7 +349,7 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                     checked={header.enabled}
                     onChange={(enabled) =>
                       mutateHeaders((current) =>
-                        current.map((entry) => (entry.id === header.id ? { ...entry, enabled } : entry))
+                        current.map((entry) => (entry.id === header.id ? { ...entry, enabled } : entry)),
                       )
                     }
                     title="Prender o apagar este header"
@@ -326,14 +360,16 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                     placeholder="X-Mi-Header"
                     onChange={(name) =>
                       mutateHeaders((current) =>
-                        current.map((entry) => (entry.id === header.id ? { ...entry, name } : entry))
+                        current.map((entry) => (entry.id === header.id ? { ...entry, name } : entry)),
                       )
                     }
                   />
                   <HeaderValueField
                     entry={header}
                     onChange={(updated) =>
-                      mutateHeaders((current) => current.map((entry) => (entry.id === header.id ? updated : entry)))
+                      mutateHeaders((current) =>
+                        current.map((entry) => (entry.id === header.id ? updated : entry)),
+                      )
                     }
                   />
                   <Select
@@ -343,7 +379,7 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                     onChange={(operation) => {
                       if (!isHeaderOperation(operation)) return;
                       mutateHeaders((current) =>
-                        current.map((entry) => (entry.id === header.id ? { ...entry, operation } : entry))
+                        current.map((entry) => (entry.id === header.id ? { ...entry, operation } : entry)),
                       );
                     }}
                   />
@@ -365,7 +401,7 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                               operation: header.operation,
                               comment: header.comment,
                               enabled: false,
-                            })
+                            }),
                           );
                           return next;
                         })
@@ -376,7 +412,9 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
                       title="Eliminar header"
                       tone="danger"
                       small
-                      onClick={() => mutateHeaders((current) => current.filter((entry) => entry.id !== header.id))}
+                      onClick={() =>
+                        mutateHeaders((current) => current.filter((entry) => entry.id !== header.id))
+                      }
                     />
                   </div>
                 </div>
@@ -385,7 +423,9 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
               {!headers.length ? (
                 <EmptyState
                   icon="layers"
-                  title={direction === 'requestHeaders' ? 'Sin headers de request' : 'Sin headers de response'}
+                  title={
+                    direction === "requestHeaders" ? "Sin headers de request" : "Sin headers de response"
+                  }
                   text="Agregá uno para empezar a modificar el trafico."
                 />
               ) : null}
@@ -411,11 +451,12 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
             Valores dinamicos
           </summary>
           <div className="hint-body">
-            <p className="text-small text-muted" style={{ margin: '0 0 8px' }}>
-              En el valor de un header podes escribir estos marcadores. Se resuelven cuando el motor recompila las
-              reglas (al guardar un cambio, al cambiar de pestaña o al arrancar el navegador), no en cada request.
+            <p className="text-small text-muted" style={{ margin: "0 0 8px" }}>
+              En el valor de un header podes escribir estos marcadores. Se resuelven cuando el motor recompila
+              las reglas (al guardar un cambio, al cambiar de pestaña o al arrancar el navegador), no en cada
+              request.
             </p>
-            <div style={{ display: 'grid', gap: 4 }}>
+            <div style={{ display: "grid", gap: 4 }}>
               {PLACEHOLDERS.map((placeholder) => (
                 <div key={placeholder.name} className="row" style={{ gap: 8 }}>
                   <code className="text-small">{`{{${placeholder.name}}}`}</code>
@@ -434,8 +475,8 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
             Como se resuelven los conflictos
           </summary>
           <p className="text-small text-muted" style={{ margin: 0 }}>
-            Si dos perfiles activos tocan el mismo header, gana el que este mas abajo en la lista de perfiles. Los
-            headers de la pestaña User-Agent y de CORS tienen prioridad sobre los perfiles.
+            Si dos perfiles activos tocan el mismo header, gana el que este mas abajo en la lista de perfiles.
+            Los headers de la pestaña User-Agent y de CORS tienen prioridad sobre los perfiles.
           </p>
         </details>
       ) : null}
@@ -450,10 +491,10 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps) => {
             const imported = parseProfiles(text);
             update((current) => ({
               ...current,
-              profiles: mode === 'replace' ? imported : mergeProfiles(current.profiles, imported),
+              profiles: mode === "replace" ? imported : mergeProfiles(current.profiles, imported),
               selectedProfileId: imported[0]?.id ?? current.selectedProfileId,
             }));
-            notify(`${imported.length} perfil(es) importado(s)`, 'success');
+            notify(`${imported.length} perfil(es) importado(s)`, "success");
           }}
         />
       ) : null}

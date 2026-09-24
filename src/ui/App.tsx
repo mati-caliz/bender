@@ -1,35 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { IMPORT_PARAM, SURFACE_PARAM } from '@/lib/constants';
-import { Icon, type IconName } from '@/ui/components/Icon';
-import { Badge, IconButton, Switch } from '@/ui/components/primitives';
-import { useActiveTab } from '@/ui/hooks/useActiveTab';
-import { useEngineStatus } from '@/ui/hooks/useEngineStatus';
-import { useToolkitState } from '@/ui/hooks/useToolkitState';
-import { CookiesView } from '@/ui/views/CookiesView';
-import { CorsView } from '@/ui/views/CorsView';
-import { DesignView } from '@/ui/views/DesignView';
-import { HeadersView } from '@/ui/views/HeadersView';
-import { NetworkView } from '@/ui/views/NetworkView';
-import { OverviewView } from '@/ui/views/OverviewView';
-import { RulesView } from '@/ui/views/RulesView';
-import { ScriptsView } from '@/ui/views/ScriptsView';
-import { SettingsView } from '@/ui/views/SettingsView';
-import { StorageView } from '@/ui/views/StorageView';
-import { UserAgentView } from '@/ui/views/UserAgentView';
-import type { ToolkitState } from '@/types';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { IMPORT_PARAM, SURFACE_PARAM } from "@/lib/constants";
+import { Icon, type IconName } from "@/ui/components/Icon";
+import { Badge, IconButton, Switch } from "@/ui/components/primitives";
+import { useActiveTab } from "@/ui/hooks/useActiveTab";
+import { useEngineStatus } from "@/ui/hooks/useEngineStatus";
+import { useToolkitState } from "@/ui/hooks/useToolkitState";
+import { CookiesView } from "@/ui/views/CookiesView";
+import { CorsView } from "@/ui/views/CorsView";
+import { DesignView } from "@/ui/views/DesignView";
+import { HeadersView } from "@/ui/views/HeadersView";
+import { NetworkView } from "@/ui/views/NetworkView";
+import { OverviewView } from "@/ui/views/OverviewView";
+import { RulesView } from "@/ui/views/RulesView";
+import { ScriptsView } from "@/ui/views/ScriptsView";
+import { SettingsView } from "@/ui/views/SettingsView";
+import { StorageView } from "@/ui/views/StorageView";
+import { UserAgentView } from "@/ui/views/UserAgentView";
+import type { ToolkitState } from "@/types";
 
 export type ViewId =
-  | 'overview'
-  | 'headers'
-  | 'rules'
-  | 'cors'
-  | 'useragent'
-  | 'network'
-  | 'cookies'
-  | 'storage'
-  | 'scripts'
-  | 'design'
-  | 'settings';
+  | "overview"
+  | "headers"
+  | "rules"
+  | "cors"
+  | "useragent"
+  | "network"
+  | "cookies"
+  | "storage"
+  | "scripts"
+  | "design"
+  | "settings";
 
 interface NavEntry {
   id: ViewId;
@@ -40,12 +40,12 @@ interface NavEntry {
 }
 
 const NAV_ENTRIES: NavEntry[] = [
-  { id: 'overview', label: 'Resumen', icon: 'bolt', group: 'General' },
+  { id: "overview", label: "Resumen", icon: "bolt", group: "General" },
   {
-    id: 'headers',
-    label: 'Headers',
-    icon: 'layers',
-    group: 'Red',
+    id: "headers",
+    label: "Headers",
+    icon: "layers",
+    group: "Red",
     count: (state) =>
       state.profiles
         .filter((profile) => profile.enabled)
@@ -54,50 +54,50 @@ const NAV_ENTRIES: NavEntry[] = [
             total +
             profile.requestHeaders.filter((header) => header.enabled && header.name.trim()).length +
             profile.responseHeaders.filter((header) => header.enabled && header.name.trim()).length,
-          0
+          0,
         ),
   },
   {
-    id: 'rules',
-    label: 'Reglas',
-    icon: 'filter',
-    group: 'Red',
+    id: "rules",
+    label: "Reglas",
+    icon: "filter",
+    group: "Red",
     count: (state) => state.trafficRules.filter((rule) => rule.enabled).length,
   },
-  { id: 'cors', label: 'CORS', icon: 'shield', group: 'Red' },
-  { id: 'useragent', label: 'User-Agent', icon: 'smartphone', group: 'Red' },
-  { id: 'network', label: 'Trafico', icon: 'activity', group: 'Red' },
-  { id: 'cookies', label: 'Cookies', icon: 'cookie', group: 'Sitio' },
-  { id: 'storage', label: 'Storage', icon: 'database', group: 'Sitio' },
+  { id: "cors", label: "CORS", icon: "shield", group: "Red" },
+  { id: "useragent", label: "User-Agent", icon: "smartphone", group: "Red" },
+  { id: "network", label: "Trafico", icon: "activity", group: "Red" },
+  { id: "cookies", label: "Cookies", icon: "cookie", group: "Sitio" },
+  { id: "storage", label: "Storage", icon: "database", group: "Sitio" },
   {
-    id: 'scripts',
-    label: 'Scripts',
-    icon: 'code',
-    group: 'Sitio',
+    id: "scripts",
+    label: "Scripts",
+    icon: "code",
+    group: "Sitio",
     count: (state) => state.userScripts.filter((script) => script.enabled).length,
   },
-  { id: 'design', label: 'Diseño', icon: 'ruler', group: 'Diseño' },
+  { id: "design", label: "Diseño", icon: "ruler", group: "Diseño" },
 ];
 
 const NARROW_BREAKPOINT_PX = 620;
 
-const readSurface = (): 'popup' | 'panel' | 'tab' => {
+const readSurface = (): "popup" | "panel" | "tab" => {
   const surface = new URLSearchParams(window.location.search).get(SURFACE_PARAM);
-  return surface === 'popup' || surface === 'panel' ? surface : 'tab';
+  return surface === "popup" || surface === "panel" ? surface : "tab";
 };
 
 const VIEW_IDS: ViewId[] = [
-  'overview',
-  'headers',
-  'rules',
-  'cors',
-  'useragent',
-  'network',
-  'cookies',
-  'storage',
-  'scripts',
-  'design',
-  'settings',
+  "overview",
+  "headers",
+  "rules",
+  "cors",
+  "useragent",
+  "network",
+  "cookies",
+  "storage",
+  "scripts",
+  "design",
+  "settings",
 ];
 
 const isViewId = (value: string | null): value is ViewId => VIEW_IDS.some((id) => id === value);
@@ -112,7 +112,7 @@ export const App = () => {
   const status = useEngineStatus();
   const activeTab = useActiveTab();
   const surface = useMemo(() => readSurface(), []);
-  const [view, setView] = useState<ViewId>('overview');
+  const [view, setView] = useState<ViewId>("overview");
   const [navOpen, setNavOpen] = useState(false);
 
   // Restaura la ultima vista una sola vez, cuando el estado termina de cargar. El
@@ -127,7 +127,7 @@ export const App = () => {
       return;
     }
     const stored = state.ui.lastView;
-    setView(isViewId(stored) ? stored : 'overview');
+    setView(isViewId(stored) ? stored : "overview");
   }, [ready, state.ui.lastView]);
 
   useEffect(() => {
@@ -137,8 +137,8 @@ export const App = () => {
 
   // El popup y el panel lateral son angostos: el layout pasa a nav colapsado y filas apiladas.
   useEffect(() => {
-    if (surface === 'popup') {
-      document.body.dataset.narrow = 'true';
+    if (surface === "popup") {
+      document.body.dataset.narrow = "true";
       return undefined;
     }
     const media = window.matchMedia(`(max-width: ${NARROW_BREAKPOINT_PX}px)`);
@@ -146,21 +146,21 @@ export const App = () => {
       document.body.dataset.narrow = String(media.matches);
     };
     apply();
-    media.addEventListener('change', apply);
-    return () => media.removeEventListener('change', apply);
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
   }, [surface]);
 
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--accent', state.ui.accent);
-    if (state.ui.theme === 'system') {
-      const media = window.matchMedia('(prefers-color-scheme: light)');
-      const apply = () => root.setAttribute('data-theme', media.matches ? 'light' : 'dark');
+    root.style.setProperty("--accent", state.ui.accent);
+    if (state.ui.theme === "system") {
+      const media = window.matchMedia("(prefers-color-scheme: light)");
+      const apply = () => root.setAttribute("data-theme", media.matches ? "light" : "dark");
       apply();
-      media.addEventListener('change', apply);
-      return () => media.removeEventListener('change', apply);
+      media.addEventListener("change", apply);
+      return () => media.removeEventListener("change", apply);
     }
-    root.setAttribute('data-theme', state.ui.theme);
+    root.setAttribute("data-theme", state.ui.theme);
     return undefined;
   }, [state.ui.theme, state.ui.accent]);
 
@@ -178,31 +178,39 @@ export const App = () => {
     return Array.from(map.entries());
   }, []);
 
-  const errorCount = status.diagnostics.filter((diagnostic) => diagnostic.level === 'error').length;
+  const errorCount = status.diagnostics.filter((diagnostic) => diagnostic.level === "error").length;
 
   const renderView = () => {
     switch (view) {
-      case 'overview':
-        return <OverviewView state={state} update={update} status={status} activeTab={activeTab} onNavigate={goTo} />;
-      case 'headers':
+      case "overview":
+        return (
+          <OverviewView
+            state={state}
+            update={update}
+            status={status}
+            activeTab={activeTab}
+            onNavigate={goTo}
+          />
+        );
+      case "headers":
         return <HeadersView state={state} update={update} activeTab={activeTab} />;
-      case 'rules':
+      case "rules":
         return <RulesView state={state} update={update} activeTab={activeTab} />;
-      case 'cors':
+      case "cors":
         return <CorsView state={state} update={update} activeTab={activeTab} />;
-      case 'useragent':
+      case "useragent":
         return <UserAgentView state={state} update={update} activeTab={activeTab} />;
-      case 'network':
+      case "network":
         return <NetworkView state={state} update={update} onNavigate={goTo} />;
-      case 'cookies':
+      case "cookies":
         return <CookiesView activeTab={activeTab} />;
-      case 'storage':
+      case "storage":
         return <StorageView activeTab={activeTab} />;
-      case 'scripts':
+      case "scripts":
         return <ScriptsView state={state} update={update} activeTab={activeTab} />;
-      case 'design':
+      case "design":
         return <DesignView activeTab={activeTab} />;
-      case 'settings':
+      case "settings":
         return <SettingsView state={state} update={update} status={status} />;
     }
   };
@@ -213,12 +221,12 @@ export const App = () => {
         <button
           type="button"
           className="nav-toggle"
-          aria-label={navOpen ? 'Cerrar menu' : 'Abrir menu'}
+          aria-label={navOpen ? "Cerrar menu" : "Abrir menu"}
           aria-expanded={navOpen}
           title="Menu"
           onClick={() => setNavOpen((current) => !current)}
         >
-          <Icon name={navOpen ? 'x' : 'menu'} size={16} />
+          <Icon name={navOpen ? "x" : "menu"} size={16} />
         </button>
 
         <div className="brand">
@@ -252,17 +260,17 @@ export const App = () => {
             onChange={() => update((current) => ({ ...current, globalEnabled: !current.globalEnabled }))}
             small
           />
-          <span className="master-toggle-label">{state.globalEnabled ? 'Activo' : 'Apagado'}</span>
+          <span className="master-toggle-label">{state.globalEnabled ? "Activo" : "Apagado"}</span>
         </button>
 
-        {surface === 'popup' ? (
+        {surface === "popup" ? (
           <>
             <IconButton
               icon="panel"
               title="Abrir en el panel lateral"
               onClick={() => {
                 void chrome.windows.getCurrent().then((current) => {
-                  if (typeof current.id === 'number') void chrome.sidePanel.open({ windowId: current.id });
+                  if (typeof current.id === "number") void chrome.sidePanel.open({ windowId: current.id });
                   window.close();
                 });
               }}
@@ -294,7 +302,7 @@ export const App = () => {
                     aria-current={view === entry.id}
                     title={entry.label}
                     onClick={() => goTo(entry.id)}
-                    style={{ width: '100%' }}
+                    style={{ width: "100%" }}
                   >
                     <Icon name={entry.icon} size={15} className="nav-icon" />
                     <span className="nav-label">{entry.label}</span>
@@ -308,10 +316,10 @@ export const App = () => {
             <button
               type="button"
               className="nav-item"
-              aria-current={view === 'settings'}
+              aria-current={view === "settings"}
               title="Ajustes"
-              onClick={() => goTo('settings')}
-              style={{ width: '100%' }}
+              onClick={() => goTo("settings")}
+              style={{ width: "100%" }}
             >
               <Icon name="settings" size={15} className="nav-icon" />
               <span className="nav-label">Ajustes</span>
@@ -319,7 +327,14 @@ export const App = () => {
           </div>
         </nav>
 
-        {navOpen ? <button type="button" className="nav-scrim" aria-label="Cerrar menu" onClick={() => setNavOpen(false)} /> : null}
+        {navOpen ? (
+          <button
+            type="button"
+            className="nav-scrim"
+            aria-label="Cerrar menu"
+            onClick={() => setNavOpen(false)}
+          />
+        ) : null}
 
         <main className="content">{renderView()}</main>
       </div>

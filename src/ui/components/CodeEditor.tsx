@@ -1,15 +1,15 @@
-import { Suspense, lazy, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { Suspense, lazy, useRef, type KeyboardEvent, type ReactNode } from "react";
 
-const INDENT = '  ';
+const INDENT = "  ";
 
-export type CodeLanguage = 'javascript' | 'css';
+export type CodeLanguage = "javascript" | "css";
 
 /**
  * CodeMirror pesa mas que todo el resto de la UI junta, y el popup tiene que abrir
  * instantaneo. Va en su propio chunk, que se baja recien cuando se muestra un
  * editor; hasta que llega se ve el textarea, que igual es usable.
  */
-const CodeMirrorEditor = lazy(() => import('@/ui/components/CodeMirrorEditor'));
+const CodeMirrorEditor = lazy(() => import("@/ui/components/CodeMirrorEditor"));
 
 interface CodeEditorProps {
   value: string;
@@ -26,11 +26,11 @@ const PlainEditor = ({
   onChange,
   placeholder,
   minHeight,
-}: Pick<CodeEditorProps, 'value' | 'onChange' | 'placeholder' | 'minHeight'>) => {
+}: Pick<CodeEditorProps, "value" | "onChange" | "placeholder" | "minHeight">) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== 'Tab') return;
+    if (event.key !== "Tab") return;
     event.preventDefault();
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -60,14 +60,18 @@ const PlainEditor = ({
 export const CodeEditor = ({
   value,
   onChange,
-  language = 'javascript',
+  language = "javascript",
   placeholder,
   toolbar,
   minHeight,
 }: CodeEditorProps) => (
   <div className="code-editor">
     {toolbar ? <div className="code-toolbar">{toolbar}</div> : null}
-    <Suspense fallback={<PlainEditor value={value} onChange={onChange} placeholder={placeholder} minHeight={minHeight} />}>
+    <Suspense
+      fallback={
+        <PlainEditor value={value} onChange={onChange} placeholder={placeholder} minHeight={minHeight} />
+      }
+    >
       <CodeMirrorEditor
         value={value}
         language={language}

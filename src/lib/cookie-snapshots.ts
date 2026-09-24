@@ -1,10 +1,11 @@
-import { COOKIE_SNAPSHOTS_KEY } from '@/lib/constants';
-import { createId } from '@/lib/ids';
-import { coerceCookieSnapshotSet } from '@/lib/sanitize';
-import { loadScopedMap, saveScopedMap, withoutKey } from '@/lib/toggleable';
-import type { CookieSnapshot, CookieSnapshotSet } from '@/types';
+import { COOKIE_SNAPSHOTS_KEY } from "@/lib/constants";
+import { createId } from "@/lib/ids";
+import { coerceCookieSnapshotSet } from "@/lib/sanitize";
+import { loadScopedMap, saveScopedMap, withoutKey } from "@/lib/toggleable";
+import type { CookieSnapshot, CookieSnapshotSet } from "@/types";
 
-const byNewestFirst = (left: CookieSnapshotSet, right: CookieSnapshotSet): number => right.createdAt - left.createdAt;
+const byNewestFirst = (left: CookieSnapshotSet, right: CookieSnapshotSet): number =>
+  right.createdAt - left.createdAt;
 
 const readSets = async (domain: string): Promise<Record<string, CookieSnapshotSet>> => {
   const stored = await loadScopedMap<unknown>(COOKIE_SNAPSHOTS_KEY, domain);
@@ -22,7 +23,7 @@ export const listCookieSnapshotSets = async (domain: string): Promise<CookieSnap
 export const saveCookieSnapshotSet = async (
   domain: string,
   name: string,
-  cookies: CookieSnapshot[]
+  cookies: CookieSnapshot[],
 ): Promise<CookieSnapshotSet[]> => {
   const sets = await readSets(domain);
   const existing = Object.values(sets).find((set) => set.name === name);

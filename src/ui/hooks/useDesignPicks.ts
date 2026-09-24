@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { readDesignPicks, subscribeToDesignPicks, writeDesignPicks } from '@/lib/design-picks';
-import type { DesignPick } from '@/types';
+import { useCallback, useEffect, useState } from "react";
+import { readDesignPicks, subscribeToDesignPicks, writeDesignPicks } from "@/lib/design-picks";
+import type { DesignPick } from "@/types";
 
 export interface DesignPicksController {
   picks: DesignPick[];
@@ -20,7 +20,7 @@ export const useDesignPicks = (): DesignPicksController => {
     (id: string) => {
       void writeDesignPicks(picks.filter((pick) => pick.id !== id));
     },
-    [picks]
+    [picks],
   );
 
   const clear = useCallback(() => {

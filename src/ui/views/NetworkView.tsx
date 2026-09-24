@@ -1,45 +1,45 @@
-import { useEffect, useState } from 'react';
-import { downloadJson } from '@/lib/download';
-import { createMockRuleFromEntry } from '@/lib/factories';
-import { formatDuration, formatTime, prettyJson, shortUrl } from '@/lib/format';
-import { toHar } from '@/lib/har';
-import { sendMessage } from '@/lib/messages';
-import { toCurl, toFetchSnippet } from '@/lib/request-snippets';
-import { Icon } from '@/ui/components/Icon';
-import { ViewShell } from '@/ui/components/ViewShell';
-import { Badge, Button, Card, EmptyState, Notice, SearchInput, Switch } from '@/ui/components/primitives';
-import { useToasts } from '@/ui/hooks/useToasts';
-import type { ViewId } from '@/ui/App';
-import type { UpdateState } from '@/ui/views/types';
-import type { NetworkEntry, ToolkitState } from '@/types';
+import { useEffect, useState } from "react";
+import { downloadJson } from "@/lib/download";
+import { createMockRuleFromEntry } from "@/lib/factories";
+import { formatDuration, formatTime, prettyJson, shortUrl } from "@/lib/format";
+import { toHar } from "@/lib/har";
+import { sendMessage } from "@/lib/messages";
+import { toCurl, toFetchSnippet } from "@/lib/request-snippets";
+import { Icon } from "@/ui/components/Icon";
+import { ViewShell } from "@/ui/components/ViewShell";
+import { Badge, Button, Card, EmptyState, Notice, SearchInput, Switch } from "@/ui/components/primitives";
+import { useToasts } from "@/ui/hooks/useToasts";
+import type { ViewId } from "@/ui/App";
+import type { UpdateState } from "@/ui/views/types";
+import type { NetworkEntry, ToolkitState } from "@/types";
 
 const POLL_INTERVAL_MS = 1000;
 const BODY_PREVIEW_LIMIT = 4000;
 const CLIENT_ERROR_STATUS = 400;
 const REDIRECT_STATUS = 300;
 
-const statusTone = (entry: NetworkEntry): 'neutral' | 'success' | 'warning' | 'danger' | 'info' => {
-  if (entry.phase === 'blocked') return 'danger';
-  if (entry.phase === 'mocked') return 'info';
-  if (entry.phase === 'error') return 'danger';
-  if (entry.statusCode === null) return 'neutral';
-  if (entry.statusCode >= CLIENT_ERROR_STATUS) return 'danger';
-  if (entry.statusCode >= REDIRECT_STATUS) return 'warning';
-  return 'success';
+const statusTone = (entry: NetworkEntry): "neutral" | "success" | "warning" | "danger" | "info" => {
+  if (entry.phase === "blocked") return "danger";
+  if (entry.phase === "mocked") return "info";
+  if (entry.phase === "error") return "danger";
+  if (entry.statusCode === null) return "neutral";
+  if (entry.statusCode >= CLIENT_ERROR_STATUS) return "danger";
+  if (entry.statusCode >= REDIRECT_STATUS) return "warning";
+  return "success";
 };
 
 const statusLabel = (entry: NetworkEntry): string => {
-  if (entry.phase === 'blocked') return 'block';
-  if (entry.phase === 'mocked') return 'mock';
-  if (entry.phase === 'error') return 'error';
-  return entry.statusCode === null ? '···' : String(entry.statusCode);
+  if (entry.phase === "blocked") return "block";
+  if (entry.phase === "mocked") return "mock";
+  if (entry.phase === "error") return "error";
+  return entry.statusCode === null ? "···" : String(entry.statusCode);
 };
 
 const HeaderTable = ({ headers }: { headers: Array<{ name: string; value: string }> }) =>
   headers.length ? (
     <div className="kv-table">
       {headers.map((header, index) => (
-        <div key={`${header.name}-${index}`} style={{ display: 'contents' }}>
+        <div key={`${header.name}-${index}`} style={{ display: "contents" }}>
           <span className="kv-key">{header.name}</span>
           <span className="kv-value">{header.value}</span>
         </div>
@@ -68,13 +68,13 @@ interface NetworkViewProps {
 export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => {
   const { notify } = useToasts();
   const [entries, setEntries] = useState<NetworkEntry[]>([]);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     const refresh = () => {
-      void sendMessage({ type: 'network/list' })
+      void sendMessage({ type: "network/list" })
         .then((list) => {
           if (active && Array.isArray(list)) setEntries(list);
         })
@@ -93,7 +93,7 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
     ? entries.filter(
         (entry) =>
           entry.url.toLowerCase().includes(normalizedFilter) ||
-          entry.matchedRuleLabels.some((label) => label.toLowerCase().includes(normalizedFilter))
+          entry.matchedRuleLabels.some((label) => label.toLowerCase().includes(normalizedFilter)),
       )
     : entries;
 
@@ -102,18 +102,18 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
   const copyToClipboard = (value: string, message: string) => {
     void navigator.clipboard
       .writeText(value)
-      .then(() => notify(message, 'success'))
-      .catch(() => notify('No se pudo copiar al portapapeles', 'error'));
+      .then(() => notify(message, "success"))
+      .catch(() => notify("No se pudo copiar al portapapeles", "error"));
   };
 
   const exportHar = () => {
     if (!visible.length) {
-      notify('No hay requests para exportar');
+      notify("No hay requests para exportar");
       return;
     }
     const fileName = `bender-${new Date().toISOString().slice(0, 10)}.har`;
     downloadJson(fileName, toHar(visible, chrome.runtime.getManifest().version));
-    notify('HAR exportado', 'success');
+    notify("HAR exportado", "success");
   };
 
   const createMockFrom = (entry: NetworkEntry) => {
@@ -121,8 +121,8 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
       ...current,
       trafficRules: [...current.trafficRules, createMockRuleFromEntry(entry, current.trafficRules.length)],
     }));
-    notify('Mock creado desde la response', 'success');
-    onNavigate('rules');
+    notify("Mock creado desde la response", "success");
+    onNavigate("rules");
   };
 
   return (
@@ -139,7 +139,7 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
             icon="trash"
             variant="ghost"
             onClick={() => {
-              void sendMessage({ type: 'network/clear' });
+              void sendMessage({ type: "network/clear" });
               setEntries([]);
             }}
           >
@@ -147,7 +147,9 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
           </Button>
           <Switch
             checked={state.network.enabled}
-            onChange={(enabled) => update((current) => ({ ...current, network: { ...current.network, enabled } }))}
+            onChange={(enabled) =>
+              update((current) => ({ ...current, network: { ...current.network, enabled } }))
+            }
             title="Prender o apagar la captura"
           />
         </>
@@ -155,8 +157,8 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
     >
       {!state.network.enabled ? (
         <Notice tone="warning">
-          La captura esta apagada. Prendela con el switch de arriba: mientras esta apagada Bender no escucha ningun
-          evento de red, asi que no agrega overhead.
+          La captura esta apagada. Prendela con el switch de arriba: mientras esta apagada Bender no escucha
+          ningun evento de red, asi que no agrega overhead.
         </Notice>
       ) : null}
 
@@ -209,7 +211,9 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
                     <div className="row wrap">
                       <Badge>{entry.resourceType}</Badge>
                       {entry.fromCache ? <Badge tone="info">cache</Badge> : null}
-                      {entry.finishedAt ? <Badge>{formatDuration(entry.finishedAt - entry.startedAt)}</Badge> : null}
+                      {entry.finishedAt ? (
+                        <Badge>{formatDuration(entry.finishedAt - entry.startedAt)}</Badge>
+                      ) : null}
                       {entry.error ? <Badge tone="danger">{entry.error}</Badge> : null}
                     </div>
                     <div className="kv-value">{entry.url}</div>
@@ -238,28 +242,40 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
                     </div>
 
                     {entry.requestBody ? (
-                      <BodyBlock label="Cuerpo enviado" body={entry.requestBody} truncated={entry.bodyTruncated} />
+                      <BodyBlock
+                        label="Cuerpo enviado"
+                        body={entry.requestBody}
+                        truncated={entry.bodyTruncated}
+                      />
                     ) : null}
 
                     {entry.responseBody ? (
-                      <BodyBlock label="Cuerpo recibido" body={entry.responseBody} truncated={entry.bodyTruncated} />
+                      <BodyBlock
+                        label="Cuerpo recibido"
+                        body={entry.responseBody}
+                        truncated={entry.bodyTruncated}
+                      />
                     ) : null}
 
-                    {state.network.captureBodies || entry.source === 'mock' ? null : (
+                    {state.network.captureBodies || entry.source === "mock" ? null : (
                       <span className="field-hint">
                         Los cuerpos no se estan capturando: prendelo en Ajustes para verlos aca.
                       </span>
                     )}
 
                     <div className="row wrap">
-                      <Button small icon="copy" onClick={() => copyToClipboard(toCurl(entry), 'cURL copiado')}>
+                      <Button
+                        small
+                        icon="copy"
+                        onClick={() => copyToClipboard(toCurl(entry), "cURL copiado")}
+                      >
                         Copiar cURL
                       </Button>
                       <Button
                         small
                         icon="copy"
                         variant="ghost"
-                        onClick={() => copyToClipboard(toFetchSnippet(entry), 'fetch copiado')}
+                        onClick={() => copyToClipboard(toFetchSnippet(entry), "fetch copiado")}
                       >
                         Copiar fetch
                       </Button>
@@ -275,11 +291,11 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
         ) : (
           <EmptyState
             icon="activity"
-            title={state.network.enabled ? 'Todavia no se capturo nada' : 'Captura apagada'}
+            title={state.network.enabled ? "Todavia no se capturo nada" : "Captura apagada"}
             text={
               state.network.enabled
-                ? 'Recarga la pagina que estas debuggeando y las requests van a aparecer aca.'
-                : 'Prende la captura para ver el trafico y que reglas se aplicaron.'
+                ? "Recarga la pagina que estas debuggeando y las requests van a aparecer aca."
+                : "Prende la captura para ver el trafico y que reglas se aplicaron."
             }
           />
         )}
@@ -287,8 +303,8 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
 
       {selected ? null : (
         <p className="field-hint">
-          <Icon name="info" size={11} /> Se guardan las ultimas {state.network.maxEntries} requests en memoria de la
-          sesion.
+          <Icon name="info" size={11} /> Se guardan las ultimas {state.network.maxEntries} requests en memoria
+          de la sesion.
         </p>
       )}
     </ViewShell>

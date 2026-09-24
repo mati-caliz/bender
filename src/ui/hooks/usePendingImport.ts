@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { IMPORT_PARAM } from '@/lib/constants';
-import type { ViewId } from '@/ui/App';
+import { useState } from "react";
+import { IMPORT_PARAM } from "@/lib/constants";
+import type { ViewId } from "@/ui/App";
 
 export const readPendingImportView = (): string | null =>
   new URLSearchParams(window.location.search).get(IMPORT_PARAM);

@@ -1,4 +1,4 @@
-import { HTTP_TOKEN_PATTERN } from '@/lib/constants';
+import { HTTP_TOKEN_PATTERN } from "@/lib/constants";
 import {
   DNR_ACTION_BLOCK,
   DNR_ACTION_MODIFY_HEADERS,
@@ -8,12 +8,19 @@ import {
   toDnrHeaderOperation,
   toDnrRequestMethods,
   toDnrResourceTypes,
-} from '@/lib/dnr-enums';
-import { navigatorSpoofDiagnostics } from '@/lib/navigator-spoof';
-import { hasTabPlaceholders, type PlaceholderContext, resolvePlaceholders } from '@/lib/placeholders';
-import { type CompiledCondition, scopeToCondition } from '@/lib/scope';
-import { userAgentTraits } from '@/lib/user-agent-traits';
-import type { CorsConfig, EngineDiagnostic, HeaderEntry, Profile, ToolkitState, UserAgentConfig } from '@/types';
+} from "@/lib/dnr-enums";
+import { navigatorSpoofDiagnostics } from "@/lib/navigator-spoof";
+import { hasTabPlaceholders, type PlaceholderContext, resolvePlaceholders } from "@/lib/placeholders";
+import { type CompiledCondition, scopeToCondition } from "@/lib/scope";
+import { userAgentTraits } from "@/lib/user-agent-traits";
+import type {
+  CorsConfig,
+  EngineDiagnostic,
+  HeaderEntry,
+  Profile,
+  ToolkitState,
+  UserAgentConfig,
+} from "@/types";
 
 const PROFILE_BASE_PRIORITY = 10;
 const CORS_PRIORITY = 100;
@@ -59,7 +66,8 @@ const toRuleCondition = (condition: CompiledCondition): chrome.declarativeNetReq
   if (condition.urlFilter) ruleCondition.urlFilter = condition.urlFilter;
   if (condition.regexFilter) ruleCondition.regexFilter = condition.regexFilter;
   if (condition.requestDomains) ruleCondition.requestDomains = condition.requestDomains;
-  if (condition.excludedRequestDomains) ruleCondition.excludedRequestDomains = condition.excludedRequestDomains;
+  if (condition.excludedRequestDomains)
+    ruleCondition.excludedRequestDomains = condition.excludedRequestDomains;
   if (condition.initiatorDomains) ruleCondition.initiatorDomains = condition.initiatorDomains;
   if (condition.excludedInitiatorDomains) {
     ruleCondition.excludedInitiatorDomains = condition.excludedInitiatorDomains;
@@ -73,22 +81,22 @@ const compileHeaderValue = (
   entry: HeaderEntry,
   ownerName: string,
   placeholders: PlaceholderContext,
-  diagnostics: EngineDiagnostic[]
+  diagnostics: EngineDiagnostic[],
 ): string => {
   const { value, unknownNames, unavailableNames } = resolvePlaceholders(entry.value, placeholders);
 
   for (const name of unknownNames) {
     diagnostics.push({
-      level: 'warning',
+      level: "warning",
       message: `"{{${name}}}" no es un valor dinamico conocido (${ownerName}, header "${entry.name}"): se manda tal cual.`,
     });
   }
   if (unavailableNames.length) {
     diagnostics.push({
-      level: 'warning',
+      level: "warning",
       message: `No hay pestaña activa para resolver ${unavailableNames
         .map((name) => `"{{${name}}}"`)
-        .join(', ')} (${ownerName}, header "${entry.name}"): queda vacio.`,
+        .join(", ")} (${ownerName}, header "${entry.name}"): queda vacio.`,
     });
   }
 
@@ -99,7 +107,7 @@ const compileHeaderEntries = (
   entries: HeaderEntry[],
   ownerName: string,
   placeholders: PlaceholderContext,
-  diagnostics: EngineDiagnostic[]
+  diagnostics: EngineDiagnostic[],
 ): ModifyHeaderSpec[] => {
   const byName = new Map<string, ModifyHeaderSpec>();
 
@@ -110,25 +118,25 @@ const compileHeaderEntries = (
 
     if (!HTTP_TOKEN_PATTERN.test(name)) {
       diagnostics.push({
-        level: 'error',
+        level: "error",
         message: `"${name}" no es un nombre de header valido (${ownerName}), se ignora.`,
       });
       continue;
     }
 
     const key = `${name.toLowerCase()}:${entry.operation}`;
-    if (byName.has(key) && entry.operation !== 'append') {
+    if (byName.has(key) && entry.operation !== "append") {
       diagnostics.push({
-        level: 'warning',
+        level: "warning",
         message: `El header "${name}" esta repetido en ${ownerName}: gana el ultimo de la lista.`,
       });
     }
 
     const spec: ModifyHeaderSpec = { header: name, operation: toDnrHeaderOperation(entry.operation) };
-    if (entry.operation !== 'remove') {
+    if (entry.operation !== "remove") {
       spec.value = compileHeaderValue(entry, ownerName, placeholders, diagnostics);
     }
-    byName.set(entry.operation === 'append' ? `${key}:${byName.size}` : key, spec);
+    byName.set(entry.operation === "append" ? `${key}:${byName.size}` : key, spec);
   }
 
   return Array.from(byName.values());
@@ -140,7 +148,7 @@ const compileProfileRules = (
   placeholders: PlaceholderContext,
   nextId: () => number,
   labels: Record<number, string>,
-  diagnostics: EngineDiagnostic[]
+  diagnostics: EngineDiagnostic[],
 ): CompiledProfileRules => {
   const rules: chrome.declarativeNetRequest.Rule[] = [];
   let headerCount = 0;
@@ -174,15 +182,15 @@ const compileProfileRules = (
 
 const corsResponseHeaders = (cors: CorsConfig, originValue: string): ModifyHeaderSpec[] => {
   const headers: ModifyHeaderSpec[] = [
-    { header: 'access-control-allow-origin', operation: DNR_OPERATION_SET, value: originValue },
-    { header: 'access-control-allow-methods', operation: DNR_OPERATION_SET, value: cors.allowMethods },
-    { header: 'access-control-allow-headers', operation: DNR_OPERATION_SET, value: cors.allowHeaders },
-    { header: 'access-control-max-age', operation: DNR_OPERATION_SET, value: String(cors.maxAgeSeconds) },
+    { header: "access-control-allow-origin", operation: DNR_OPERATION_SET, value: originValue },
+    { header: "access-control-allow-methods", operation: DNR_OPERATION_SET, value: cors.allowMethods },
+    { header: "access-control-allow-headers", operation: DNR_OPERATION_SET, value: cors.allowHeaders },
+    { header: "access-control-max-age", operation: DNR_OPERATION_SET, value: String(cors.maxAgeSeconds) },
   ];
 
   if (cors.exposeHeaders.trim()) {
     headers.push({
-      header: 'access-control-expose-headers',
+      header: "access-control-expose-headers",
       operation: DNR_OPERATION_SET,
       value: cors.exposeHeaders,
     });
@@ -190,18 +198,18 @@ const corsResponseHeaders = (cors: CorsConfig, originValue: string): ModifyHeade
 
   headers.push(
     cors.allowCredentials
-      ? { header: 'access-control-allow-credentials', operation: DNR_OPERATION_SET, value: 'true' }
-      : { header: 'access-control-allow-credentials', operation: DNR_OPERATION_REMOVE }
+      ? { header: "access-control-allow-credentials", operation: DNR_OPERATION_SET, value: "true" }
+      : { header: "access-control-allow-credentials", operation: DNR_OPERATION_REMOVE },
   );
 
   if (cors.removeContentSecurityPolicy) {
     headers.push(
-      { header: 'content-security-policy', operation: DNR_OPERATION_REMOVE },
-      { header: 'content-security-policy-report-only', operation: DNR_OPERATION_REMOVE }
+      { header: "content-security-policy", operation: DNR_OPERATION_REMOVE },
+      { header: "content-security-policy-report-only", operation: DNR_OPERATION_REMOVE },
     );
   }
   if (cors.removeFrameOptions) {
-    headers.push({ header: 'x-frame-options', operation: DNR_OPERATION_REMOVE });
+    headers.push({ header: "x-frame-options", operation: DNR_OPERATION_REMOVE });
   }
 
   return headers;
@@ -212,28 +220,29 @@ const compileCorsRules = (
   context: CompileContext,
   nextId: () => number,
   labels: Record<number, string>,
-  diagnostics: EngineDiagnostic[]
+  diagnostics: EngineDiagnostic[],
 ): chrome.declarativeNetRequest.Rule[] => {
   if (!cors.enabled) return [];
 
   const condition = scopeToCondition(cors.scope, context);
   if (!condition) return [];
 
-  if (cors.allowOrigin === 'wildcard' && cors.allowCredentials) {
+  if (cors.allowOrigin === "wildcard" && cors.allowCredentials) {
     diagnostics.push({
-      level: 'warning',
-      message: 'CORS: el navegador rechaza "*" junto con credenciales. Usa "reflejar el origen" si mandas cookies.',
+      level: "warning",
+      message:
+        'CORS: el navegador rechaza "*" junto con credenciales. Usa "reflejar el origen" si mandas cookies.',
     });
   }
 
-  if (cors.allowOrigin !== 'reflect') {
-    const originValue = cors.allowOrigin === 'wildcard' ? '*' : cors.customOrigin.trim();
+  if (cors.allowOrigin !== "reflect") {
+    const originValue = cors.allowOrigin === "wildcard" ? "*" : cors.customOrigin.trim();
     if (!originValue) {
-      diagnostics.push({ level: 'error', message: 'CORS: el origen permitido esta vacio.' });
+      diagnostics.push({ level: "error", message: "CORS: el origen permitido esta vacio." });
       return [];
     }
     const id = nextId();
-    labels[id] = 'CORS';
+    labels[id] = "CORS";
     return [
       {
         id,
@@ -250,8 +259,8 @@ const compileCorsRules = (
 
   if (!targetTabs.length) {
     diagnostics.push({
-      level: 'warning',
-      message: 'CORS: no hay pestañas http(s) abiertas para reflejar el origen.',
+      level: "warning",
+      message: "CORS: no hay pestañas http(s) abiertas para reflejar el origen.",
     });
     return [];
   }
@@ -272,15 +281,15 @@ const clientHintHeaders = (userAgentValue: string): ModifyHeaderSpec[] => {
   const { mobile, platform, chromium } = userAgentTraits(userAgentValue);
 
   const headers: ModifyHeaderSpec[] = [
-    { header: 'sec-ch-ua-mobile', operation: DNR_OPERATION_SET, value: mobile ? '?1' : '?0' },
-    { header: 'sec-ch-ua-platform', operation: DNR_OPERATION_SET, value: `"${platform}"` },
+    { header: "sec-ch-ua-mobile", operation: DNR_OPERATION_SET, value: mobile ? "?1" : "?0" },
+    { header: "sec-ch-ua-platform", operation: DNR_OPERATION_SET, value: `"${platform}"` },
   ];
 
   if (!chromium) {
     headers.push(
-      { header: 'sec-ch-ua', operation: DNR_OPERATION_REMOVE },
-      { header: 'sec-ch-ua-full-version-list', operation: DNR_OPERATION_REMOVE },
-      { header: 'sec-ch-ua-platform-version', operation: DNR_OPERATION_REMOVE }
+      { header: "sec-ch-ua", operation: DNR_OPERATION_REMOVE },
+      { header: "sec-ch-ua-full-version-list", operation: DNR_OPERATION_REMOVE },
+      { header: "sec-ch-ua-platform-version", operation: DNR_OPERATION_REMOVE },
     );
   }
 
@@ -292,13 +301,13 @@ const compileUserAgentRule = (
   context: CompileContext,
   nextId: () => number,
   labels: Record<number, string>,
-  diagnostics: EngineDiagnostic[]
+  diagnostics: EngineDiagnostic[],
 ): chrome.declarativeNetRequest.Rule[] => {
   if (!userAgent.enabled) return [];
 
   const value = userAgent.value.trim();
   if (!value) {
-    diagnostics.push({ level: 'error', message: 'User-Agent: el valor esta vacio.' });
+    diagnostics.push({ level: "error", message: "User-Agent: el valor esta vacio." });
     return [];
   }
 
@@ -306,14 +315,14 @@ const compileUserAgentRule = (
   if (!condition) return [];
 
   const requestHeaders: ModifyHeaderSpec[] = [
-    { header: 'user-agent', operation: DNR_OPERATION_SET, value },
+    { header: "user-agent", operation: DNR_OPERATION_SET, value },
     ...(userAgent.spoofClientHints ? clientHintHeaders(value) : []),
   ];
 
   diagnostics.push(...navigatorSpoofDiagnostics(userAgent));
 
   const id = nextId();
-  labels[id] = 'User-Agent';
+  labels[id] = "User-Agent";
   return [
     {
       id,
@@ -329,18 +338,19 @@ const compileTrafficRules = (
   context: CompileContext,
   nextId: () => number,
   labels: Record<number, string>,
-  diagnostics: EngineDiagnostic[]
+  diagnostics: EngineDiagnostic[],
 ): chrome.declarativeNetRequest.Rule[] => {
   const rules: chrome.declarativeNetRequest.Rule[] = [];
 
   for (const trafficRule of state.trafficRules) {
     // mock y chaos no son declarativos: los aplica inject.ts sobre fetch/XHR.
-    if (!trafficRule.enabled || trafficRule.action.kind === 'mock' || trafficRule.action.kind === 'chaos') continue;
+    if (!trafficRule.enabled || trafficRule.action.kind === "mock" || trafficRule.action.kind === "chaos")
+      continue;
 
     const condition = scopeToCondition(trafficRule.scope, context);
     if (!condition) continue;
 
-    if (trafficRule.action.kind === 'block') {
+    if (trafficRule.action.kind === "block") {
       const id = nextId();
       labels[id] = `Bloqueo · ${trafficRule.name}`;
       rules.push({
@@ -354,7 +364,10 @@ const compileTrafficRules = (
 
     const target = trafficRule.action.target.trim();
     if (!target) {
-      diagnostics.push({ level: 'error', message: `La regla "${trafficRule.name}" no tiene destino de redirect.` });
+      diagnostics.push({
+        level: "error",
+        message: `La regla "${trafficRule.name}" no tiene destino de redirect.`,
+      });
       continue;
     }
 
@@ -362,7 +375,7 @@ const compileTrafficRules = (
       const pattern = trafficRule.scope.urlFilter.trim();
       if (!pattern) {
         diagnostics.push({
-          level: 'error',
+          level: "error",
           message: `La regla "${trafficRule.name}" usa regex pero el patron de URL esta vacio.`,
         });
         continue;
@@ -370,7 +383,7 @@ const compileTrafficRules = (
       try {
         new RegExp(pattern);
       } catch {
-        diagnostics.push({ level: 'error', message: `La regex de "${trafficRule.name}" es invalida.` });
+        diagnostics.push({ level: "error", message: `La regex de "${trafficRule.name}" es invalida.` });
         continue;
       }
 
@@ -391,7 +404,7 @@ const compileTrafficRules = (
       new URL(target);
     } catch {
       diagnostics.push({
-        level: 'error',
+        level: "error",
         message: `El destino de "${trafficRule.name}" tiene que ser una URL absoluta.`,
       });
       continue;
@@ -412,20 +425,22 @@ const compileTrafficRules = (
 
 export const dependsOnTabs = (state: ToolkitState): boolean => {
   if (!state.globalEnabled) return false;
-  if (state.cors.enabled && state.cors.allowOrigin === 'reflect') return true;
+  if (state.cors.enabled && state.cors.allowOrigin === "reflect") return true;
 
   const usesTabPlaceholder = state.profiles
     .filter((profile) => profile.enabled)
     .some((profile) =>
       [...profile.requestHeaders, ...profile.responseHeaders].some(
-        (entry) => entry.enabled && entry.operation !== 'remove' && hasTabPlaceholders(entry.value)
-      )
+        (entry) => entry.enabled && entry.operation !== "remove" && hasTabPlaceholders(entry.value),
+      ),
     );
   if (usesTabPlaceholder) return true;
 
   const activeScopes = [
     ...state.profiles.filter((profile) => profile.enabled).map((profile) => profile.scope),
-    ...state.trafficRules.filter((trafficRule) => trafficRule.enabled).map((trafficRule) => trafficRule.scope),
+    ...state.trafficRules
+      .filter((trafficRule) => trafficRule.enabled)
+      .map((trafficRule) => trafficRule.scope),
     ...(state.cors.enabled ? [state.cors.scope] : []),
     ...(state.userAgent.enabled ? [state.userAgent.scope] : []),
   ];
@@ -448,7 +463,14 @@ export const compileRules = (state: ToolkitState, context: CompileContext): Comp
   const placeholders: PlaceholderContext = { tabUrl: activeTab?.url ?? null, now: Date.now() };
 
   const enabledProfiles = state.profiles.filter((profile) => profile.enabled);
-  const profileRules = compileProfileRules(enabledProfiles, context, placeholders, nextId, labels, diagnostics);
+  const profileRules = compileProfileRules(
+    enabledProfiles,
+    context,
+    placeholders,
+    nextId,
+    labels,
+    diagnostics,
+  );
   const rules = [
     ...profileRules.rules,
     ...compileCorsRules(state.cors, context, nextId, labels, diagnostics),

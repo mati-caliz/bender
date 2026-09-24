@@ -11,8 +11,8 @@
  * nada; por eso se prefiere esto antes que reabrir el canal de mensajes.
  */
 
-const SOURCE_PREFIX = 'bender-script-';
-const SOURCE_SUFFIX = '.js';
+const SOURCE_PREFIX = "bender-script-";
+const SOURCE_SUFFIX = ".js";
 
 /** Ids con algo raro romperian el parseo de vuelta, asi que se acotan. */
 const SAFE_ID = /^[A-Za-z0-9_-]+$/;
@@ -33,7 +33,7 @@ export const withSourceUrl = (code: string, scriptId: string): string => {
 /** El id del script al que pertenece un filename de error, o null si no es nuestro. */
 export const scriptIdFromSource = (filename: string): string | null => {
   // El navegador puede reportar el sourceURL resuelto contra el origen de la pagina.
-  const name = filename.split('/').pop() ?? '';
+  const name = filename.split("/").pop() ?? "";
   if (!name.startsWith(SOURCE_PREFIX) || !name.endsWith(SOURCE_SUFFIX)) return null;
 
   const id = name.slice(SOURCE_PREFIX.length, name.length - SOURCE_SUFFIX.length);

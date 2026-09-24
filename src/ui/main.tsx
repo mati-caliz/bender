@@ -1,10 +1,10 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { App } from '@/ui/App';
-import { ToastProvider } from '@/ui/hooks/useToasts';
-import '@/ui/styles.css';
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { App } from "@/ui/App";
+import { ToastProvider } from "@/ui/hooks/useToasts";
+import "@/ui/styles.css";
 
-const container = document.getElementById('root');
+const container = document.getElementById("root");
 
 if (container) {
   createRoot(container).render(
@@ -12,6 +12,6 @@ if (container) {
       <ToastProvider>
         <App />
       </ToastProvider>
-    </StrictMode>
+    </StrictMode>,
   );
 }

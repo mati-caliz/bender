@@ -1,11 +1,11 @@
-import { ENGINE_STATUS_KEY, STORAGE_KEY } from '@/lib/constants';
-import { compileRules, dependsOnTabs, type TabOrigin } from '@/lib/dnr';
-import { errorMessage } from '@/lib/errors';
-import { createProfile } from '@/lib/factories';
-import type { ExtensionMessage } from '@/lib/messages';
-import { publishPageConfig } from '@/lib/mocks';
-import type { ScriptError } from '@/lib/script-errors';
-import { readState, readStateDetailed, updateState, type DroppedItems } from '@/lib/state';
+import { ENGINE_STATUS_KEY, STORAGE_KEY } from "@/lib/constants";
+import { compileRules, dependsOnTabs, type TabOrigin } from "@/lib/dnr";
+import { errorMessage } from "@/lib/errors";
+import { createProfile } from "@/lib/factories";
+import type { ExtensionMessage } from "@/lib/messages";
+import { publishPageConfig } from "@/lib/mocks";
+import type { ScriptError } from "@/lib/script-errors";
+import { readState, readStateDetailed, updateState, type DroppedItems } from "@/lib/state";
 import {
   clearNetworkLog,
   configureNetworkLog,
@@ -15,13 +15,13 @@ import {
   recordMockHit,
   restoreNetworkLog,
   setRuleLabels,
-} from '@/background/network-log';
-import { applyUserStyles, forgetTabStyles, resetTabStyles, syncUserScripts } from '@/background/userscripts';
-import type { EngineStatus, ToolkitState, UserScriptsStatus } from '@/types';
+} from "@/background/network-log";
+import { applyUserStyles, forgetTabStyles, resetTabStyles, syncUserScripts } from "@/background/userscripts";
+import type { EngineStatus, ToolkitState, UserScriptsStatus } from "@/types";
 
-const BADGE_OFF_TEXT = 'off';
-const BADGE_OFF_COLOR = '#64748b';
-const BADGE_ERROR_COLOR = '#ef4444';
+const BADGE_OFF_TEXT = "off";
+const BADGE_OFF_COLOR = "#64748b";
+const BADGE_ERROR_COLOR = "#ef4444";
 const HTTP_URL_PATTERN = /^https?:/;
 
 let lastStatus: EngineStatus = {
@@ -37,7 +37,7 @@ const collectTabOrigins = async (): Promise<TabOrigin[]> => {
   const tabs = await chrome.tabs.query({});
   const origins: TabOrigin[] = [];
   for (const tab of tabs) {
-    if (typeof tab.id !== 'number' || !tab.url || !HTTP_URL_PATTERN.test(tab.url)) continue;
+    if (typeof tab.id !== "number" || !tab.url || !HTTP_URL_PATTERN.test(tab.url)) continue;
     try {
       origins.push({ id: tab.id, origin: new URL(tab.url).origin, url: tab.url });
     } catch {
@@ -49,7 +49,7 @@ const collectTabOrigins = async (): Promise<TabOrigin[]> => {
 
 const activeTabId = async (): Promise<number | null> => {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  return typeof tab?.id === 'number' ? tab.id : null;
+  return typeof tab?.id === "number" ? tab.id : null;
 };
 
 const updateBadge = (state: ToolkitState, status: EngineStatus): void => {
@@ -59,12 +59,12 @@ const updateBadge = (state: ToolkitState, status: EngineStatus): void => {
     return;
   }
 
-  const hasErrors = status.diagnostics.some((diagnostic) => diagnostic.level === 'error');
-  void chrome.action.setBadgeText({ text: status.activeHeaderCount ? String(status.activeHeaderCount) : '' });
+  const hasErrors = status.diagnostics.some((diagnostic) => diagnostic.level === "error");
+  void chrome.action.setBadgeText({ text: status.activeHeaderCount ? String(status.activeHeaderCount) : "" });
   void chrome.action.setBadgeBackgroundColor({ color: hasErrors ? BADGE_ERROR_COLOR : state.ui.accent });
 };
 
-const droppedItemsDiagnostics = (dropped: DroppedItems): EngineStatus['diagnostics'] => {
+const droppedItemsDiagnostics = (dropped: DroppedItems): EngineStatus["diagnostics"] => {
   const descriptions: string[] = [];
   if (dropped.profiles) descriptions.push(`${dropped.profiles} perfil(es)`);
   if (dropped.trafficRules) descriptions.push(`${dropped.trafficRules} regla(s)`);
@@ -74,8 +74,8 @@ const droppedItemsDiagnostics = (dropped: DroppedItems): EngineStatus['diagnosti
 
   return [
     {
-      level: 'warning',
-      message: `Se descartaron ${descriptions.join(', ')} porque estaban guardados con un formato invalido.`,
+      level: "warning",
+      message: `Se descartaron ${descriptions.join(", ")} porque estaban guardados con un formato invalido.`,
     },
   ];
 };
@@ -95,8 +95,8 @@ const applyEngine = async (): Promise<EngineStatus> => {
     });
   } catch (error) {
     diagnostics.push({
-      level: 'error',
-      message: `No se pudieron aplicar las reglas: ${errorMessage(error, 'error desconocido')}`,
+      level: "error",
+      message: `No se pudieron aplicar las reglas: ${errorMessage(error, "error desconocido")}`,
     });
     await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: existing.map((rule) => rule.id) });
   }
@@ -110,7 +110,7 @@ const applyEngine = async (): Promise<EngineStatus> => {
   await publishPageConfig(state);
   lastUserScriptsStatus = await syncUserScripts(state);
   if (lastUserScriptsStatus.error) {
-    diagnostics.push({ level: 'warning', message: `Userscripts: ${lastUserScriptsStatus.error}` });
+    diagnostics.push({ level: "warning", message: `Userscripts: ${lastUserScriptsStatus.error}` });
   }
   diagnostics.push(...networkLogDiagnostics());
 
@@ -134,7 +134,7 @@ const scheduleApply = (): Promise<EngineStatus> => {
     .catch(() => lastStatus)
     .then(() => applyEngine())
     .catch((error: unknown) => {
-      console.error('Bender: fallo al aplicar reglas', error);
+      console.error("Bender: fallo al aplicar reglas", error);
       return lastStatus;
     });
   return applyQueue;
@@ -143,7 +143,7 @@ const scheduleApply = (): Promise<EngineStatus> => {
 const seedDefaultProfile = async (): Promise<void> => {
   await updateState((state) => {
     if (state.profiles.length) return state;
-    const profile = createProfile(0, { name: 'Local' });
+    const profile = createProfile(0, { name: "Local" });
     return { ...state, profiles: [profile], selectedProfileId: profile.id };
   });
 };
@@ -163,7 +163,7 @@ const applyIfTabsMatter = (): void => {
 };
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes[STORAGE_KEY]) void scheduleApply();
+  if (area === "local" && changes[STORAGE_KEY]) void scheduleApply();
 });
 
 chrome.tabs.onActivated.addListener(() => {
@@ -175,20 +175,20 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'loading' && tab.url && HTTP_URL_PATTERN.test(tab.url)) {
-    void readState().then((state) => applyUserStyles(state, tabId, tab.url ?? ''));
+  if (changeInfo.status === "loading" && tab.url && HTTP_URL_PATTERN.test(tab.url)) {
+    void readState().then((state) => applyUserStyles(state, tabId, tab.url ?? ""));
   }
   if (changeInfo.url) applyIfTabsMatter();
 });
 
 chrome.commands.onCommand.addListener((command) => {
-  if (command === 'toggle-global') {
+  if (command === "toggle-global") {
     void updateState((state) => ({ ...state, globalEnabled: !state.globalEnabled }));
     return;
   }
-  if (command === 'open-panel') {
+  if (command === "open-panel") {
     void chrome.windows.getCurrent().then((window) => {
-      if (typeof window.id === 'number') void chrome.sidePanel.open({ windowId: window.id });
+      if (typeof window.id === "number") void chrome.sidePanel.open({ windowId: window.id });
     });
   }
 });
@@ -218,39 +218,39 @@ const clearScriptErrors = (): void => {
 
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
   switch (message.type) {
-    case 'engine/refresh':
+    case "engine/refresh":
       void scheduleApply().then(sendResponse);
       return true;
-    case 'engine/status':
+    case "engine/status":
       sendResponse(lastStatus);
       return false;
-    case 'network/list':
+    case "network/list":
       sendResponse(listNetworkEntries());
       return false;
-    case 'network/clear':
+    case "network/clear":
       clearNetworkLog();
       sendResponse(null);
       return false;
-    case 'network/hit':
+    case "network/hit":
       recordMockHit(message.payload, sender.tab?.id ?? -1);
       sendResponse(null);
       return false;
-    case 'network/bodies':
+    case "network/bodies":
       recordCapturedBodies(message.payload, sender.tab?.id ?? -1);
       sendResponse(null);
       return false;
-    case 'scripts/error':
+    case "scripts/error":
       recordScriptError(message.payload);
       sendResponse(null);
       return false;
-    case 'scripts/errors':
+    case "scripts/errors":
       sendResponse(listScriptErrors());
       return false;
-    case 'scripts/errors-clear':
+    case "scripts/errors-clear":
       clearScriptErrors();
       sendResponse(null);
       return false;
-    case 'userscripts/sync':
+    case "userscripts/sync":
       void readState()
         .then(syncUserScripts)
         .then((status) => {

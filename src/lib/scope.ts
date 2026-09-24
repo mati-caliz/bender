@@ -1,20 +1,20 @@
-import { ALL_REQUEST_METHODS, ALL_RESOURCE_TYPES } from '@/lib/constants';
-import { escapeForRegExp } from '@/lib/regexp';
-import type { RequestMethod, ResourceType, Scope } from '@/types';
+import { ALL_REQUEST_METHODS, ALL_RESOURCE_TYPES } from "@/lib/constants";
+import { escapeForRegExp } from "@/lib/regexp";
+import type { RequestMethod, ResourceType, Scope } from "@/types";
 
 const DOMAIN_PATTERN = /^[a-z0-9.-]+$/;
-const WILDCARD_PREFIX = '*.';
+const WILDCARD_PREFIX = "*.";
 
 export const sanitizeDomain = (input: string): string | null => {
   const trimmed = input.trim().toLowerCase();
   if (!trimmed) return null;
-  const withoutScheme = trimmed.replace(/^[a-z]+:\/\//, '');
-  const withoutPath = withoutScheme.split('/')[0] ?? '';
-  const withoutPort = withoutPath.split(':')[0] ?? '';
+  const withoutScheme = trimmed.replace(/^[a-z]+:\/\//, "");
+  const withoutPath = withoutScheme.split("/")[0] ?? "";
+  const withoutPort = withoutPath.split(":")[0] ?? "";
   const withoutWildcard = withoutPort.startsWith(WILDCARD_PREFIX)
     ? withoutPort.slice(WILDCARD_PREFIX.length)
     : withoutPort;
-  const normalized = withoutWildcard.replace(/^\./, '');
+  const normalized = withoutWildcard.replace(/^\./, "");
   return normalized && DOMAIN_PATTERN.test(normalized) ? normalized : null;
 };
 
@@ -31,7 +31,7 @@ export const resolveResourceTypes = (scope: Scope): ResourceType[] =>
 
 export const toRequestMethod = (method: string): RequestMethod => {
   const normalized = method.trim().toLowerCase();
-  return ALL_REQUEST_METHODS.includes(normalized as RequestMethod) ? (normalized as RequestMethod) : 'other';
+  return ALL_REQUEST_METHODS.includes(normalized as RequestMethod) ? (normalized as RequestMethod) : "other";
 };
 
 export interface CompiledCondition {
@@ -81,15 +81,17 @@ export const scopeToCondition = (scope: Scope, context: ConditionContext): Compi
 
 export const describeScope = (scope: Scope): string => {
   const parts: string[] = [];
-  if (scope.activeTabOnly) parts.push('solo pestaña activa');
-  if (scope.requestMethods.length) parts.push(scope.requestMethods.map((method) => method.toUpperCase()).join('/'));
-  if (scope.includeDomains.length) parts.push(scope.includeDomains.join(', '));
-  if (scope.excludeDomains.length) parts.push(`excepto ${scope.excludeDomains.join(', ')}`);
-  if (scope.initiatorDomains.length) parts.push(`desde ${scope.initiatorDomains.join(', ')}`);
-  if (scope.excludedInitiatorDomains.length) parts.push(`no desde ${scope.excludedInitiatorDomains.join(', ')}`);
+  if (scope.activeTabOnly) parts.push("solo pestaña activa");
+  if (scope.requestMethods.length)
+    parts.push(scope.requestMethods.map((method) => method.toUpperCase()).join("/"));
+  if (scope.includeDomains.length) parts.push(scope.includeDomains.join(", "));
+  if (scope.excludeDomains.length) parts.push(`excepto ${scope.excludeDomains.join(", ")}`);
+  if (scope.initiatorDomains.length) parts.push(`desde ${scope.initiatorDomains.join(", ")}`);
+  if (scope.excludedInitiatorDomains.length)
+    parts.push(`no desde ${scope.excludedInitiatorDomains.join(", ")}`);
   if (scope.urlFilter.trim()) parts.push(`url ~ ${scope.urlFilter.trim()}`);
   if (scope.resourceTypes.length) parts.push(`${scope.resourceTypes.length} tipo(s)`);
-  return parts.length ? parts.join(' · ') : 'todas las requests';
+  return parts.length ? parts.join(" · ") : "todas las requests";
 };
 
 export const isScopeRestricted = (scope: Scope): boolean =>
@@ -102,46 +104,46 @@ export const isScopeRestricted = (scope: Scope): boolean =>
   scope.resourceTypes.length > 0 ||
   scope.requestMethods.length > 0;
 
-const URL_FILTER_WILDCARD = '*';
-const URL_FILTER_SEPARATOR = '^';
-const SEPARATOR_SOURCE = '(?:[^a-zA-Z0-9._%\\-]|$)';
+const URL_FILTER_WILDCARD = "*";
+const URL_FILTER_SEPARATOR = "^";
+const SEPARATOR_SOURCE = "(?:[^a-zA-Z0-9._%\\-]|$)";
 
 const urlFilterBodyToSource = (body: string): string =>
   body
     .split(/([*^])/)
     .map((part) => {
-      if (part === URL_FILTER_WILDCARD) return '.*';
+      if (part === URL_FILTER_WILDCARD) return ".*";
       if (part === URL_FILTER_SEPARATOR) return SEPARATOR_SOURCE;
       return escapeForRegExp(part);
     })
-    .join('');
+    .join("");
 
 export const urlFilterToRegExp = (urlFilter: string): RegExp => {
   let pattern = urlFilter;
   let anchoredStart = false;
   let anchoredEnd = false;
 
-  if (pattern.startsWith('||')) {
+  if (pattern.startsWith("||")) {
     pattern = pattern.slice(2);
     anchoredStart = true;
-  } else if (pattern.startsWith('|')) {
+  } else if (pattern.startsWith("|")) {
     pattern = pattern.slice(1);
     anchoredStart = true;
   }
-  if (pattern.endsWith('|')) {
+  if (pattern.endsWith("|")) {
     pattern = pattern.slice(0, -1);
     anchoredEnd = true;
   }
 
   const body = urlFilterBodyToSource(pattern);
-  return new RegExp(`${anchoredStart ? '^.*?' : ''}${body}${anchoredEnd ? '$' : ''}`);
+  return new RegExp(`${anchoredStart ? "^.*?" : ""}${body}${anchoredEnd ? "$" : ""}`);
 };
 
 export const matchesDomain = (hostname: string, domain: string): boolean =>
   hostname === domain || hostname.endsWith(`.${domain}`);
 
 export const urlMatchesScope = (scope: Scope, url: string): boolean => {
-  let hostname = '';
+  let hostname = "";
   try {
     hostname = new URL(url).hostname.toLowerCase();
   } catch {
@@ -149,7 +151,8 @@ export const urlMatchesScope = (scope: Scope, url: string): boolean => {
   }
 
   const includeDomains = sanitizeDomainList(scope.includeDomains);
-  if (includeDomains.length && !includeDomains.some((domain) => matchesDomain(hostname, domain))) return false;
+  if (includeDomains.length && !includeDomains.some((domain) => matchesDomain(hostname, domain)))
+    return false;
 
   const excludeDomains = sanitizeDomainList(scope.excludeDomains);
   if (excludeDomains.some((domain) => matchesDomain(hostname, domain))) return false;
@@ -169,11 +172,15 @@ export interface ScopeRequest {
 export const requestMatchesScope = (scope: Scope, request: ScopeRequest): boolean => {
   if (!urlMatchesScope(scope, request.url)) return false;
 
-  if (scope.requestMethods.length && !scope.requestMethods.includes(toRequestMethod(request.method))) return false;
+  if (scope.requestMethods.length && !scope.requestMethods.includes(toRequestMethod(request.method)))
+    return false;
 
   const initiatorHostname = request.initiatorHostname.toLowerCase();
   const initiatorDomains = sanitizeDomainList(scope.initiatorDomains);
-  if (initiatorDomains.length && !initiatorDomains.some((domain) => matchesDomain(initiatorHostname, domain))) {
+  if (
+    initiatorDomains.length &&
+    !initiatorDomains.some((domain) => matchesDomain(initiatorHostname, domain))
+  ) {
     return false;
   }
 

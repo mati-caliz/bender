@@ -5,17 +5,17 @@ import {
   DEFAULT_USER_AGENT_CONFIG,
   STORAGE_KEY,
   createDefaultState,
-} from '@/lib/constants';
-import { migrateStoredState } from '@/lib/migrations';
-import { isRecord } from '@/lib/records';
+} from "@/lib/constants";
+import { migrateStoredState } from "@/lib/migrations";
+import { isRecord } from "@/lib/records";
 import {
   coerceEnvironment,
   coerceList,
   coerceProfile,
   coerceTrafficRule,
   coerceUserScript,
-} from '@/lib/sanitize';
-import type { ToolkitState } from '@/types';
+} from "@/lib/sanitize";
+import type { ToolkitState } from "@/types";
 
 export interface DroppedItems {
   profiles: number;
@@ -44,15 +44,17 @@ export const normalizeStateDetailed = (stored: unknown): NormalizedState => {
   const userScripts = coerceList(migrated.userScripts, coerceUserScript);
   const environments = coerceList(migrated.environments, coerceEnvironment);
   const selectedProfileId =
-    typeof migrated.selectedProfileId === 'string' &&
+    typeof migrated.selectedProfileId === "string" &&
     profiles.items.some((profile) => profile.id === migrated.selectedProfileId)
       ? migrated.selectedProfileId
       : null;
 
   return {
     state: {
-      schemaVersion: typeof migrated.schemaVersion === 'number' ? migrated.schemaVersion : defaults.schemaVersion,
-      globalEnabled: typeof migrated.globalEnabled === 'boolean' ? migrated.globalEnabled : defaults.globalEnabled,
+      schemaVersion:
+        typeof migrated.schemaVersion === "number" ? migrated.schemaVersion : defaults.schemaVersion,
+      globalEnabled:
+        typeof migrated.globalEnabled === "boolean" ? migrated.globalEnabled : defaults.globalEnabled,
       profiles: profiles.items,
       selectedProfileId,
       trafficRules: trafficRules.items,
@@ -93,7 +95,7 @@ export const updateState = async (mutate: (state: ToolkitState) => ToolkitState)
 
 export const subscribeToState = (listener: (state: ToolkitState) => void): (() => void) => {
   const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-    if (area !== 'local' || !changes[STORAGE_KEY]) return;
+    if (area !== "local" || !changes[STORAGE_KEY]) return;
     listener(normalizeState(changes[STORAGE_KEY].newValue));
   };
   chrome.storage.onChanged.addListener(handler);

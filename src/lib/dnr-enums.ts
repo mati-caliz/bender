@@ -1,4 +1,4 @@
-import type { HeaderOperation, RequestMethod, ResourceType } from '@/types';
+import type { HeaderOperation, RequestMethod, ResourceType } from "@/types";
 
 type DnrResourceType = chrome.declarativeNetRequest.ResourceType;
 type DnrRequestMethod = chrome.declarativeNetRequest.RequestMethod;
@@ -14,9 +14,9 @@ export const toDnrRequestMethods = (requestMethods: RequestMethod[]): DnrRequest
 export const toDnrHeaderOperation = (operation: HeaderOperation): DnrHeaderOperation =>
   operation as DnrHeaderOperation;
 
-export const DNR_ACTION_BLOCK = 'block' as DnrRuleActionType;
-export const DNR_ACTION_REDIRECT = 'redirect' as DnrRuleActionType;
-export const DNR_ACTION_MODIFY_HEADERS = 'modifyHeaders' as DnrRuleActionType;
+export const DNR_ACTION_BLOCK = "block" as DnrRuleActionType;
+export const DNR_ACTION_REDIRECT = "redirect" as DnrRuleActionType;
+export const DNR_ACTION_MODIFY_HEADERS = "modifyHeaders" as DnrRuleActionType;
 
-export const DNR_OPERATION_SET = 'set' as DnrHeaderOperation;
-export const DNR_OPERATION_REMOVE = 'remove' as DnrHeaderOperation;
+export const DNR_OPERATION_SET = "set" as DnrHeaderOperation;
+export const DNR_OPERATION_REMOVE = "remove" as DnrHeaderOperation;

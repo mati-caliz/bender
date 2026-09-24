@@ -50,7 +50,7 @@ volver a abrir el popup, y los del service worker un click en ↻ dentro de `chr
 
 **Todo se compila a una sola tanda de reglas DNR de sesión.** El motor (`src/lib/dnr.ts`) toma el
 estado completo y devuelve la lista entera de reglas; el service worker borra las anteriores y
-aplica las nuevas. Son *session rules* y no *dynamic rules* porque son las únicas que aceptan la
+aplica las nuevas. Son _session rules_ y no _dynamic rules_ porque son las únicas que aceptan la
 condición `tabIds`, que es lo que hace posible el alcance "solo la pestaña activa". Se rearman al
 arrancar el navegador, así que no perder persistencia no es un problema.
 

@@ -1,21 +1,21 @@
-import { PROFILE_COLORS, createEmptyScope } from '@/lib/constants';
-import { createHeaderEntry } from '@/lib/factories';
-import { createId } from '@/lib/ids';
-import { isRecord } from '@/lib/records';
-import { sanitizeDomainList } from '@/lib/scope';
-import type { CookieSnapshot, HeaderEntry, HeaderOperation, Profile, StoredItem } from '@/types';
+import { PROFILE_COLORS, createEmptyScope } from "@/lib/constants";
+import { createHeaderEntry } from "@/lib/factories";
+import { createId } from "@/lib/ids";
+import { isRecord } from "@/lib/records";
+import { sanitizeDomainList } from "@/lib/scope";
+import type { CookieSnapshot, HeaderEntry, HeaderOperation, Profile, StoredItem } from "@/types";
 
-const asString = (value: unknown, fallback = ''): string => (typeof value === 'string' ? value : fallback);
+const asString = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
 
 const readOperation = (entry: Record<string, unknown>): HeaderOperation => {
   const explicit = asString(entry.operation).toLowerCase();
-  if (explicit === 'append' || explicit === 'remove' || explicit === 'set') return explicit;
-  if (entry.appendMode === true || asString(entry.appendMode).toLowerCase() === 'append') return 'append';
-  return 'set';
+  if (explicit === "append" || explicit === "remove" || explicit === "set") return explicit;
+  if (entry.appendMode === true || asString(entry.appendMode).toLowerCase() === "append") return "append";
+  return "set";
 };
 
 const readVariants = (value: unknown): string[] =>
-  Array.isArray(value) ? value.filter((variant): variant is string => typeof variant === 'string') : [];
+  Array.isArray(value) ? value.filter((variant): variant is string => typeof variant === "string") : [];
 
 /**
  * ModHeader repite el mismo header una vez por cada valor que uno quiere tener a mano y deja
@@ -37,7 +37,7 @@ const collapseVariants = (entries: HeaderEntry[]): HeaderEntry[] => {
     const group = groups.get(key) ?? [entry];
     const enabledEntries = group.filter((candidate) => candidate.enabled);
 
-    if (group.length === 1 || entry.operation === 'append' || enabledEntries.length > 1) {
+    if (group.length === 1 || entry.operation === "append" || enabledEntries.length > 1) {
       collapsed.push(entry);
       if (group.length === 1) emitted.add(key);
       continue;
@@ -50,7 +50,11 @@ const collapseVariants = (entries: HeaderEntry[]): HeaderEntry[] => {
       .filter((candidate) => candidate !== active)
       .map((candidate) => candidate.value)
       .filter((value, index, all) => value.trim() && all.indexOf(value) === index && value !== active.value);
-    collapsed.push({ ...active, enabled: enabledEntries.length > 0, variants: [...active.variants, ...variants] });
+    collapsed.push({
+      ...active,
+      enabled: enabledEntries.length > 0,
+      variants: [...active.variants, ...variants],
+    });
   }
 
   return collapsed;
@@ -68,7 +72,7 @@ const readHeaderList = (value: unknown): HeaderEntry[] => {
         operation: readOperation(entry),
         enabled: entry.enabled !== false,
         comment: asString(entry.comment),
-      })
+      }),
     )
     .filter((entry) => entry.name.length > 0);
 
@@ -76,16 +80,22 @@ const readHeaderList = (value: unknown): HeaderEntry[] => {
 };
 
 const readUrlFilter = (value: unknown): string => {
-  if (!Array.isArray(value)) return '';
+  if (!Array.isArray(value)) return "";
   const candidates = value.filter(isRecord).filter((entry) => entry.enabled !== false);
-  const withPattern = candidates.find((entry) => asString(entry.urlRegex ?? entry.urlFilter ?? entry.url).trim());
-  return withPattern ? asString(withPattern.urlRegex ?? withPattern.urlFilter ?? withPattern.url).trim() : '';
+  const withPattern = candidates.find((entry) =>
+    asString(entry.urlRegex ?? entry.urlFilter ?? entry.url).trim(),
+  );
+  return withPattern ? asString(withPattern.urlRegex ?? withPattern.urlFilter ?? withPattern.url).trim() : "";
 };
 
 export const parseProfiles = (text: string): Profile[] => {
   const parsed: unknown = JSON.parse(text);
-  const list = Array.isArray(parsed) ? parsed : isRecord(parsed) && Array.isArray(parsed.profiles) ? parsed.profiles : null;
-  if (!list) throw new Error('El JSON tiene que ser un array de perfiles.');
+  const list = Array.isArray(parsed)
+    ? parsed
+    : isRecord(parsed) && Array.isArray(parsed.profiles)
+      ? parsed.profiles
+      : null;
+  if (!list) throw new Error("El JSON tiene que ser un array de perfiles.");
 
   const profiles = list.filter(isRecord).map((raw, index): Profile => {
     const scope = createEmptyScope();
@@ -110,7 +120,7 @@ export const parseProfiles = (text: string): Profile[] => {
         asString(raw.color) ||
         asString(raw.backgroundColor) ||
         PROFILE_COLORS[index % PROFILE_COLORS.length] ||
-        '#6366f1',
+        "#6366f1",
       enabled: raw.enabled !== false,
       scope,
       requestHeaders: readHeaderList(raw.requestHeaders ?? raw.headers),
@@ -118,7 +128,7 @@ export const parseProfiles = (text: string): Profile[] => {
     };
   });
 
-  if (!profiles.length) throw new Error('No se encontro ningun perfil para importar.');
+  if (!profiles.length) throw new Error("No se encontro ningun perfil para importar.");
   return profiles;
 };
 
@@ -146,20 +156,24 @@ export const mergeProfiles = (current: Profile[], imported: Profile[]): Profile[
   return merged;
 };
 
-export type ImportedCookie = Omit<CookieSnapshot, 'partitionKey'>;
+export type ImportedCookie = Omit<CookieSnapshot, "partitionKey">;
 
 const readSameSite = (value: unknown): chrome.cookies.SameSiteStatus => {
   const raw = asString(value).toLowerCase();
-  if (raw === 'no_restriction' || raw === 'none') return 'no_restriction';
-  if (raw === 'strict') return 'strict';
-  if (raw === 'lax') return 'lax';
-  return 'unspecified';
+  if (raw === "no_restriction" || raw === "none") return "no_restriction";
+  if (raw === "strict") return "strict";
+  if (raw === "lax") return "lax";
+  return "unspecified";
 };
 
 export const parseCookies = (text: string, fallbackDomain: string): ImportedCookie[] => {
   const parsed: unknown = JSON.parse(text);
-  const list = Array.isArray(parsed) ? parsed : isRecord(parsed) && Array.isArray(parsed.cookies) ? parsed.cookies : null;
-  if (!list) throw new Error('El JSON tiene que ser un array de cookies.');
+  const list = Array.isArray(parsed)
+    ? parsed
+    : isRecord(parsed) && Array.isArray(parsed.cookies)
+      ? parsed.cookies
+      : null;
+  if (!list) throw new Error("El JSON tiene que ser un array de cookies.");
 
   const cookies = list.filter(isRecord).map((raw): ImportedCookie => {
     const domain = asString(raw.domain) || fallbackDomain;
@@ -167,17 +181,17 @@ export const parseCookies = (text: string, fallbackDomain: string): ImportedCook
       name: asString(raw.name),
       value: asString(raw.value),
       domain,
-      path: asString(raw.path) || '/',
+      path: asString(raw.path) || "/",
       secure: raw.secure === true,
       httpOnly: raw.httpOnly === true,
       sameSite: readSameSite(raw.sameSite),
-      hostOnly: raw.hostOnly === true || !domain.startsWith('.'),
-      expirationDate: typeof raw.expirationDate === 'number' ? raw.expirationDate : null,
+      hostOnly: raw.hostOnly === true || !domain.startsWith("."),
+      expirationDate: typeof raw.expirationDate === "number" ? raw.expirationDate : null,
     };
   });
 
   const valid = cookies.filter((cookie) => cookie.name);
-  if (!valid.length) throw new Error('No se encontro ninguna cookie para importar.');
+  if (!valid.length) throw new Error("No se encontro ninguna cookie para importar.");
   return valid;
 };
 
@@ -189,18 +203,18 @@ export const parseStorageItems = (text: string): StoredItem[] => {
       .filter(isRecord)
       .map((raw) => ({ key: asString(raw.key), value: asString(raw.value) }))
       .filter((item) => item.key);
-    if (!items.length) throw new Error('No se encontro ningun item para importar.');
+    if (!items.length) throw new Error("No se encontro ningun item para importar.");
     return items;
   }
 
   if (isRecord(parsed)) {
     const items = Object.entries(parsed).map(([key, value]) => ({
       key,
-      value: typeof value === 'string' ? value : JSON.stringify(value),
+      value: typeof value === "string" ? value : JSON.stringify(value),
     }));
-    if (!items.length) throw new Error('No se encontro ningun item para importar.');
+    if (!items.length) throw new Error("No se encontro ningun item para importar.");
     return items;
   }
 
-  throw new Error('El JSON tiene que ser un objeto { key: valor } o un array de items.');
+  throw new Error("El JSON tiene que ser un objeto { key: valor } o un array de items.");
 };

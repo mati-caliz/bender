@@ -1,14 +1,14 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent } from "react";
 import {
   ALL_REQUEST_METHODS,
   ALL_RESOURCE_TYPES,
   REQUEST_METHOD_LABELS,
   RESOURCE_TYPE_LABELS,
-} from '@/lib/constants';
-import { parseDomainList } from '@/lib/scope';
-import { Icon } from '@/ui/components/Icon';
-import { Button, Chip, Field, Switch, TextInput } from '@/ui/components/primitives';
-import type { RequestMethod, ResourceType, Scope } from '@/types';
+} from "@/lib/constants";
+import { parseDomainList } from "@/lib/scope";
+import { Icon } from "@/ui/components/Icon";
+import { Button, Chip, Field, Switch, TextInput } from "@/ui/components/primitives";
+import type { RequestMethod, ResourceType, Scope } from "@/types";
 
 interface DomainInputProps {
   label: string;
@@ -19,30 +19,31 @@ interface DomainInputProps {
 }
 
 const DomainInput = ({ label, hint, domains, onChange, suggestion }: DomainInputProps) => {
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
 
   const commit = (value: string) => {
     const parsed = parseDomainList(value);
     if (!parsed.length) return;
     onChange(Array.from(new Set([...domains, ...parsed])));
-    setDraft('');
+    setDraft("");
   };
 
   return (
     <div className="field">
       <span className="field-label">{label}</span>
       <div className="row wrap domain-input">
-        <TextInput
-          value={draft}
-          onChange={setDraft}
-          placeholder="ejemplo.com"
-          mono
-        />
+        <TextInput value={draft} onChange={setDraft} placeholder="ejemplo.com" mono />
         <Button small onClick={() => commit(draft)} disabled={!draft.trim()}>
           Agregar
         </Button>
         {suggestion && !domains.includes(suggestion) ? (
-          <Button small variant="ghost" icon="plus" onClick={() => commit(suggestion)} title="Usar el dominio actual">
+          <Button
+            small
+            variant="ghost"
+            icon="plus"
+            onClick={() => commit(suggestion)}
+            title="Usar el dominio actual"
+          >
             {suggestion}
           </Button>
         ) : null}
@@ -88,12 +89,12 @@ export const ScopeEditor = ({ scope, onChange, currentHostname }: ScopeEditorPro
   };
 
   const handleUrlFilterKey = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape') onChange({ ...scope, urlFilter: '' });
+    if (event.key === "Escape") onChange({ ...scope, urlFilter: "" });
   };
 
   return (
     <div className="card-body" style={{ padding: 0, gap: 12 }}>
-      <label className="row" style={{ cursor: 'pointer' }}>
+      <label className="row" style={{ cursor: "pointer" }}>
         <Switch
           checked={scope.activeTabOnly}
           onChange={(checked) => onChange({ ...scope, activeTabOnly: checked })}
@@ -170,12 +171,12 @@ export const ScopeEditor = ({ scope, onChange, currentHostname }: ScopeEditorPro
         <button
           type="button"
           className="btn ghost small"
-          style={{ alignSelf: 'flex-start' }}
+          style={{ alignSelf: "flex-start" }}
           onClick={() => setShowResourceTypes((current) => !current)}
         >
-          <Icon name={showResourceTypes ? 'chevron-down' : 'chevron-right'} size={12} />
+          <Icon name={showResourceTypes ? "chevron-down" : "chevron-right"} size={12} />
           Tipos de request
-          {scope.resourceTypes.length ? ` (${scope.resourceTypes.length})` : ' (todos)'}
+          {scope.resourceTypes.length ? ` (${scope.resourceTypes.length})` : " (todos)"}
         </button>
         {showResourceTypes ? (
           <div className="grid-3">

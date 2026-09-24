@@ -1,14 +1,14 @@
-import { MOCKS_STORAGE_KEY, readPageConfig, toPageConfig } from '@/lib/mocks';
-import type { ExtensionMessage } from '@/lib/messages';
-import { scriptIdFromSource } from '@/lib/script-errors';
-import type { BridgeHandshake, BridgePortMessage, CapturedBodies, PageConfig } from '@/types';
+import { MOCKS_STORAGE_KEY, readPageConfig, toPageConfig } from "@/lib/mocks";
+import type { ExtensionMessage } from "@/lib/messages";
+import { scriptIdFromSource } from "@/lib/script-errors";
+import type { BridgeHandshake, BridgePortMessage, CapturedBodies, PageConfig } from "@/types";
 
 let pagePort: MessagePort | null = null;
 let publishedConfig: PageConfig | null = null;
 
 const publishToPage = (): void => {
   if (!pagePort || !publishedConfig) return;
-  const message: BridgePortMessage = { type: 'page-config', config: publishedConfig };
+  const message: BridgePortMessage = { type: "page-config", config: publishedConfig };
   pagePort.postMessage(message);
 };
 
@@ -16,9 +16,9 @@ const sendToBackground = (request: ExtensionMessage): void => {
   void chrome.runtime.sendMessage(request).catch(() => undefined);
 };
 
-const forwardHit = (message: Extract<BridgePortMessage, { type: 'mock-hit' }>): void => {
+const forwardHit = (message: Extract<BridgePortMessage, { type: "mock-hit" }>): void => {
   sendToBackground({
-    type: 'network/hit',
+    type: "network/hit",
     payload: {
       url: message.url,
       method: message.method,
@@ -30,23 +30,23 @@ const forwardHit = (message: Extract<BridgePortMessage, { type: 'mock-hit' }>): 
 };
 
 const forwardBodies = (bodies: CapturedBodies): void => {
-  sendToBackground({ type: 'network/bodies', payload: bodies });
+  sendToBackground({ type: "network/bodies", payload: bodies });
 };
 
 const isHandshake = (data: unknown): data is BridgeHandshake => {
   const candidate = data as Partial<BridgeHandshake> | null;
-  return candidate?.channel === 'bender' && candidate.type === 'connect';
+  return candidate?.channel === "bender" && candidate.type === "connect";
 };
 
-window.addEventListener('message', (event) => {
+window.addEventListener("message", (event) => {
   if (pagePort || event.source !== window || !isHandshake(event.data)) return;
   const [port] = event.ports;
   if (!port) return;
 
   pagePort = port;
   port.onmessage = (portEvent: MessageEvent<BridgePortMessage>) => {
-    if (portEvent.data.type === 'mock-hit') forwardHit(portEvent.data);
-    if (portEvent.data.type === 'bodies') forwardBodies(portEvent.data.bodies);
+    if (portEvent.data.type === "mock-hit") forwardHit(portEvent.data);
+    if (portEvent.data.type === "bodies") forwardBodies(portEvent.data.bodies);
   };
   publishToPage();
 });
@@ -56,12 +56,12 @@ window.addEventListener('message', (event) => {
  * que ve los errores no atrapados de los userscripts. El sourceURL que les pega
  * el registro es lo unico que permite saber de cual vinieron.
  */
-window.addEventListener('error', (event: ErrorEvent) => {
+window.addEventListener("error", (event: ErrorEvent) => {
   const scriptId = scriptIdFromSource(event.filename);
   if (!scriptId) return;
 
   sendToBackground({
-    type: 'scripts/error',
+    type: "scripts/error",
     payload: {
       scriptId,
       message: event.message,
@@ -73,7 +73,7 @@ window.addEventListener('error', (event: ErrorEvent) => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== 'local' || !changes[MOCKS_STORAGE_KEY]) return;
+  if (area !== "local" || !changes[MOCKS_STORAGE_KEY]) return;
   publishedConfig = toPageConfig(changes[MOCKS_STORAGE_KEY].newValue);
   publishToPage();
 });

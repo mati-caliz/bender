@@ -1,5 +1,5 @@
-import { createId } from '@/lib/ids';
-import type { Environment, ToolkitState } from '@/types';
+import { createId } from "@/lib/ids";
+import type { Environment, ToolkitState } from "@/types";
 
 const idsOf = <TItem extends { id: string }>(items: TItem[]): string[] => items.map((item) => item.id);
 
@@ -16,7 +16,10 @@ const sameIdSet = (left: string[], right: string[]): boolean => {
  * Un entorno puede listar ids que ya no existen (perfil borrado despues de guardarlo).
  * Para comparar contra lo que hay prendido hoy solo cuentan los que siguen vivos.
  */
-const resolveTargets = (environment: Environment, state: ToolkitState): { profileIds: string[]; ruleIds: string[] } => {
+const resolveTargets = (
+  environment: Environment,
+  state: ToolkitState,
+): { profileIds: string[]; ruleIds: string[] } => {
   const liveProfiles = new Set(idsOf(state.profiles));
   const liveRules = new Set(idsOf(state.trafficRules));
 

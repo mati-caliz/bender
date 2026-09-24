@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 export interface ActiveTab {
   id: number | null;
@@ -8,11 +8,11 @@ export interface ActiveTab {
   injectable: boolean;
 }
 
-const EMPTY_TAB: ActiveTab = { id: null, url: '', origin: '', hostname: '', injectable: false };
+const EMPTY_TAB: ActiveTab = { id: null, url: "", origin: "", hostname: "", injectable: false };
 const HTTP_URL_PATTERN = /^https?:/;
 
 const describeTab = (tab: chrome.tabs.Tab | undefined): ActiveTab => {
-  if (!tab?.url || typeof tab.id !== 'number') return EMPTY_TAB;
+  if (!tab?.url || typeof tab.id !== "number") return EMPTY_TAB;
   if (!HTTP_URL_PATTERN.test(tab.url)) return { ...EMPTY_TAB, id: tab.id, url: tab.url };
   const parsed = new URL(tab.url);
   return { id: tab.id, url: tab.url, origin: parsed.origin, hostname: parsed.hostname, injectable: true };

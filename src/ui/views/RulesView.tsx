@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { MAX_FAIL_RATE, MIN_FAIL_RATE, NETWORK_ERROR_STATUS, describeChaos } from '@/lib/chaos';
-import { CONTENT_TYPE_PRESETS } from '@/lib/constants';
-import { forgetFromEnvironments } from '@/lib/environments';
-import { createHeaderEntry, createTrafficRule } from '@/lib/factories';
-import { prettyJson } from '@/lib/format';
-import { describeScope } from '@/lib/scope';
-import { CodeEditor } from '@/ui/components/CodeEditor';
-import { Icon } from '@/ui/components/Icon';
-import { ScopeEditor } from '@/ui/components/ScopeEditor';
-import { ViewShell } from '@/ui/components/ViewShell';
+import { useState } from "react";
+import { MAX_FAIL_RATE, MIN_FAIL_RATE, NETWORK_ERROR_STATUS, describeChaos } from "@/lib/chaos";
+import { CONTENT_TYPE_PRESETS } from "@/lib/constants";
+import { forgetFromEnvironments } from "@/lib/environments";
+import { createHeaderEntry, createTrafficRule } from "@/lib/factories";
+import { prettyJson } from "@/lib/format";
+import { describeScope } from "@/lib/scope";
+import { CodeEditor } from "@/ui/components/CodeEditor";
+import { Icon } from "@/ui/components/Icon";
+import { ScopeEditor } from "@/ui/components/ScopeEditor";
+import { ViewShell } from "@/ui/components/ViewShell";
 import {
   Badge,
   Button,
@@ -19,22 +19,22 @@ import {
   Select,
   Switch,
   TextInput,
-} from '@/ui/components/primitives';
-import type { ViewProps } from '@/ui/views/types';
-import type { TrafficRule, TrafficRuleAction } from '@/types';
+} from "@/ui/components/primitives";
+import type { ViewProps } from "@/ui/views/types";
+import type { TrafficRule, TrafficRuleAction } from "@/types";
 
-const ACTION_LABELS: Record<TrafficRuleAction['kind'], string> = {
-  block: 'Bloqueo',
-  redirect: 'Redirect',
-  mock: 'Mock',
-  chaos: 'Chaos',
+const ACTION_LABELS: Record<TrafficRuleAction["kind"], string> = {
+  block: "Bloqueo",
+  redirect: "Redirect",
+  mock: "Mock",
+  chaos: "Chaos",
 };
 
-const ACTION_TONES: Record<TrafficRuleAction['kind'], 'danger' | 'warning' | 'info'> = {
-  block: 'danger',
-  redirect: 'warning',
-  mock: 'info',
-  chaos: 'warning',
+const ACTION_TONES: Record<TrafficRuleAction["kind"], "danger" | "warning" | "info"> = {
+  block: "danger",
+  redirect: "warning",
+  mock: "info",
+  chaos: "warning",
 };
 
 const MIN_STATUS = 100;
@@ -43,12 +43,12 @@ const DEFAULT_STATUS = 200;
 const MAX_DELAY_MS = 60000;
 
 const FAILURE_OPTIONS = [
-  { value: String(NETWORK_ERROR_STATUS), label: 'Error de red' },
-  { value: '500', label: '500 Server Error' },
-  { value: '503', label: '503 Service Unavailable' },
-  { value: '429', label: '429 Too Many Requests' },
-  { value: '401', label: '401 Unauthorized' },
-  { value: '404', label: '404 Not Found' },
+  { value: String(NETWORK_ERROR_STATUS), label: "Error de red" },
+  { value: "500", label: "500 Server Error" },
+  { value: "503", label: "503 Service Unavailable" },
+  { value: "429", label: "429 Too Many Requests" },
+  { value: "401", label: "401 Unauthorized" },
+  { value: "404", label: "404 Not Found" },
 ];
 
 export const RulesView = ({ state, update, activeTab }: ViewProps) => {
@@ -61,7 +61,7 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
     }));
   };
 
-  const addRule = (kind: TrafficRuleAction['kind']) => {
+  const addRule = (kind: TrafficRuleAction["kind"]) => {
     update((current) => {
       const rule = createTrafficRule(kind, current.trafficRules.length);
       setExpandedId(rule.id);
@@ -70,15 +70,16 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
   };
 
   const renderActionEditor = (rule: TrafficRule) => {
-    if (rule.action.kind === 'block') {
+    if (rule.action.kind === "block") {
       return (
         <Notice tone="warning">
-          Las requests que matcheen se cortan antes de salir. Ideal para simular caidas de un servicio o matar tracking.
+          Las requests que matcheen se cortan antes de salir. Ideal para simular caidas de un servicio o matar
+          tracking.
         </Notice>
       );
     }
 
-    if (rule.action.kind === 'redirect') {
+    if (rule.action.kind === "redirect") {
       const action = rule.action;
       return (
         <>
@@ -86,8 +87,8 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
             label="Destino"
             hint={
               action.useRegex
-                ? 'Podes usar \\1, \\2 para los grupos capturados en el patron de URL.'
-                : 'URL absoluta, por ejemplo http://localhost:3000/bundle.js'
+                ? "Podes usar \\1, \\2 para los grupos capturados en el patron de URL."
+                : "URL absoluta, por ejemplo http://localhost:3000/bundle.js"
             }
           >
             <TextInput
@@ -96,9 +97,9 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
               placeholder="http://localhost:3000/bundle.js"
               onChange={(target) =>
                 mutateRule(rule.id, (current) =>
-                  current.action.kind === 'redirect'
+                  current.action.kind === "redirect"
                     ? { ...current, action: { ...current.action, target } }
-                    : current
+                    : current,
                 )
               }
             />
@@ -110,9 +111,9 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
               onChange={(event) => {
                 const useRegex = event.target.checked;
                 mutateRule(rule.id, (current) =>
-                  current.action.kind === 'redirect'
+                  current.action.kind === "redirect"
                     ? { ...current, action: { ...current.action, useRegex } }
-                    : current
+                    : current,
                 );
               }}
             />
@@ -122,7 +123,7 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
       );
     }
 
-    if (rule.action.kind === 'chaos') {
+    if (rule.action.kind === "chaos") {
       const action = rule.action;
       return (
         <>
@@ -135,7 +136,9 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                   const parsed = Number.parseInt(value, 10);
                   const delayMs = Number.isNaN(parsed) ? 0 : Math.min(Math.max(parsed, 0), MAX_DELAY_MS);
                   mutateRule(rule.id, (current) =>
-                    current.action.kind === 'chaos' ? { ...current, action: { ...current.action, delayMs } } : current
+                    current.action.kind === "chaos"
+                      ? { ...current, action: { ...current.action, delayMs } }
+                      : current,
                   );
                 }}
               />
@@ -146,9 +149,13 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                 value={String(action.failRate)}
                 onChange={(value) => {
                   const parsed = Number.parseInt(value, 10);
-                  const failRate = Number.isNaN(parsed) ? 0 : Math.min(Math.max(parsed, MIN_FAIL_RATE), MAX_FAIL_RATE);
+                  const failRate = Number.isNaN(parsed)
+                    ? 0
+                    : Math.min(Math.max(parsed, MIN_FAIL_RATE), MAX_FAIL_RATE);
                   mutateRule(rule.id, (current) =>
-                    current.action.kind === 'chaos' ? { ...current, action: { ...current.action, failRate } } : current
+                    current.action.kind === "chaos"
+                      ? { ...current, action: { ...current.action, failRate } }
+                      : current,
                   );
                 }}
               />
@@ -160,17 +167,19 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                 onChange={(value) => {
                   const failStatus = Number.parseInt(value, 10) || NETWORK_ERROR_STATUS;
                   mutateRule(rule.id, (current) =>
-                    current.action.kind === 'chaos' ? { ...current, action: { ...current.action, failStatus } } : current
+                    current.action.kind === "chaos"
+                      ? { ...current, action: { ...current.action, failStatus } }
+                      : current,
                   );
                 }}
               />
             </Field>
           </div>
 
-          <Notice tone={action.failRate > 0 || action.delayMs > 0 ? 'info' : 'warning'}>
+          <Notice tone={action.failRate > 0 || action.delayMs > 0 ? "info" : "warning"}>
             {action.failRate > 0 || action.delayMs > 0
               ? `Efecto: ${describeChaos(action)}. Solo alcanza a fetch, XHR y sendBeacon que dispare el JavaScript de la pagina.`
-              : 'Con delay 0 y 0% de fallos la regla no hace nada.'}
+              : "Con delay 0 y 0% de fallos la regla no hace nada."}
           </Notice>
         </>
       );
@@ -186,9 +195,13 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
               value={String(action.status)}
               onChange={(value) => {
                 const parsed = Number.parseInt(value, 10);
-                const status = Number.isNaN(parsed) ? DEFAULT_STATUS : Math.min(Math.max(parsed, MIN_STATUS), MAX_STATUS);
+                const status = Number.isNaN(parsed)
+                  ? DEFAULT_STATUS
+                  : Math.min(Math.max(parsed, MIN_STATUS), MAX_STATUS);
                 mutateRule(rule.id, (current) =>
-                  current.action.kind === 'mock' ? { ...current, action: { ...current.action, status } } : current
+                  current.action.kind === "mock"
+                    ? { ...current, action: { ...current.action, status } }
+                    : current,
                 );
               }}
             />
@@ -201,7 +214,9 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
               onChange={(event) => {
                 const contentType = event.target.value;
                 mutateRule(rule.id, (current) =>
-                  current.action.kind === 'mock' ? { ...current, action: { ...current.action, contentType } } : current
+                  current.action.kind === "mock"
+                    ? { ...current, action: { ...current.action, contentType } }
+                    : current,
                 );
               }}
             />
@@ -214,7 +229,9 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                 const parsed = Number.parseInt(value, 10);
                 const delayMs = Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
                 mutateRule(rule.id, (current) =>
-                  current.action.kind === 'mock' ? { ...current, action: { ...current.action, delayMs } } : current
+                  current.action.kind === "mock"
+                    ? { ...current, action: { ...current.action, delayMs } }
+                    : current,
                 );
               }}
             />
@@ -227,22 +244,24 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
             minHeight={150}
             onChange={(body) =>
               mutateRule(rule.id, (current) =>
-                current.action.kind === 'mock' ? { ...current, action: { ...current.action, body } } : current
+                current.action.kind === "mock"
+                  ? { ...current, action: { ...current.action, body } }
+                  : current,
               )
             }
             toolbar={
               <>
                 <Icon name="code" size={12} />
-                <span>{action.contentType.includes('json') ? 'JSON' : 'texto'}</span>
+                <span>{action.contentType.includes("json") ? "JSON" : "texto"}</span>
                 <div className="spacer" />
                 <Button
                   small
                   variant="ghost"
                   onClick={() =>
                     mutateRule(rule.id, (current) =>
-                      current.action.kind === 'mock'
+                      current.action.kind === "mock"
                         ? { ...current, action: { ...current.action, body: prettyJson(current.action.body) } }
-                        : current
+                        : current,
                     )
                   }
                 >
@@ -263,17 +282,17 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                 placeholder="X-Mock"
                 onChange={(name) =>
                   mutateRule(rule.id, (current) =>
-                    current.action.kind === 'mock'
+                    current.action.kind === "mock"
                       ? {
                           ...current,
                           action: {
                             ...current.action,
                             headers: current.action.headers.map((entry) =>
-                              entry.id === header.id ? { ...entry, name } : entry
+                              entry.id === header.id ? { ...entry, name } : entry,
                             ),
                           },
                         }
-                      : current
+                      : current,
                   )
                 }
               />
@@ -283,17 +302,17 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                 placeholder="valor"
                 onChange={(value) =>
                   mutateRule(rule.id, (current) =>
-                    current.action.kind === 'mock'
+                    current.action.kind === "mock"
                       ? {
                           ...current,
                           action: {
                             ...current.action,
                             headers: current.action.headers.map((entry) =>
-                              entry.id === header.id ? { ...entry, value } : entry
+                              entry.id === header.id ? { ...entry, value } : entry,
                             ),
                           },
                         }
-                      : current
+                      : current,
                   )
                 }
               />
@@ -304,7 +323,7 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                 small
                 onClick={() =>
                   mutateRule(rule.id, (current) =>
-                    current.action.kind === 'mock'
+                    current.action.kind === "mock"
                       ? {
                           ...current,
                           action: {
@@ -312,7 +331,7 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                             headers: current.action.headers.filter((entry) => entry.id !== header.id),
                           },
                         }
-                      : current
+                      : current,
                   )
                 }
               />
@@ -324,9 +343,15 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
             icon="plus"
             onClick={() =>
               mutateRule(rule.id, (current) =>
-                current.action.kind === 'mock'
-                  ? { ...current, action: { ...current.action, headers: [...current.action.headers, createHeaderEntry()] } }
-                  : current
+                current.action.kind === "mock"
+                  ? {
+                      ...current,
+                      action: {
+                        ...current.action,
+                        headers: [...current.action.headers, createHeaderEntry()],
+                      },
+                    }
+                  : current,
               )
             }
           >
@@ -335,8 +360,8 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
         </div>
 
         <Notice>
-          Los mocks se resuelven en la pagina interceptando <code>fetch</code> y <code>XMLHttpRequest</code>, asi que
-          no aplican a navegacion, imagenes ni requests hechas por otras extensiones.
+          Los mocks se resuelven en la pagina interceptando <code>fetch</code> y <code>XMLHttpRequest</code>,
+          asi que no aplican a navegacion, imagenes ni requests hechas por otras extensiones.
         </Notice>
       </>
     );
@@ -348,16 +373,21 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
       subtitle="Bloquear, redirigir o mockear requests segun su URL."
       actions={
         <>
-          <Button small icon="plus" onClick={() => addRule('block')}>
+          <Button small icon="plus" onClick={() => addRule("block")}>
             Bloqueo
           </Button>
-          <Button small icon="plus" onClick={() => addRule('redirect')}>
+          <Button small icon="plus" onClick={() => addRule("redirect")}>
             Redirect
           </Button>
-          <Button small icon="plus" title="Demora o hace fallar un porcentaje" onClick={() => addRule('chaos')}>
+          <Button
+            small
+            icon="plus"
+            title="Demora o hace fallar un porcentaje"
+            onClick={() => addRule("chaos")}
+          >
             Chaos
           </Button>
-          <Button small variant="primary" icon="plus" onClick={() => addRule('mock')}>
+          <Button small variant="primary" icon="plus" onClick={() => addRule("mock")}>
             Mock
           </Button>
         </>
@@ -377,8 +407,8 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
             </div>
             <div className="empty-title">Sin reglas de trafico</div>
             <div className="empty-text">
-              Bloquea un endpoint para probar el manejo de errores, redirigi un bundle de produccion a tu localhost o
-              devolve un JSON fijo sin tocar el backend.
+              Bloquea un endpoint para probar el manejo de errores, redirigi un bundle de produccion a tu
+              localhost o devolve un JSON fijo sin tocar el backend.
             </div>
           </div>
         </Card>
@@ -399,7 +429,7 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                 <Badge tone={ACTION_TONES[rule.action.kind]}>{ACTION_LABELS[rule.action.kind]}</Badge>
                 <span className="item-name">{rule.name}</span>
                 <span className="item-preview">
-                  {rule.action.kind === 'chaos'
+                  {rule.action.kind === "chaos"
                     ? `${describeChaos(rule.action)} · ${describeScope(rule.scope)}`
                     : describeScope(rule.scope)}
                 </span>
@@ -416,7 +446,7 @@ export const RulesView = ({ state, update, activeTab }: ViewProps) => {
                     }))
                   }
                 />
-                <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={14} />
+                <Icon name={expanded ? "chevron-down" : "chevron-right"} size={14} />
               </div>
 
               {expanded ? (

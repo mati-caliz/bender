@@ -1,9 +1,9 @@
-import type { NetworkEntry } from '@/types';
+import type { NetworkEntry } from "@/types";
 
-const HAR_VERSION = '1.2';
-const HTTP_VERSION = 'HTTP/1.1';
+const HAR_VERSION = "1.2";
+const HTTP_VERSION = "HTTP/1.1";
 const UNKNOWN_SIZE = -1;
-const CONTENT_TYPE_HEADER = 'content-type';
+const CONTENT_TYPE_HEADER = "content-type";
 
 interface HarNameValue {
   name: string;
@@ -57,7 +57,7 @@ const queryStringOf = (url: string): HarNameValue[] => {
 };
 
 const headerValue = (headers: HarNameValue[], name: string): string =>
-  headers.find((header) => header.name.toLowerCase() === name)?.value ?? '';
+  headers.find((header) => header.name.toLowerCase() === name)?.value ?? "";
 
 const toHarEntry = (entry: NetworkEntry): HarEntry => {
   const time = entry.finishedAt === null ? 0 : Math.max(0, entry.finishedAt - entry.startedAt);
@@ -87,7 +87,7 @@ const toHarEntry = (entry: NetworkEntry): HarEntry => {
         mimeType: responseMimeType,
         ...(entry.responseBody === null ? {} : { text: entry.responseBody }),
       },
-      redirectURL: '',
+      redirectURL: "",
       headersSize: UNKNOWN_SIZE,
       bodySize: entry.responseBody === null ? UNKNOWN_SIZE : entry.responseBody.length,
     },
@@ -104,10 +104,10 @@ const toHarEntry = (entry: NetworkEntry): HarEntry => {
 
   const notes = [
     ...entry.matchedRuleLabels,
-    ...(entry.bodyTruncated ? ['cuerpo truncado por Bender'] : []),
+    ...(entry.bodyTruncated ? ["cuerpo truncado por Bender"] : []),
     ...(entry.error ? [entry.error] : []),
   ];
-  if (notes.length) harEntry.comment = notes.join(' · ');
+  if (notes.length) harEntry.comment = notes.join(" · ");
 
   return harEntry;
 };
@@ -115,7 +115,7 @@ const toHarEntry = (entry: NetworkEntry): HarEntry => {
 export const toHar = (entries: NetworkEntry[], creatorVersion: string): Har => ({
   log: {
     version: HAR_VERSION,
-    creator: { name: 'Bender', version: creatorVersion },
+    creator: { name: "Bender", version: creatorVersion },
     entries: [...entries].sort((first, second) => first.startedAt - second.startedAt).map(toHarEntry),
   },
 });

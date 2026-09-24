@@ -1,1 +1,1 @@
-export const escapeForRegExp = (value: string): string => value.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+export const escapeForRegExp = (value: string): string => value.replace(/[.+?^${}()|[\]\\]/g, "\\$&");

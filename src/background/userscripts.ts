@@ -1,20 +1,21 @@
-import { errorMessage } from '@/lib/errors';
-import { sanitizeMatchPatterns, urlMatchesPatterns } from '@/lib/match-patterns';
-import { type NavigatorSpoofRegistration, navigatorSpoofRegistration } from '@/lib/navigator-spoof';
-import { withSourceUrl } from '@/lib/script-errors';
-import type { ToolkitState, UserScript, UserScriptsStatus } from '@/types';
+import { errorMessage } from "@/lib/errors";
+import { sanitizeMatchPatterns, urlMatchesPatterns } from "@/lib/match-patterns";
+import { type NavigatorSpoofRegistration, navigatorSpoofRegistration } from "@/lib/navigator-spoof";
+import { withSourceUrl } from "@/lib/script-errors";
+import type { ToolkitState, UserScript, UserScriptsStatus } from "@/types";
 
-const REGISTERED_ID_PREFIX = 'bender-';
+const REGISTERED_ID_PREFIX = "bender-";
 const USER_SCRIPT_WORLD_CSP = "script-src 'self' 'unsafe-eval'; object-src 'self'";
 
 let injectedStyleTabs = new Map<number, string[]>();
 
-const isSupported = (): boolean => typeof chrome.userScripts !== 'undefined';
+const isSupported = (): boolean => typeof chrome.userScripts !== "undefined";
 
-const runnableScripts = (state: ToolkitState, language: UserScript['language']): UserScript[] =>
+const runnableScripts = (state: ToolkitState, language: UserScript["language"]): UserScript[] =>
   state.globalEnabled
     ? state.userScripts.filter(
-        (script) => script.enabled && script.language === language && script.code.trim() && script.matches.length > 0
+        (script) =>
+          script.enabled && script.language === language && script.code.trim() && script.matches.length > 0,
       )
     : [];
 
@@ -33,8 +34,8 @@ const toRegisteredSpoof = (spoof: NavigatorSpoofRegistration): chrome.userScript
   matches: spoof.matches,
   excludeMatches: spoof.excludeMatches,
   js: [{ code: spoof.code }],
-  runAt: 'document_start',
-  world: 'MAIN',
+  runAt: "document_start",
+  world: "MAIN",
   allFrames: true,
 });
 
@@ -43,7 +44,7 @@ export const syncUserScripts = async (state: ToolkitState): Promise<UserScriptsS
     return {
       supported: false,
       registeredCount: 0,
-      error: 'Este Chrome no expone chrome.userScripts. Activa el modo desarrollador en chrome://extensions.',
+      error: "Este Chrome no expone chrome.userScripts. Activa el modo desarrollador en chrome://extensions.",
     };
   }
 
@@ -54,7 +55,7 @@ export const syncUserScripts = async (state: ToolkitState): Promise<UserScriptsS
       await chrome.userScripts.unregister({ ids: existing.map((script) => script.id) });
     }
 
-    const ownScripts = runnableScripts(state, 'javascript')
+    const ownScripts = runnableScripts(state, "javascript")
       .map(toRegistered)
       .filter((script) => (script.matches ?? []).length > 0);
     const spoof = navigatorSpoofRegistration(state);
@@ -66,19 +67,23 @@ export const syncUserScripts = async (state: ToolkitState): Promise<UserScriptsS
     return {
       supported: true,
       registeredCount: 0,
-      error: errorMessage(error, 'No se pudieron registrar los userscripts.'),
+      error: errorMessage(error, "No se pudieron registrar los userscripts."),
     };
   }
 };
 
 export const applyUserStyles = async (state: ToolkitState, tabId: number, url: string): Promise<void> => {
   const previous = injectedStyleTabs.get(tabId) ?? [];
-  const matching = runnableScripts(state, 'css').filter((script) =>
-    urlMatchesPatterns(url, sanitizeMatchPatterns(script.matches), sanitizeMatchPatterns(script.excludeMatches))
+  const matching = runnableScripts(state, "css").filter((script) =>
+    urlMatchesPatterns(
+      url,
+      sanitizeMatchPatterns(script.matches),
+      sanitizeMatchPatterns(script.excludeMatches),
+    ),
   );
 
   for (const script of state.userScripts) {
-    if (script.language !== 'css' || !previous.includes(script.id)) continue;
+    if (script.language !== "css" || !previous.includes(script.id)) continue;
     if (matching.some((candidate) => candidate.id === script.id)) continue;
     await chrome.scripting
       .removeCSS({ target: { tabId, allFrames: script.allFrames }, css: script.code })
@@ -93,7 +98,7 @@ export const applyUserStyles = async (state: ToolkitState, tabId: number, url: s
 
   injectedStyleTabs.set(
     tabId,
-    matching.map((script) => script.id)
+    matching.map((script) => script.id),
   );
 };
 

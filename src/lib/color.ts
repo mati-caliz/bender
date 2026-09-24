@@ -24,9 +24,9 @@ const READABLE_ON_DARK_THRESHOLD = 0.45;
 
 const expandShorthand = (digits: string): string =>
   digits
-    .split('')
+    .split("")
     .map((digit) => `${digit}${digit}`)
-    .join('');
+    .join("");
 
 const channelFromHex = (digits: string, index: number): number =>
   Number.parseInt(digits.slice(index * 2, index * 2 + 2), HEX_RADIX);
@@ -43,22 +43,24 @@ const parseHexColor = (digits: string): RgbColor | null => {
 };
 
 const toAlpha = (token: string): number =>
-  token.endsWith('%') ? Number.parseFloat(token) / PERCENT : Number(token);
+  token.endsWith("%") ? Number.parseFloat(token) / PERCENT : Number(token);
 
 export const parseCssColor = (input: string): RgbColor | null => {
   const value = input.trim().toLowerCase();
-  if (!value || value === 'transparent' || value === 'none') return null;
+  if (!value || value === "transparent" || value === "none") return null;
 
   const hexDigits = HEX_PATTERN.exec(value)?.[1];
   if (hexDigits) return parseHexColor(hexDigits);
 
-  if (!value.startsWith('rgb') && !value.startsWith('color(')) return null;
+  if (!value.startsWith("rgb") && !value.startsWith("color(")) return null;
   const [red, green, blue, alpha] = value.match(NUMBER_PATTERN) ?? [];
   if (red === undefined || green === undefined || blue === undefined) return null;
 
-  const channelScale = value.startsWith('color(') ? MAX_CHANNEL : 1;
+  const channelScale = value.startsWith("color(") ? MAX_CHANNEL : 1;
   const toChannel = (token: string): number =>
-    Math.round(token.endsWith('%') ? (Number.parseFloat(token) / PERCENT) * MAX_CHANNEL : Number(token) * channelScale);
+    Math.round(
+      token.endsWith("%") ? (Number.parseFloat(token) / PERCENT) * MAX_CHANNEL : Number(token) * channelScale,
+    );
 
   return {
     red: toChannel(red),
@@ -69,7 +71,9 @@ export const parseCssColor = (input: string): RgbColor | null => {
 };
 
 const toHexDigits = (channel: number): string =>
-  Math.max(0, Math.min(MAX_CHANNEL, Math.round(channel))).toString(HEX_RADIX).padStart(2, '0');
+  Math.max(0, Math.min(MAX_CHANNEL, Math.round(channel)))
+    .toString(HEX_RADIX)
+    .padStart(2, "0");
 
 export const toHex = (color: RgbColor): string => {
   const base = `#${toHexDigits(color.red)}${toHexDigits(color.green)}${toHexDigits(color.blue)}`;
@@ -123,7 +127,8 @@ export const contrastRatio = (foreground: RgbColor, background: RgbColor): numbe
   return (lighter + CONTRAST_OFFSET) / (darker + CONTRAST_OFFSET);
 };
 
-export const isLightColor = (color: RgbColor): boolean => relativeLuminance(color) > READABLE_ON_DARK_THRESHOLD;
+export const isLightColor = (color: RgbColor): boolean =>
+  relativeLuminance(color) > READABLE_ON_DARK_THRESHOLD;
 
 export const normalizeCssColor = (input: string): string | null => {
   const parsed = parseCssColor(input);

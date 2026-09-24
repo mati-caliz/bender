@@ -1,45 +1,45 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 export type IconName =
-  | 'activity'
-  | 'alert'
-  | 'bolt'
-  | 'check'
-  | 'chevron-down'
-  | 'chevron-right'
-  | 'clock'
-  | 'code'
-  | 'cookie'
-  | 'copy'
-  | 'crosshair'
-  | 'database'
-  | 'download'
-  | 'droplet'
-  | 'external'
-  | 'eye'
-  | 'filter'
-  | 'globe'
-  | 'grip'
-  | 'info'
-  | 'key'
-  | 'layers'
-  | 'menu'
-  | 'moon'
-  | 'panel'
-  | 'plus'
-  | 'power'
-  | 'refresh'
-  | 'ruler'
-  | 'search'
-  | 'settings'
-  | 'shield'
-  | 'smartphone'
-  | 'sparkles'
-  | 'sun'
-  | 'trash'
-  | 'type'
-  | 'upload'
-  | 'x';
+  | "activity"
+  | "alert"
+  | "bolt"
+  | "check"
+  | "chevron-down"
+  | "chevron-right"
+  | "clock"
+  | "code"
+  | "cookie"
+  | "copy"
+  | "crosshair"
+  | "database"
+  | "download"
+  | "droplet"
+  | "external"
+  | "eye"
+  | "filter"
+  | "globe"
+  | "grip"
+  | "info"
+  | "key"
+  | "layers"
+  | "menu"
+  | "moon"
+  | "panel"
+  | "plus"
+  | "power"
+  | "refresh"
+  | "ruler"
+  | "search"
+  | "settings"
+  | "shield"
+  | "smartphone"
+  | "sparkles"
+  | "sun"
+  | "trash"
+  | "type"
+  | "upload"
+  | "x";
 
 const PATHS: Record<IconName, ReactNode> = {
   activity: <path d="M22 12h-4l-3 9L9 3l-3 9H2" />,
@@ -52,8 +52,8 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   bolt: <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />,
   check: <path d="M20 6 9 17l-5-5" />,
-  'chevron-down': <path d="m6 9 6 6 6-6" />,
-  'chevron-right': <path d="m9 18 6-6-6-6" />,
+  "chevron-down": <path d="m6 9 6 6 6-6" />,
+  "chevron-right": <path d="m9 18 6-6-6-6" />,
   clock: (
     <>
       <circle cx="12" cy="12" r="10" />
@@ -163,14 +163,18 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 18h.01" />
     </>
   ),
-  sparkles: <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />,
+  sparkles: (
+    <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+  ),
   sun: (
     <>
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
     </>
   ),
-  trash: <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />,
+  trash: (
+    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />
+  ),
   type: <path d="M4 7V4h16v3M9 20h6M12 4v16" />,
   upload: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />,
   x: <path d="M18 6 6 18M6 6l12 12" />,

@@ -1,14 +1,14 @@
-import { DEFAULT_CORS_CONFIG } from '@/lib/constants';
-import { ScopeEditor } from '@/ui/components/ScopeEditor';
-import { ViewShell } from '@/ui/components/ViewShell';
-import { Button, Card, Field, Notice, Segmented, Switch, TextInput } from '@/ui/components/primitives';
-import type { ViewProps } from '@/ui/views/types';
-import type { CorsAllowOrigin, CorsConfig } from '@/types';
+import { DEFAULT_CORS_CONFIG } from "@/lib/constants";
+import { ScopeEditor } from "@/ui/components/ScopeEditor";
+import { ViewShell } from "@/ui/components/ViewShell";
+import { Button, Card, Field, Notice, Segmented, Switch, TextInput } from "@/ui/components/primitives";
+import type { ViewProps } from "@/ui/views/types";
+import type { CorsAllowOrigin, CorsConfig } from "@/types";
 
 const ORIGIN_OPTIONS: Array<{ value: CorsAllowOrigin; label: string }> = [
-  { value: 'reflect', label: 'Reflejar origen' },
-  { value: 'wildcard', label: 'Comodin *' },
-  { value: 'custom', label: 'Fijo' },
+  { value: "reflect", label: "Reflejar origen" },
+  { value: "wildcard", label: "Comodin *" },
+  { value: "custom", label: "Fijo" },
 ];
 
 const DEFAULT_MAX_AGE = 600;
@@ -20,14 +20,19 @@ export const CorsView = ({ state, update, activeTab }: ViewProps) => {
     update((current) => ({ ...current, cors: mutate(current.cors) }));
   };
 
-  const credentialsConflict = cors.allowOrigin === 'wildcard' && cors.allowCredentials;
+  const credentialsConflict = cors.allowOrigin === "wildcard" && cors.allowCredentials;
 
   return (
     <ViewShell
       title="CORS"
       subtitle="Un switch para dejar de pelear con Access-Control-Allow-Origin mientras desarrollas."
       actions={
-        <Button small variant="ghost" icon="refresh" onClick={() => mutateCors(() => ({ ...DEFAULT_CORS_CONFIG, enabled: cors.enabled }))}>
+        <Button
+          small
+          variant="ghost"
+          icon="refresh"
+          onClick={() => mutateCors(() => ({ ...DEFAULT_CORS_CONFIG, enabled: cors.enabled }))}
+        >
           Restaurar valores
         </Button>
       }
@@ -35,28 +40,40 @@ export const CorsView = ({ state, update, activeTab }: ViewProps) => {
       <div className="quick-toggle" data-on={cors.enabled}>
         <span className="quick-toggle-icon">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </span>
         <div>
           <div className="quick-toggle-title">Reescribir headers de CORS</div>
           <div className="quick-toggle-hint">
-            {cors.enabled ? 'Las respuestas llegan con los permisos de abajo.' : 'El navegador aplica el CORS real del servidor.'}
+            {cors.enabled
+              ? "Las respuestas llegan con los permisos de abajo."
+              : "El navegador aplica el CORS real del servidor."}
           </div>
         </div>
         <div className="spacer" />
-        <Switch checked={cors.enabled} onChange={(enabled) => mutateCors((config) => ({ ...config, enabled }))} />
+        <Switch
+          checked={cors.enabled}
+          onChange={(enabled) => mutateCors((config) => ({ ...config, enabled }))}
+        />
       </div>
 
       {credentialsConflict ? (
         <Notice tone="warning">
-          El navegador rechaza <code>Access-Control-Allow-Origin: *</code> cuando la request manda cookies. Usa
-          «Reflejar origen» si necesitas credenciales.
+          El navegador rechaza <code>Access-Control-Allow-Origin: *</code> cuando la request manda cookies.
+          Usa «Reflejar origen» si necesitas credenciales.
         </Notice>
       ) : null}
 
       <Card title="Permisos">
-        <Field label="Origen permitido" hint="Reflejar copia el origen exacto de la pestaña, que es lo unico valido con credenciales.">
+        <Field
+          label="Origen permitido"
+          hint="Reflejar copia el origen exacto de la pestaña, que es lo unico valido con credenciales."
+        >
           <Segmented
             value={cors.allowOrigin}
             options={ORIGIN_OPTIONS}
@@ -64,7 +81,7 @@ export const CorsView = ({ state, update, activeTab }: ViewProps) => {
           />
         </Field>
 
-        {cors.allowOrigin === 'custom' ? (
+        {cors.allowOrigin === "custom" ? (
           <Field label="Origen fijo">
             <TextInput
               value={cors.customOrigin}

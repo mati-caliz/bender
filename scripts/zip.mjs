@@ -1,11 +1,11 @@
 // Empaqueta dist/ en un ZIP listo para subir a la Chrome Web Store.
 // Sin dependencias: escribe el formato ZIP a mano con deflate de zlib.
-import { deflateRawSync } from 'node:zlib';
-import fs from 'node:fs';
-import path from 'node:path';
+import { deflateRawSync } from "node:zlib";
+import fs from "node:fs";
+import path from "node:path";
 
-const ROOT = path.resolve(import.meta.dirname, '..');
-const DIST = path.join(ROOT, 'dist');
+const ROOT = path.resolve(import.meta.dirname, "..");
+const DIST = path.join(ROOT, "dist");
 
 const CRC_TABLE = Uint32Array.from({ length: 256 }, (_, i) => {
   let c = i;
@@ -19,28 +19,28 @@ const crc32 = (buf) => {
   return (c ^ 0xffffffff) >>> 0;
 };
 
-const walk = (dir, base = '') =>
+const walk = (dir, base = "") =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const name = base ? `${base}/${entry.name}` : entry.name;
     return entry.isDirectory() ? walk(path.join(dir, entry.name), name) : [name];
   });
 
-if (!fs.existsSync(path.join(DIST, 'manifest.json'))) {
+if (!fs.existsSync(path.join(DIST, "manifest.json"))) {
   console.error('No hay dist/manifest.json. Corre "npm run build" primero.');
   process.exit(1);
 }
 
-const manifest = JSON.parse(fs.readFileSync(path.join(DIST, 'manifest.json'), 'utf8'));
-const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+const manifest = JSON.parse(fs.readFileSync(path.join(DIST, "manifest.json"), "utf8"));
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
 
 if (manifest.version !== pkg.version) {
   console.error(`Version desalineada: manifest ${manifest.version} vs package ${pkg.version}.`);
   process.exit(1);
 }
 
-const includeMaps = !process.argv.includes('--no-maps');
+const includeMaps = !process.argv.includes("--no-maps");
 const names = walk(DIST)
-  .filter((name) => includeMaps || !name.endsWith('.map'))
+  .filter((name) => includeMaps || !name.endsWith(".map"))
   .sort();
 
 const locals = [];
@@ -53,7 +53,7 @@ for (const name of names) {
   const stored = deflated.length >= raw.length;
   const body = stored ? raw : deflated;
   const method = stored ? 0 : 8;
-  const nameBuf = Buffer.from(name, 'utf8');
+  const nameBuf = Buffer.from(name, "utf8");
   const crc = crc32(raw);
 
   const local = Buffer.alloc(30);

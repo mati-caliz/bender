@@ -1,5 +1,5 @@
-import { DESIGN_PICKS_KEY } from '@/lib/constants';
-import type { DesignPick } from '@/types';
+import { DESIGN_PICKS_KEY } from "@/lib/constants";
+import type { DesignPick } from "@/types";
 
 export const MAX_DESIGN_PICKS = 60;
 
@@ -19,7 +19,7 @@ export const appendDesignPick = async (pick: DesignPick): Promise<void> => {
 
 export const subscribeToDesignPicks = (listener: (picks: DesignPick[]) => void): (() => void) => {
   const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-    if (area !== 'local' || !changes[DESIGN_PICKS_KEY]) return;
+    if (area !== "local" || !changes[DESIGN_PICKS_KEY]) return;
     const picks: unknown = changes[DESIGN_PICKS_KEY].newValue;
     listener(Array.isArray(picks) ? (picks as DesignPick[]) : []);
   };

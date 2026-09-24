@@ -1,5 +1,5 @@
-import { requestMatchesScope, type ScopeRequest } from '@/lib/scope';
-import type { ChaosDefinition, ToolkitState } from '@/types';
+import { requestMatchesScope, type ScopeRequest } from "@/lib/scope";
+import type { ChaosDefinition, ToolkitState } from "@/types";
 
 export const MIN_FAIL_RATE = 0;
 export const MAX_FAIL_RATE = 100;
@@ -11,10 +11,10 @@ export const collectChaosDefinitions = (state: ToolkitState): ChaosDefinition[] 
   if (!state.globalEnabled) return [];
 
   return state.trafficRules
-    .filter((rule) => rule.enabled && rule.action.kind === 'chaos')
+    .filter((rule) => rule.enabled && rule.action.kind === "chaos")
     .map((rule) => {
       const action = rule.action;
-      if (action.kind !== 'chaos') return null;
+      if (action.kind !== "chaos") return null;
       return {
         id: rule.id,
         name: rule.name,
@@ -44,8 +44,8 @@ export const describeChaos = (chaos: { delayMs: number; failRate: number; failSt
   const parts: string[] = [];
   if (chaos.delayMs > 0) parts.push(`+${chaos.delayMs} ms`);
   if (chaos.failRate > 0) {
-    const failure = chaos.failStatus === NETWORK_ERROR_STATUS ? 'error de red' : String(chaos.failStatus);
+    const failure = chaos.failStatus === NETWORK_ERROR_STATUS ? "error de red" : String(chaos.failStatus);
     parts.push(`${chaos.failRate}% ${failure}`);
   }
-  return parts.length ? parts.join(' · ') : 'sin efecto';
+  return parts.length ? parts.join(" · ") : "sin efecto";
 };

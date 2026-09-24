@@ -1,7 +1,7 @@
-import { NETWORK_ERROR_STATUS, findMatchingChaos, shouldFail } from '@/lib/chaos';
-import { findMatchingMock } from '@/lib/mocks';
-import type { ScopeRequest } from '@/lib/scope';
-import type { BridgeHandshake, BridgePortMessage, ChaosDefinition, MockDefinition } from '@/types';
+import { NETWORK_ERROR_STATUS, findMatchingChaos, shouldFail } from "@/lib/chaos";
+import { findMatchingMock } from "@/lib/mocks";
+import type { ScopeRequest } from "@/lib/scope";
+import type { BridgeHandshake, BridgePortMessage, ChaosDefinition, MockDefinition } from "@/types";
 
 const MOCKS_TIMEOUT_MS = 2000;
 const MAX_BODY_CHARS = 20000;
@@ -13,7 +13,7 @@ const originalFetch = window.fetch.bind(window);
 const originalOpen = XMLHttpRequest.prototype.open;
 const originalSend = XMLHttpRequest.prototype.send;
 const originalSendBeacon = navigator.sendBeacon?.bind(navigator);
-const BEACON_METHOD = 'POST';
+const BEACON_METHOD = "POST";
 
 interface PendingRequest {
   method: string;
@@ -35,7 +35,7 @@ const bridgeChannel = new MessageChannel();
 const bridgePort = bridgeChannel.port1;
 
 bridgePort.onmessage = (event: MessageEvent<BridgePortMessage>) => {
-  if (event.data.type !== 'page-config') return;
+  if (event.data.type !== "page-config") return;
   mocks = Array.isArray(event.data.config.mocks) ? event.data.config.mocks : [];
   chaosRules = Array.isArray(event.data.config.chaos) ? event.data.config.chaos : [];
   captureBodies = event.data.config.captureBodies;
@@ -43,12 +43,12 @@ bridgePort.onmessage = (event: MessageEvent<BridgePortMessage>) => {
   resolveMocksReady = null;
 };
 
-const handshake: BridgeHandshake = { channel: 'bender', type: 'connect' };
-window.postMessage(handshake, '*', [bridgeChannel.port2]);
+const handshake: BridgeHandshake = { channel: "bender", type: "connect" };
+window.postMessage(handshake, "*", [bridgeChannel.port2]);
 
 const reportHit = (rule: { name: string; status: number }, url: string, method: string): void => {
   const message: BridgePortMessage = {
-    type: 'mock-hit',
+    type: "mock-hit",
     url,
     method,
     ruleName: rule.name,
@@ -58,13 +58,20 @@ const reportHit = (rule: { name: string; status: number }, url: string, method: 
 };
 
 const truncateBody = (body: string): { body: string; truncated: boolean } =>
-  body.length > MAX_BODY_CHARS ? { body: body.slice(0, MAX_BODY_CHARS), truncated: true } : { body, truncated: false };
+  body.length > MAX_BODY_CHARS
+    ? { body: body.slice(0, MAX_BODY_CHARS), truncated: true }
+    : { body, truncated: false };
 
-const reportBodies = (url: string, method: string, requestBody: string | null, responseBody: string | null): void => {
+const reportBodies = (
+  url: string,
+  method: string,
+  requestBody: string | null,
+  responseBody: string | null,
+): void => {
   const request = requestBody === null ? null : truncateBody(requestBody);
   const response = responseBody === null ? null : truncateBody(responseBody);
   const message: BridgePortMessage = {
-    type: 'bodies',
+    type: "bodies",
     bodies: {
       url,
       method,
@@ -77,7 +84,7 @@ const reportBodies = (url: string, method: string, requestBody: string | null, r
 };
 
 const readableRequestBody = (init?: RequestInit): string | null =>
-  typeof init?.body === 'string' ? init.body : null;
+  typeof init?.body === "string" ? init.body : null;
 
 const resolveMocks = async (): Promise<MockDefinition[]> => {
   await mocksReady;
@@ -113,15 +120,15 @@ const absoluteUrl = (url: string): string => {
 };
 
 const requestUrlOf = (input: RequestInfo | URL): string => {
-  if (typeof input === 'string') return absoluteUrl(input);
+  if (typeof input === "string") return absoluteUrl(input);
   if (input instanceof URL) return input.href;
   return input.url;
 };
 
 const requestMethodOf = (input: RequestInfo | URL, init?: RequestInit): string => {
   if (init?.method) return init.method.toUpperCase();
-  if (typeof input !== 'string' && !(input instanceof URL)) return input.method.toUpperCase();
-  return 'GET';
+  if (typeof input !== "string" && !(input instanceof URL)) return input.method.toUpperCase();
+  return "GET";
 };
 
 const scopeRequestFor = (url: string, method: string): ScopeRequest => ({
@@ -135,7 +142,7 @@ const wait = (milliseconds: number): Promise<void> =>
 
 const mockHeaders = (mock: MockDefinition): Headers => {
   const headers = new Headers();
-  if (mock.contentType) headers.set('content-type', mock.contentType);
+  if (mock.contentType) headers.set("content-type", mock.contentType);
   for (const header of mock.headers) headers.set(header.name, header.value);
   return headers;
 };
@@ -178,17 +185,20 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
     statusText: `${mock.status}`,
     headers: mockHeaders(mock),
   });
-  Object.defineProperty(response, 'url', { value: url });
+  Object.defineProperty(response, "url", { value: url });
   return response;
 };
 
 const serializeHeaders = (mock: MockDefinition): string => {
-  const lines = [`content-type: ${mock.contentType}`, ...mock.headers.map(({ name, value }) => `${name}: ${value}`)];
-  return `${lines.join('\r\n')}\r\n`;
+  const lines = [
+    `content-type: ${mock.contentType}`,
+    ...mock.headers.map(({ name, value }) => `${name}: ${value}`),
+  ];
+  return `${lines.join("\r\n")}\r\n`;
 };
 
 const parseBody = (xhr: XMLHttpRequest, mock: MockDefinition): unknown => {
-  if (xhr.responseType === 'json') {
+  if (xhr.responseType === "json") {
     try {
       return JSON.parse(mock.body);
     } catch {
@@ -200,52 +210,54 @@ const parseBody = (xhr: XMLHttpRequest, mock: MockDefinition): unknown => {
 
 const simulateXhr = (xhr: XMLHttpRequest, mock: MockDefinition, request: PendingRequest): void => {
   let readyState = READY_STATE_HEADERS_RECEIVED;
-  const headerMap = new Map<string, string>([['content-type', mock.contentType]]);
+  const headerMap = new Map<string, string>([["content-type", mock.contentType]]);
   for (const header of mock.headers) headerMap.set(header.name.toLowerCase(), header.value);
 
   const defineReadOnly = (property: string, getter: () => unknown): void => {
     Object.defineProperty(xhr, property, { configurable: true, get: getter });
   };
 
-  defineReadOnly('readyState', () => readyState);
-  defineReadOnly('status', () => mock.status);
-  defineReadOnly('statusText', () => String(mock.status));
-  defineReadOnly('responseURL', () => request.url);
-  defineReadOnly('responseText', () => mock.body);
-  defineReadOnly('response', () => parseBody(xhr, mock));
+  defineReadOnly("readyState", () => readyState);
+  defineReadOnly("status", () => mock.status);
+  defineReadOnly("statusText", () => String(mock.status));
+  defineReadOnly("responseURL", () => request.url);
+  defineReadOnly("responseText", () => mock.body);
+  defineReadOnly("response", () => parseBody(xhr, mock));
 
-  Object.defineProperty(xhr, 'getAllResponseHeaders', {
+  Object.defineProperty(xhr, "getAllResponseHeaders", {
     configurable: true,
     value: () => serializeHeaders(mock),
   });
-  Object.defineProperty(xhr, 'getResponseHeader', {
+  Object.defineProperty(xhr, "getResponseHeader", {
     configurable: true,
     value: (name: string) => headerMap.get(name.toLowerCase()) ?? null,
   });
 
   const dispatch = (type: string): void => {
-    xhr.dispatchEvent(new ProgressEvent(type, { lengthComputable: false, loaded: mock.body.length, total: 0 }));
+    xhr.dispatchEvent(
+      new ProgressEvent(type, { lengthComputable: false, loaded: mock.body.length, total: 0 }),
+    );
   };
 
   window.setTimeout(() => {
     reportHit(mock, request.url, request.method);
-    xhr.dispatchEvent(new Event('readystatechange'));
+    xhr.dispatchEvent(new Event("readystatechange"));
     readyState = READY_STATE_LOADING;
-    xhr.dispatchEvent(new Event('readystatechange'));
-    dispatch('progress');
+    xhr.dispatchEvent(new Event("readystatechange"));
+    dispatch("progress");
     readyState = READY_STATE_DONE;
-    xhr.dispatchEvent(new Event('readystatechange'));
-    dispatch('load');
-    dispatch('loadend');
+    xhr.dispatchEvent(new Event("readystatechange"));
+    dispatch("load");
+    dispatch("loadend");
   }, mock.delayMs);
 };
 
 const readableXhrBody = (body?: Document | XMLHttpRequestBodyInit | null): string | null =>
-  typeof body === 'string' ? body : null;
+  typeof body === "string" ? body : null;
 
 const xhrResponseText = (xhr: XMLHttpRequest): string | null => {
   try {
-    return typeof xhr.responseText === 'string' ? xhr.responseText : null;
+    return typeof xhr.responseText === "string" ? xhr.responseText : null;
   } catch {
     return null;
   }
@@ -254,9 +266,9 @@ const xhrResponseText = (xhr: XMLHttpRequest): string | null => {
 const captureXhrBodies = (
   xhr: XMLHttpRequest,
   request: PendingRequest,
-  body?: Document | XMLHttpRequestBodyInit | null
+  body?: Document | XMLHttpRequestBodyInit | null,
 ): void => {
-  xhr.addEventListener('load', () => {
+  xhr.addEventListener("load", () => {
     reportBodies(request.url, request.method, readableXhrBody(body), xhrResponseText(xhr));
   });
 };
@@ -268,7 +280,7 @@ XMLHttpRequest.prototype.open = function patchedOpen(
   ...rest: unknown[]
 ): void {
   pendingRequests.set(this, { method: method.toUpperCase(), url: absoluteUrl(String(url)) });
-  const args = [method, url, ...rest] as Parameters<XMLHttpRequest['open']>;
+  const args = [method, url, ...rest] as Parameters<XMLHttpRequest["open"]>;
   originalOpen.apply(this, args);
 };
 
@@ -278,22 +290,25 @@ const chaosAsMock = (chaos: ChaosDefinition): MockDefinition => ({
   name: chaos.name,
   scope: chaos.scope,
   status: chaos.failStatus,
-  contentType: '',
-  body: '',
+  contentType: "",
+  body: "",
   delayMs: 0,
   headers: [],
 });
 
 const failXhr = (xhr: XMLHttpRequest, request: PendingRequest): void => {
-  Object.defineProperty(xhr, 'readyState', { configurable: true, get: () => READY_STATE_DONE });
-  Object.defineProperty(xhr, 'status', { configurable: true, get: () => 0 });
-  Object.defineProperty(xhr, 'responseURL', { configurable: true, get: () => request.url });
-  xhr.dispatchEvent(new Event('readystatechange'));
-  xhr.dispatchEvent(new ProgressEvent('error'));
-  xhr.dispatchEvent(new ProgressEvent('loadend'));
+  Object.defineProperty(xhr, "readyState", { configurable: true, get: () => READY_STATE_DONE });
+  Object.defineProperty(xhr, "status", { configurable: true, get: () => 0 });
+  Object.defineProperty(xhr, "responseURL", { configurable: true, get: () => request.url });
+  xhr.dispatchEvent(new Event("readystatechange"));
+  xhr.dispatchEvent(new ProgressEvent("error"));
+  xhr.dispatchEvent(new ProgressEvent("loadend"));
 };
 
-XMLHttpRequest.prototype.send = function patchedSend(this: XMLHttpRequest, body?: Document | XMLHttpRequestBodyInit | null): void {
+XMLHttpRequest.prototype.send = function patchedSend(
+  this: XMLHttpRequest,
+  body?: Document | XMLHttpRequestBodyInit | null,
+): void {
   const request = pendingRequests.get(this);
   if (!request) {
     originalSend.call(this, body);

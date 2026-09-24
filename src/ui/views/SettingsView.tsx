@@ -1,32 +1,41 @@
-import { useState } from 'react';
-import { ACCENT_COLORS, createDefaultState } from '@/lib/constants';
-import { downloadJson } from '@/lib/download';
-import { sendMessage } from '@/lib/messages';
-import { normalizeState } from '@/lib/state';
-import { ImportDialog } from '@/ui/components/ImportDialog';
-import { ViewShell } from '@/ui/components/ViewShell';
-import { Button, Card, ConfirmBar, Field, Notice, Segmented, Select, Switch } from '@/ui/components/primitives';
-import { usePendingImport } from '@/ui/hooks/usePendingImport';
-import { useToasts } from '@/ui/hooks/useToasts';
-import type { UpdateState } from '@/ui/views/types';
-import type { EngineStatus, ThemeMode, ToolkitState, UiConfig } from '@/types';
+import { useState } from "react";
+import { ACCENT_COLORS, createDefaultState } from "@/lib/constants";
+import { downloadJson } from "@/lib/download";
+import { sendMessage } from "@/lib/messages";
+import { normalizeState } from "@/lib/state";
+import { ImportDialog } from "@/ui/components/ImportDialog";
+import { ViewShell } from "@/ui/components/ViewShell";
+import {
+  Button,
+  Card,
+  ConfirmBar,
+  Field,
+  Notice,
+  Segmented,
+  Select,
+  Switch,
+} from "@/ui/components/primitives";
+import { usePendingImport } from "@/ui/hooks/usePendingImport";
+import { useToasts } from "@/ui/hooks/useToasts";
+import type { UpdateState } from "@/ui/views/types";
+import type { EngineStatus, ThemeMode, ToolkitState, UiConfig } from "@/types";
 
 const THEME_OPTIONS: Array<{ value: ThemeMode; label: string }> = [
-  { value: 'system', label: 'Sistema' },
-  { value: 'dark', label: 'Oscuro' },
-  { value: 'light', label: 'Claro' },
+  { value: "system", label: "Sistema" },
+  { value: "dark", label: "Oscuro" },
+  { value: "light", label: "Claro" },
 ];
 
-const DENSITY_OPTIONS: Array<{ value: UiConfig['density']; label: string }> = [
-  { value: 'comfortable', label: 'Comoda' },
-  { value: 'compact', label: 'Compacta' },
+const DENSITY_OPTIONS: Array<{ value: UiConfig["density"]; label: string }> = [
+  { value: "comfortable", label: "Comoda" },
+  { value: "compact", label: "Compacta" },
 ];
 
 const BUFFER_OPTIONS = [
-  { value: '200', label: '200 requests' },
-  { value: '500', label: '500 requests' },
-  { value: '1000', label: '1000 requests' },
-  { value: '2000', label: '2000 requests' },
+  { value: "200", label: "200 requests" },
+  { value: "500", label: "500 requests" },
+  { value: "1000", label: "1000 requests" },
+  { value: "2000", label: "2000 requests" },
 ];
 
 const DEFAULT_BUFFER_SIZE = 500;
@@ -39,7 +48,7 @@ interface SettingsViewProps {
 
 export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
   const { notify } = useToasts();
-  const [importing, setImporting] = usePendingImport('settings');
+  const [importing, setImporting] = usePendingImport("settings");
   const [confirmReset, setConfirmReset] = useState(false);
 
   return (
@@ -72,7 +81,7 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
                   height: 26,
                   borderRadius: 9,
                   background: accent,
-                  border: state.ui.accent === accent ? '2px solid var(--text)' : '2px solid transparent',
+                  border: state.ui.accent === accent ? "2px solid var(--text)" : "2px solid transparent",
                 }}
               />
             ))}
@@ -92,7 +101,7 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
             }}
           />
         </Field>
-        <label className="row" style={{ cursor: 'pointer' }}>
+        <label className="row" style={{ cursor: "pointer" }}>
           <Switch
             checked={state.network.captureBodies}
             onChange={(captureBodies) =>
@@ -112,15 +121,15 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
 
       <Card title="Backup">
         <p className="text-small text-muted" style={{ margin: 0 }}>
-          El backup incluye perfiles, reglas, mocks, scripts y preferencias. No incluye cookies ni storage de los
-          sitios.
+          El backup incluye perfiles, reglas, mocks, scripts y preferencias. No incluye cookies ni storage de
+          los sitios.
         </p>
         <div className="row wrap">
           <Button
             icon="download"
             onClick={() => {
               downloadJson(`bender-backup-${new Date().toISOString().slice(0, 10)}.json`, state);
-              notify('Backup exportado', 'success');
+              notify("Backup exportado", "success");
             }}
           >
             Exportar todo
@@ -142,7 +151,7 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
             onConfirm={() => {
               update(() => createDefaultState());
               setConfirmReset(false);
-              notify('Configuracion restablecida');
+              notify("Configuracion restablecida");
             }}
           />
         ) : null}
@@ -159,7 +168,7 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
           small
           variant="ghost"
           icon="external"
-          onClick={() => void chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}
+          onClick={() => void chrome.tabs.create({ url: "chrome://extensions/shortcuts" })}
         >
           Cambiar atajos
         </Button>
@@ -167,13 +176,19 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
 
       <Card
         title="Motor"
-        subtitle={status.updatedAt ? `Ultima aplicacion: ${new Date(status.updatedAt).toLocaleTimeString('es-AR')}` : 'Sin aplicar todavia'}
+        subtitle={
+          status.updatedAt
+            ? `Ultima aplicacion: ${new Date(status.updatedAt).toLocaleTimeString("es-AR")}`
+            : "Sin aplicar todavia"
+        }
         actions={
           <Button
             small
             icon="refresh"
             onClick={() => {
-              void sendMessage({ type: 'engine/refresh' }).then(() => notify('Reglas reaplicadas', 'success'));
+              void sendMessage({ type: "engine/refresh" }).then(() =>
+                notify("Reglas reaplicadas", "success"),
+              );
             }}
           >
             Reaplicar
@@ -190,7 +205,10 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
         </div>
         {status.diagnostics.length ? (
           status.diagnostics.map((diagnostic, index) => (
-            <Notice key={`${diagnostic.message}-${index}`} tone={diagnostic.level === 'error' ? 'danger' : 'warning'}>
+            <Notice
+              key={`${diagnostic.message}-${index}`}
+              tone={diagnostic.level === "error" ? "danger" : "warning"}
+            >
               {diagnostic.message}
             </Notice>
           ))
@@ -209,7 +227,7 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
           onImport={(text) => {
             const parsed: unknown = JSON.parse(text);
             update(() => normalizeState(parsed));
-            notify('Backup importado', 'success');
+            notify("Backup importado", "success");
           }}
         />
       ) : null}

@@ -1,18 +1,18 @@
-import { urlMatchesScope } from '@/lib/scope';
-import type { HeaderEntry, ToolkitState } from '@/types';
+import { urlMatchesScope } from "@/lib/scope";
+import type { HeaderEntry, ToolkitState } from "@/types";
 
 export interface EffectiveHeader {
   name: string;
   value: string;
-  operation: HeaderEntry['operation'];
+  operation: HeaderEntry["operation"];
   source: string;
-  direction: 'request' | 'response';
+  direction: "request" | "response";
 }
 
 const collect = (
   entries: HeaderEntry[],
   source: string,
-  direction: EffectiveHeader['direction']
+  direction: EffectiveHeader["direction"],
 ): EffectiveHeader[] =>
   entries
     .filter((entry) => entry.enabled && entry.name.trim())
@@ -33,21 +33,28 @@ export const effectiveHeadersFor = (state: ToolkitState, url: string): Effective
     if (!profile.enabled) continue;
     if (!urlMatchesScope(profile.scope, url)) continue;
     const headers = [
-      ...collect(profile.requestHeaders, profile.name, 'request'),
-      ...collect(profile.responseHeaders, profile.name, 'response'),
+      ...collect(profile.requestHeaders, profile.name, "request"),
+      ...collect(profile.responseHeaders, profile.name, "response"),
     ];
     for (const header of headers) {
-      merged.set(`${header.direction}:${header.name.toLowerCase()}:${header.operation === 'append' ? merged.size : ''}`, header);
+      merged.set(
+        `${header.direction}:${header.name.toLowerCase()}:${header.operation === "append" ? merged.size : ""}`,
+        header,
+      );
     }
   }
 
-  if (state.userAgent.enabled && state.userAgent.value.trim() && urlMatchesScope(state.userAgent.scope, url)) {
-    merged.set('request:user-agent:', {
-      name: 'User-Agent',
+  if (
+    state.userAgent.enabled &&
+    state.userAgent.value.trim() &&
+    urlMatchesScope(state.userAgent.scope, url)
+  ) {
+    merged.set("request:user-agent:", {
+      name: "User-Agent",
       value: state.userAgent.value,
-      operation: 'set',
-      source: 'User-Agent',
-      direction: 'request',
+      operation: "set",
+      source: "User-Agent",
+      direction: "request",
     });
   }
 

@@ -1,5 +1,5 @@
-import { useEffect, useState, type ChangeEvent, type ReactNode } from 'react';
-import { Icon, type IconName } from '@/ui/components/Icon';
+import { useEffect, useState, type ChangeEvent, type ReactNode } from "react";
+import { Icon, type IconName } from "@/ui/components/Icon";
 
 const COPY_FEEDBACK_MS = 1200;
 
@@ -17,7 +17,7 @@ export const Switch = ({ checked, onChange, title, small }: SwitchProps) => (
     aria-checked={checked}
     title={title}
     data-on={checked}
-    className={small ? 'switch small' : 'switch'}
+    className={small ? "switch small" : "switch"}
     onClick={(event) => {
       event.stopPropagation();
       onChange(!checked);
@@ -28,17 +28,25 @@ export const Switch = ({ checked, onChange, title, small }: SwitchProps) => (
 interface ButtonProps {
   children: ReactNode;
   onClick?: () => void;
-  variant?: 'default' | 'primary' | 'danger' | 'ghost';
+  variant?: "default" | "primary" | "danger" | "ghost";
   icon?: IconName;
   small?: boolean;
   disabled?: boolean;
   title?: string;
 }
 
-export const Button = ({ children, onClick, variant = 'default', icon, small, disabled, title }: ButtonProps) => (
+export const Button = ({
+  children,
+  onClick,
+  variant = "default",
+  icon,
+  small,
+  disabled,
+  title,
+}: ButtonProps) => (
   <button
     type="button"
-    className={`btn${variant === 'default' ? '' : ` ${variant}`}${small ? ' small' : ''}`}
+    className={`btn${variant === "default" ? "" : ` ${variant}`}${small ? " small" : ""}`}
     onClick={onClick}
     disabled={disabled}
     title={title}
@@ -52,15 +60,15 @@ interface IconButtonProps {
   icon: IconName;
   title: string;
   onClick: () => void;
-  tone?: 'default' | 'danger';
+  tone?: "default" | "danger";
   small?: boolean;
   disabled?: boolean;
 }
 
-export const IconButton = ({ icon, title, onClick, tone = 'default', small, disabled }: IconButtonProps) => (
+export const IconButton = ({ icon, title, onClick, tone = "default", small, disabled }: IconButtonProps) => (
   <button
     type="button"
-    className={`icon-btn${tone === 'danger' ? ' danger' : ''}${small ? ' small' : ''}`}
+    className={`icon-btn${tone === "danger" ? " danger" : ""}${small ? " small" : ""}`}
     title={title}
     aria-label={title}
     disabled={disabled}
@@ -94,12 +102,20 @@ interface TextInputProps {
   mono?: boolean;
   disabled?: boolean;
   title?: string;
-  type?: 'text' | 'number' | 'datetime-local' | 'color';
+  type?: "text" | "number" | "datetime-local" | "color";
 }
 
-export const TextInput = ({ value, onChange, placeholder, mono, disabled, title, type = 'text' }: TextInputProps) => (
+export const TextInput = ({
+  value,
+  onChange,
+  placeholder,
+  mono,
+  disabled,
+  title,
+  type = "text",
+}: TextInputProps) => (
   <input
-    className={`input${mono ? ' mono' : ''}`}
+    className={`input${mono ? " mono" : ""}`}
     type={type}
     value={value}
     placeholder={placeholder}
@@ -119,7 +135,7 @@ interface TextAreaProps {
 
 export const TextArea = ({ value, onChange, placeholder, mono, rows = 4 }: TextAreaProps) => (
   <textarea
-    className={`textarea${mono ? ' mono' : ''}`}
+    className={`textarea${mono ? " mono" : ""}`}
     value={value}
     rows={rows}
     placeholder={placeholder}
@@ -175,19 +191,23 @@ export const Card = ({ title, subtitle, actions, children, flush }: CardProps) =
         {actions ? <div className="view-actions">{actions}</div> : null}
       </header>
     ) : null}
-    <div className={flush ? 'card-body flush' : 'card-body'}>{children}</div>
+    <div className={flush ? "card-body flush" : "card-body"}>{children}</div>
   </section>
 );
 
-type Tone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'info';
+type Tone = "neutral" | "accent" | "success" | "warning" | "danger" | "info";
 
-export const Badge = ({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) => (
-  <span className={tone === 'neutral' ? 'badge' : `badge ${tone}`}>{children}</span>
+export const Badge = ({ tone = "neutral", children }: { tone?: Tone; children: ReactNode }) => (
+  <span className={tone === "neutral" ? "badge" : `badge ${tone}`}>{children}</span>
 );
 
-export const Notice = ({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) => (
-  <div className={tone === 'neutral' ? 'notice' : `notice ${tone}`}>
-    {tone === 'danger' || tone === 'warning' ? <Icon name="alert" size={14} /> : <Icon name="info" size={14} />}
+export const Notice = ({ tone = "neutral", children }: { tone?: Tone; children: ReactNode }) => (
+  <div className={tone === "neutral" ? "notice" : `notice ${tone}`}>
+    {tone === "danger" || tone === "warning" ? (
+      <Icon name="alert" size={14} />
+    ) : (
+      <Icon name="info" size={14} />
+    )}
     <div>{children}</div>
   </div>
 );
@@ -229,7 +249,7 @@ export const SearchInput = ({ value, onChange, placeholder }: SearchInputProps) 
   </div>
 );
 
-export const CopyButton = ({ value, title = 'Copiar' }: { value: string; title?: string }) => {
+export const CopyButton = ({ value, title = "Copiar" }: { value: string; title?: string }) => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -240,8 +260,8 @@ export const CopyButton = ({ value, title = 'Copiar' }: { value: string; title?:
 
   return (
     <IconButton
-      icon={copied ? 'check' : 'copy'}
-      title={copied ? 'Copiado' : title}
+      icon={copied ? "check" : "copy"}
+      title={copied ? "Copiado" : title}
       small
       onClick={() => {
         void navigator.clipboard.writeText(value).then(() => setCopied(true));
@@ -293,15 +313,21 @@ interface ConfirmBarProps {
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
-  tone?: 'danger' | 'primary';
+  tone?: "danger" | "primary";
 }
 
-export const ConfirmBar = ({ message, confirmLabel, onConfirm, onCancel, tone = 'danger' }: ConfirmBarProps) => (
+export const ConfirmBar = ({
+  message,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+  tone = "danger",
+}: ConfirmBarProps) => (
   <div className="confirm-bar">
     <Icon name="alert" size={14} />
     <span>{message}</span>
     <div className="spacer" />
-    <Button small variant={tone === 'danger' ? 'danger' : 'primary'} onClick={onConfirm}>
+    <Button small variant={tone === "danger" ? "danger" : "primary"} onClick={onConfirm}>
       {confirmLabel}
     </Button>
     <Button small variant="ghost" onClick={onCancel}>

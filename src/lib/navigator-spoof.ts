@@ -1,10 +1,10 @@
-import { sanitizeDomainList } from '@/lib/scope';
-import { userAgentTraits } from '@/lib/user-agent-traits';
-import type { EngineDiagnostic, ToolkitState, UserAgentConfig } from '@/types';
+import { sanitizeDomainList } from "@/lib/scope";
+import { userAgentTraits } from "@/lib/user-agent-traits";
+import type { EngineDiagnostic, ToolkitState, UserAgentConfig } from "@/types";
 
-export const NAVIGATOR_SPOOF_SCRIPT_ID = 'bender-navigator-spoof';
+export const NAVIGATOR_SPOOF_SCRIPT_ID = "bender-navigator-spoof";
 
-const ALL_URLS_MATCH = '*://*/*';
+const ALL_URLS_MATCH = "*://*/*";
 
 export interface NavigatorSpoofRegistration {
   id: string;
@@ -15,17 +15,17 @@ export interface NavigatorSpoofRegistration {
 
 const domainToMatch = (domain: string): string => `*://*.${domain}/*`;
 
-export const navigatorSpoofMatches = (scope: UserAgentConfig['scope']): string[] => {
+export const navigatorSpoofMatches = (scope: UserAgentConfig["scope"]): string[] => {
   const includeDomains = sanitizeDomainList(scope.includeDomains);
   return includeDomains.length ? includeDomains.map(domainToMatch) : [ALL_URLS_MATCH];
 };
 
-export const navigatorSpoofExcludeMatches = (scope: UserAgentConfig['scope']): string[] =>
+export const navigatorSpoofExcludeMatches = (scope: UserAgentConfig["scope"]): string[] =>
   sanitizeDomainList(scope.excludeDomains).map(domainToMatch);
 
 export const buildNavigatorSpoofCode = (userAgentValue: string): string => {
   const { mobile, platform, navigatorPlatform, maxTouchPoints, chromium } = userAgentTraits(userAgentValue);
-  const brands = chromium ? 'navigator.userAgentData?.brands ?? []' : '[]';
+  const brands = chromium ? "navigator.userAgentData?.brands ?? []" : "[]";
 
   return `(() => {
   const userAgent = ${JSON.stringify(userAgentValue)};
@@ -92,7 +92,7 @@ export const navigatorSpoofDiagnostics = (userAgent: UserAgentConfig): EngineDia
 
   if (scope.activeTabOnly) {
     diagnostics.push({
-      level: 'warning',
+      level: "warning",
       message:
         'navigator: el spoof se registra por dominio, asi que ignora "solo la pestaña activa" y aplica a todo el alcance.',
     });
@@ -100,8 +100,8 @@ export const navigatorSpoofDiagnostics = (userAgent: UserAgentConfig): EngineDia
 
   if (scope.urlFilter.trim()) {
     diagnostics.push({
-      level: 'warning',
-      message: 'navigator: el spoof no filtra por URL, aplica a todo el dominio del alcance.',
+      level: "warning",
+      message: "navigator: el spoof no filtra por URL, aplica a todo el dominio del alcance.",
     });
   }
 

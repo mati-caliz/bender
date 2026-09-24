@@ -1,30 +1,22 @@
 export type ResourceType =
-  | 'main_frame'
-  | 'sub_frame'
-  | 'stylesheet'
-  | 'script'
-  | 'image'
-  | 'font'
-  | 'object'
-  | 'xmlhttprequest'
-  | 'ping'
-  | 'csp_report'
-  | 'media'
-  | 'websocket'
-  | 'other';
+  | "main_frame"
+  | "sub_frame"
+  | "stylesheet"
+  | "script"
+  | "image"
+  | "font"
+  | "object"
+  | "xmlhttprequest"
+  | "ping"
+  | "csp_report"
+  | "media"
+  | "websocket"
+  | "other";
 
 export type RequestMethod =
-  | 'connect'
-  | 'delete'
-  | 'get'
-  | 'head'
-  | 'options'
-  | 'patch'
-  | 'post'
-  | 'put'
-  | 'other';
+  "connect" | "delete" | "get" | "head" | "options" | "patch" | "post" | "put" | "other";
 
-export type HeaderOperation = 'set' | 'append' | 'remove';
+export type HeaderOperation = "set" | "append" | "remove";
 
 export interface HeaderEntry {
   id: string;
@@ -58,15 +50,22 @@ export interface Profile {
 }
 
 export type TrafficRuleAction =
-  | { kind: 'block' }
-  | { kind: 'redirect'; target: string; useRegex: boolean }
-  | { kind: 'mock'; status: number; contentType: string; body: string; delayMs: number; headers: HeaderEntry[] }
+  | { kind: "block" }
+  | { kind: "redirect"; target: string; useRegex: boolean }
+  | {
+      kind: "mock";
+      status: number;
+      contentType: string;
+      body: string;
+      delayMs: number;
+      headers: HeaderEntry[];
+    }
   /**
    * Demora y/o hace fallar un porcentaje de las requests que matchean, sin inventar
    * un body. `failStatus: 0` simula un error de red; cualquier otro valor responde
    * con ese status.
    */
-  | { kind: 'chaos'; delayMs: number; failRate: number; failStatus: number };
+  | { kind: "chaos"; delayMs: number; failRate: number; failStatus: number };
 
 export interface TrafficRule {
   id: string;
@@ -76,7 +75,7 @@ export interface TrafficRule {
   action: TrafficRuleAction;
 }
 
-export type CorsAllowOrigin = 'wildcard' | 'reflect' | 'custom';
+export type CorsAllowOrigin = "wildcard" | "reflect" | "custom";
 
 export interface CorsConfig {
   enabled: boolean;
@@ -108,20 +107,20 @@ export interface NetworkConfig {
   onlyModified: boolean;
 }
 
-export type ThemeMode = 'dark' | 'light' | 'system';
+export type ThemeMode = "dark" | "light" | "system";
 
 export interface UiConfig {
   theme: ThemeMode;
   accent: string;
   lastView: string;
-  density: 'comfortable' | 'compact';
+  density: "comfortable" | "compact";
 }
 
-export type UserScriptLanguage = 'javascript' | 'css';
+export type UserScriptLanguage = "javascript" | "css";
 
-export type UserScriptRunAt = 'document_start' | 'document_end' | 'document_idle';
+export type UserScriptRunAt = "document_start" | "document_end" | "document_idle";
 
-export type UserScriptWorld = 'MAIN' | 'USER_SCRIPT';
+export type UserScriptWorld = "MAIN" | "USER_SCRIPT";
 
 export interface UserScript {
   id: string;
@@ -170,7 +169,7 @@ export interface ToolkitState {
 }
 
 export interface EngineDiagnostic {
-  level: 'error' | 'warning';
+  level: "error" | "warning";
   message: string;
 }
 
@@ -182,7 +181,7 @@ export interface EngineStatus {
   updatedAt: number;
 }
 
-export type NetworkPhase = 'pending' | 'complete' | 'error' | 'blocked' | 'redirected' | 'mocked';
+export type NetworkPhase = "pending" | "complete" | "error" | "blocked" | "redirected" | "mocked";
 
 export interface NetworkEntry {
   id: string;
@@ -201,7 +200,7 @@ export interface NetworkEntry {
   responseHeaders: Array<{ name: string; value: string }>;
   matchedRuleIds: number[];
   matchedRuleLabels: string[];
-  source: 'network' | 'mock';
+  source: "network" | "mock";
   requestBody: string | null;
   responseBody: string | null;
   bodyTruncated: boolean;
@@ -239,7 +238,7 @@ export interface ToggleRow<T> {
   reappeared: boolean;
 }
 
-export type StorageArea = 'local' | 'session';
+export type StorageArea = "local" | "session";
 
 export interface MockDefinition {
   id: string;
@@ -252,9 +251,9 @@ export interface MockDefinition {
   headers: Array<{ name: string; value: string }>;
 }
 
-export type DesignTool = 'inspect' | 'ruler' | 'spacing';
+export type DesignTool = "inspect" | "ruler" | "spacing";
 
-export type DesignPickKind = 'color' | 'element' | 'measure';
+export type DesignPickKind = "color" | "element" | "measure";
 
 export interface DesignPick {
   id: string;
@@ -266,7 +265,7 @@ export interface DesignPick {
   createdAt: number;
 }
 
-export type ColorRole = 'text' | 'background' | 'border';
+export type ColorRole = "text" | "background" | "border";
 
 export interface ColorUsage {
   hex: string;
@@ -303,9 +302,9 @@ export interface DesignAudit {
 }
 
 export type DesignCommand =
-  | { channel: 'bender-design'; type: 'set-tool'; tool: DesignTool }
-  | { channel: 'bender-design'; type: 'close' }
-  | { channel: 'bender-design'; type: 'ping' };
+  | { channel: "bender-design"; type: "set-tool"; tool: DesignTool }
+  | { channel: "bender-design"; type: "close" }
+  | { channel: "bender-design"; type: "ping" };
 
 export interface DesignOverlayState {
   active: boolean;
@@ -313,8 +312,8 @@ export interface DesignOverlayState {
 }
 
 export interface BridgeHandshake {
-  channel: 'bender';
-  type: 'connect';
+  channel: "bender";
+  type: "connect";
 }
 
 export interface ChaosDefinition {
@@ -341,6 +340,6 @@ export interface CapturedBodies {
 }
 
 export type BridgePortMessage =
-  | { type: 'page-config'; config: PageConfig }
-  | { type: 'mock-hit'; url: string; method: string; ruleName: string; status: number }
-  | { type: 'bodies'; bodies: CapturedBodies };
+  | { type: "page-config"; config: PageConfig }
+  | { type: "mock-hit"; url: string; method: string; ruleName: string; status: number }
+  | { type: "bodies"; bodies: CapturedBodies };

@@ -1,7 +1,7 @@
-import { PROFILE_COLORS, createEmptyScope } from '@/lib/constants';
-import { shortUrl } from '@/lib/format';
-import { createId } from '@/lib/ids';
-import { toRequestMethod } from '@/lib/scope';
+import { PROFILE_COLORS, createEmptyScope } from "@/lib/constants";
+import { shortUrl } from "@/lib/format";
+import { createId } from "@/lib/ids";
+import { toRequestMethod } from "@/lib/scope";
 import type {
   HeaderEntry,
   NetworkEntry,
@@ -10,29 +10,29 @@ import type {
   TrafficRuleAction,
   UserScript,
   UserScriptLanguage,
-} from '@/types';
+} from "@/types";
 
 const DEFAULT_MOCK_STATUS = 200;
-const DEFAULT_MOCK_CONTENT_TYPE = 'application/json; charset=utf-8';
+const DEFAULT_MOCK_CONTENT_TYPE = "application/json; charset=utf-8";
 const DEFAULT_MOCK_BODY = '{\n  "ok": true\n}';
 const DEFAULT_CHAOS_DELAY_MS = 1000;
 const DEFAULT_CHAOS_FAIL_STATUS = 500;
 
 export const createHeaderEntry = (overrides: Partial<HeaderEntry> = {}): HeaderEntry => ({
   id: createId(),
-  name: '',
-  value: '',
+  name: "",
+  value: "",
   variants: [],
-  operation: 'set',
+  operation: "set",
   enabled: true,
-  comment: '',
+  comment: "",
   ...overrides,
 });
 
 export const createProfile = (existingCount: number, overrides: Partial<Profile> = {}): Profile => ({
   id: createId(),
   name: `Perfil ${existingCount + 1}`,
-  color: PROFILE_COLORS[existingCount % PROFILE_COLORS.length] ?? PROFILE_COLORS[0] ?? '#6366f1',
+  color: PROFILE_COLORS[existingCount % PROFILE_COLORS.length] ?? PROFILE_COLORS[0] ?? "#6366f1",
   enabled: true,
   scope: createEmptyScope(),
   requestHeaders: [createHeaderEntry()],
@@ -40,27 +40,32 @@ export const createProfile = (existingCount: number, overrides: Partial<Profile>
   ...overrides,
 });
 
-export const createTrafficRuleAction = (kind: TrafficRuleAction['kind']): TrafficRuleAction => {
+export const createTrafficRuleAction = (kind: TrafficRuleAction["kind"]): TrafficRuleAction => {
   switch (kind) {
-    case 'block':
-      return { kind: 'block' };
-    case 'redirect':
-      return { kind: 'redirect', target: '', useRegex: false };
-    case 'mock':
+    case "block":
+      return { kind: "block" };
+    case "redirect":
+      return { kind: "redirect", target: "", useRegex: false };
+    case "mock":
       return {
-        kind: 'mock',
+        kind: "mock",
         status: DEFAULT_MOCK_STATUS,
         contentType: DEFAULT_MOCK_CONTENT_TYPE,
         body: DEFAULT_MOCK_BODY,
         delayMs: 0,
         headers: [],
       };
-    case 'chaos':
-      return { kind: 'chaos', delayMs: DEFAULT_CHAOS_DELAY_MS, failRate: 0, failStatus: DEFAULT_CHAOS_FAIL_STATUS };
+    case "chaos":
+      return {
+        kind: "chaos",
+        delayMs: DEFAULT_CHAOS_DELAY_MS,
+        failRate: 0,
+        failStatus: DEFAULT_CHAOS_FAIL_STATUS,
+      };
   }
 };
 
-export const createTrafficRule = (kind: TrafficRuleAction['kind'], existingCount: number): TrafficRule => ({
+export const createTrafficRule = (kind: TrafficRuleAction["kind"], existingCount: number): TrafficRule => ({
   id: createId(),
   name: `Regla ${existingCount + 1}`,
   enabled: true,
@@ -72,7 +77,7 @@ const headerValueOf = (headers: Array<{ name: string; value: string }>, name: st
   headers.find((header) => header.name.toLowerCase() === name)?.value ?? null;
 
 export const createMockRuleFromEntry = (entry: NetworkEntry, existingCount: number): TrafficRule => {
-  const rule = createTrafficRule('mock', existingCount);
+  const rule = createTrafficRule("mock", existingCount);
   const action = rule.action;
 
   return {
@@ -84,12 +89,12 @@ export const createMockRuleFromEntry = (entry: NetworkEntry, existingCount: numb
       requestMethods: [toRequestMethod(entry.method)],
     },
     action:
-      action.kind === 'mock'
+      action.kind === "mock"
         ? {
             ...action,
             status: entry.statusCode ?? action.status,
-            contentType: headerValueOf(entry.responseHeaders, 'content-type') ?? action.contentType,
-            body: entry.responseBody ?? '',
+            contentType: headerValueOf(entry.responseHeaders, "content-type") ?? action.contentType,
+            body: entry.responseBody ?? "",
           }
         : action,
   };
@@ -98,19 +103,19 @@ export const createMockRuleFromEntry = (entry: NetworkEntry, existingCount: numb
 export const createUserScript = (
   language: UserScriptLanguage,
   existingCount: number,
-  overrides: Partial<UserScript> = {}
+  overrides: Partial<UserScript> = {},
 ): UserScript => ({
   id: createId(),
-  name: language === 'css' ? `Estilo ${existingCount + 1}` : `Script ${existingCount + 1}`,
-  description: '',
+  name: language === "css" ? `Estilo ${existingCount + 1}` : `Script ${existingCount + 1}`,
+  description: "",
   enabled: true,
   language,
   matches: [],
   excludeMatches: [],
-  runAt: 'document_idle',
-  world: 'MAIN',
+  runAt: "document_idle",
+  world: "MAIN",
   allFrames: false,
-  code: '',
+  code: "",
   updatedAt: Date.now(),
   ...overrides,
 });

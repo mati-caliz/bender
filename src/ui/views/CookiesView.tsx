@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { downloadJson } from '@/lib/download';
-import { parseCookies } from '@/lib/import';
-import { ImportDialog } from '@/ui/components/ImportDialog';
-import { JwtPanel } from '@/ui/components/JwtPanel';
-import { ToggleCard } from '@/ui/components/ToggleCard';
-import { ViewShell } from '@/ui/components/ViewShell';
+import { useState } from "react";
+import { downloadJson } from "@/lib/download";
+import { parseCookies } from "@/lib/import";
+import { ImportDialog } from "@/ui/components/ImportDialog";
+import { JwtPanel } from "@/ui/components/JwtPanel";
+import { ToggleCard } from "@/ui/components/ToggleCard";
+import { ViewShell } from "@/ui/components/ViewShell";
 import {
   Button,
   Card,
@@ -16,42 +16,43 @@ import {
   Select,
   TextArea,
   TextInput,
-} from '@/ui/components/primitives';
-import { cookieKeyOf, useCookies } from '@/ui/hooks/useCookies';
-import { usePendingImport } from '@/ui/hooks/usePendingImport';
-import { useToasts } from '@/ui/hooks/useToasts';
-import type { ActiveTab } from '@/ui/hooks/useActiveTab';
-import type { CookieSnapshot } from '@/types';
+} from "@/ui/components/primitives";
+import { cookieKeyOf, useCookies } from "@/ui/hooks/useCookies";
+import { usePendingImport } from "@/ui/hooks/usePendingImport";
+import { useToasts } from "@/ui/hooks/useToasts";
+import type { ActiveTab } from "@/ui/hooks/useActiveTab";
+import type { CookieSnapshot } from "@/types";
 
 const SAME_SITE_OPTIONS = [
-  { value: 'lax', label: 'SameSite: Lax' },
-  { value: 'strict', label: 'SameSite: Strict' },
-  { value: 'no_restriction', label: 'SameSite: None' },
-  { value: 'unspecified', label: 'SameSite: sin especificar' },
+  { value: "lax", label: "SameSite: Lax" },
+  { value: "strict", label: "SameSite: Strict" },
+  { value: "no_restriction", label: "SameSite: None" },
+  { value: "unspecified", label: "SameSite: sin especificar" },
 ];
 
 const SECONDS_PER_YEAR = 365 * 24 * 3600;
 const MILLISECONDS_PER_SECOND = 1000;
 
 const isSameSite = (value: string): value is chrome.cookies.SameSiteStatus =>
-  value === 'lax' || value === 'strict' || value === 'no_restriction' || value === 'unspecified';
+  value === "lax" || value === "strict" || value === "no_restriction" || value === "unspecified";
 
 const toInputValue = (epochSeconds: number): string => {
   const date = new Date(epochSeconds * MILLISECONDS_PER_SECOND);
-  const pad = (value: number) => String(value).padStart(2, '0');
+  const pad = (value: number) => String(value).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
-const fromInputValue = (value: string): number => Math.floor(new Date(value).getTime() / MILLISECONDS_PER_SECOND);
+const fromInputValue = (value: string): number =>
+  Math.floor(new Date(value).getTime() / MILLISECONDS_PER_SECOND);
 
 const blankCookie = (hostname: string, secure: boolean): CookieSnapshot => ({
-  name: '',
-  value: '',
+  name: "",
+  value: "",
   domain: hostname,
-  path: '/',
+  path: "/",
   secure,
   httpOnly: false,
-  sameSite: 'lax',
+  sameSite: "lax",
   hostOnly: true,
   expirationDate: null,
 });
@@ -99,7 +100,11 @@ const CookieForm = ({ draft, onChange, onSave, onDelete, onCancel, isNew }: Cook
 
     <div className="row wrap">
       <label className="checkbox">
-        <input type="checkbox" checked={draft.secure} onChange={(event) => onChange({ ...draft, secure: event.target.checked })} />
+        <input
+          type="checkbox"
+          checked={draft.secure}
+          onChange={(event) => onChange({ ...draft, secure: event.target.checked })}
+        />
         Secure
       </label>
       <label className="checkbox">
@@ -125,7 +130,9 @@ const CookieForm = ({ draft, onChange, onSave, onDelete, onCancel, isNew }: Cook
           onChange={(event) =>
             onChange({
               ...draft,
-              expirationDate: event.target.checked ? null : Math.floor(Date.now() / MILLISECONDS_PER_SECOND) + SECONDS_PER_YEAR,
+              expirationDate: event.target.checked
+                ? null
+                : Math.floor(Date.now() / MILLISECONDS_PER_SECOND) + SECONDS_PER_YEAR,
             })
           }
         />
@@ -148,7 +155,7 @@ const CookieForm = ({ draft, onChange, onSave, onDelete, onCancel, isNew }: Cook
         Guardar
       </Button>
       <Button variant="danger" icon="trash" onClick={onDelete}>
-        {isNew ? 'Descartar' : 'Borrar'}
+        {isNew ? "Descartar" : "Borrar"}
       </Button>
       <Button variant="ghost" onClick={onCancel}>
         Cerrar
@@ -160,27 +167,27 @@ const CookieForm = ({ draft, onChange, onSave, onDelete, onCancel, isNew }: Cook
 export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
   const { notify } = useToasts();
   const cookies = useCookies(activeTab);
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState("");
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [draft, setDraft] = useState<CookieSnapshot | null>(null);
   const [newCookie, setNewCookie] = useState<CookieSnapshot | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [snapshotName, setSnapshotName] = useState('');
-  const [importing, setImporting] = usePendingImport('cookies');
+  const [snapshotName, setSnapshotName] = useState("");
+  const [importing, setImporting] = usePendingImport("cookies");
 
   const normalizedFilter = filter.trim().toLowerCase();
   const visible = normalizedFilter
     ? cookies.rows.filter(
         (row) =>
           row.item.name.toLowerCase().includes(normalizedFilter) ||
-          row.item.value.toLowerCase().includes(normalizedFilter)
+          row.item.value.toLowerCase().includes(normalizedFilter),
       )
     : cookies.rows;
 
   return (
     <ViewShell
       title="Cookies"
-      subtitle={activeTab.hostname ? `Cookies de ${activeTab.hostname}` : 'Abri una pagina http(s)'}
+      subtitle={activeTab.hostname ? `Cookies de ${activeTab.hostname}` : "Abri una pagina http(s)"}
       actions={
         <>
           <Button small icon="refresh" variant="ghost" onClick={cookies.reload} title="Recargar">
@@ -194,13 +201,19 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
             icon="download"
             disabled={!cookies.liveCookies.length}
             onClick={() => {
-              downloadJson(`cookies-${activeTab.hostname || 'export'}.json`, cookies.liveCookies);
-              notify('Cookies exportadas', 'success');
+              downloadJson(`cookies-${activeTab.hostname || "export"}.json`, cookies.liveCookies);
+              notify("Cookies exportadas", "success");
             }}
           >
             Exportar
           </Button>
-          <Button small variant="danger" icon="trash" disabled={!cookies.rows.length} onClick={() => setConfirmClear(true)}>
+          <Button
+            small
+            variant="danger"
+            icon="trash"
+            disabled={!cookies.rows.length}
+            onClick={() => setConfirmClear(true)}
+          >
             Borrar todas
           </Button>
         </>
@@ -214,7 +227,7 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
           confirmLabel="Borrar todas"
           onCancel={() => setConfirmClear(false)}
           onConfirm={() => {
-            void cookies.removeAll().then(() => notify('Cookies borradas'));
+            void cookies.removeAll().then(() => notify("Cookies borradas"));
             setConfirmClear(false);
           }}
         />
@@ -236,8 +249,8 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
             disabled={!snapshotName.trim() || !cookies.liveCookies.length}
             onClick={() => {
               const name = snapshotName.trim();
-              void cookies.saveSnapshotSet(name).then(() => notify(`Snapshot "${name}" guardado`, 'success'));
-              setSnapshotName('');
+              void cookies.saveSnapshotSet(name).then(() => notify(`Snapshot "${name}" guardado`, "success"));
+              setSnapshotName("");
             }}
           >
             Guardar actual
@@ -247,7 +260,7 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
         {cookies.snapshotSets.length ? (
           <div className="list" style={{ marginTop: 8 }}>
             {cookies.snapshotSets.map((set) => (
-              <div key={set.id} className="row" style={{ gap: 8, padding: '6px 0' }}>
+              <div key={set.id} className="row" style={{ gap: 8, padding: "6px 0" }}>
                 <strong className="text-small">{set.name}</strong>
                 <span className="text-small text-muted">
                   {set.cookies.length} cookie(s) · {new Date(set.createdAt).toLocaleString()}
@@ -260,7 +273,7 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
                   onClick={() =>
                     void cookies
                       .restoreSnapshotSet(set)
-                      .then(() => notify(`Snapshot "${set.name}" restaurado`, 'success'))
+                      .then(() => notify(`Snapshot "${set.name}" restaurado`, "success"))
                   }
                 >
                   Restaurar
@@ -269,7 +282,9 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
                   small
                   variant="danger"
                   icon="trash"
-                  onClick={() => void cookies.deleteSnapshotSet(set.id).then(() => notify('Snapshot borrado'))}
+                  onClick={() =>
+                    void cookies.deleteSnapshotSet(set.id).then(() => notify("Snapshot borrado"))
+                  }
                 >
                   Borrar
                 </Button>
@@ -278,7 +293,8 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
           </div>
         ) : (
           <p className="text-small text-muted" style={{ margin: 0 }}>
-            Todavia no guardaste ninguno. Restaurar borra las cookies actuales del dominio y escribe las del snapshot.
+            Todavia no guardaste ninguno. Restaurar borra las cookies actuales del dominio y escribe las del
+            snapshot.
           </p>
         )}
       </Card>
@@ -289,7 +305,7 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
           small
           icon="plus"
           disabled={!activeTab.injectable}
-          onClick={() => setNewCookie(blankCookie(activeTab.hostname, activeTab.url.startsWith('https')))}
+          onClick={() => setNewCookie(blankCookie(activeTab.hostname, activeTab.url.startsWith("https")))}
         >
           Nueva cookie
         </Button>
@@ -304,7 +320,7 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
             onCancel={() => setNewCookie(null)}
             onDelete={() => setNewCookie(null)}
             onSave={() => {
-              void cookies.save(null, newCookie, false).then(() => notify('Cookie creada', 'success'));
+              void cookies.save(null, newCookie, false).then(() => notify("Cookie creada", "success"));
               setNewCookie(null);
             }}
           />
@@ -319,7 +335,7 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
             return (
               <ToggleCard
                 key={row.key}
-                name={row.item.name || '(sin nombre)'}
+                name={row.item.name || "(sin nombre)"}
                 preview={row.item.value}
                 off={row.off}
                 reappeared={row.reappeared}
@@ -340,12 +356,14 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
                     setDraft(null);
                   }}
                   onDelete={() => {
-                    void cookies.remove(row.item, row.off).then(() => notify('Cookie borrada'));
+                    void cookies.remove(row.item, row.off).then(() => notify("Cookie borrada"));
                     setExpandedKey(null);
                     setDraft(null);
                   }}
                   onSave={() => {
-                    void cookies.save(row.item, current, row.off).then(() => notify('Cookie guardada', 'success'));
+                    void cookies
+                      .save(row.item, current, row.off)
+                      .then(() => notify("Cookie guardada", "success"));
                     setExpandedKey(cookieKeyOf(current) === row.key ? row.key : null);
                     setDraft(null);
                   }}
@@ -357,7 +375,9 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
       ) : (
         <EmptyState
           icon="cookie"
-          title={cookies.rows.length ? 'Ninguna cookie coincide con el filtro' : 'No hay cookies para este dominio'}
+          title={
+            cookies.rows.length ? "Ninguna cookie coincide con el filtro" : "No hay cookies para este dominio"
+          }
         />
       )}
 
@@ -371,7 +391,10 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
           onImport={(text) => {
             const parsed = parseCookies(text, activeTab.hostname);
             void cookies.importCookies(parsed).then((imported) => {
-              notify(`${imported}/${parsed.length} cookies importadas`, imported === parsed.length ? 'success' : 'error');
+              notify(
+                `${imported}/${parsed.length} cookies importadas`,
+                imported === parsed.length ? "success" : "error",
+              );
             });
           }}
         />

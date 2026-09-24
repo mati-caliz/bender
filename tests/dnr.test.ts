@@ -1,15 +1,20 @@
-import { describe, expect, it } from 'vitest';
-import { DEFAULT_CORS_CONFIG, DEFAULT_USER_AGENT_CONFIG, createDefaultState, createEmptyScope } from '@/lib/constants';
-import { type CompileContext, compileRules, dependsOnTabs } from '@/lib/dnr';
-import { createHeaderEntry } from '@/lib/factories';
-import type { HeaderEntry, Profile, ToolkitState, TrafficRule, TrafficRuleAction } from '@/types';
+import { describe, expect, it } from "vitest";
+import {
+  DEFAULT_CORS_CONFIG,
+  DEFAULT_USER_AGENT_CONFIG,
+  createDefaultState,
+  createEmptyScope,
+} from "@/lib/constants";
+import { type CompileContext, compileRules, dependsOnTabs } from "@/lib/dnr";
+import { createHeaderEntry } from "@/lib/factories";
+import type { HeaderEntry, Profile, ToolkitState, TrafficRule, TrafficRuleAction } from "@/types";
 
 const EMPTY_CONTEXT: CompileContext = { activeTabId: null, tabs: [] };
 
 const profileWith = (overrides: Partial<Profile>): Profile => ({
-  id: 'profile-1',
-  name: 'Test',
-  color: '#000000',
+  id: "profile-1",
+  name: "Test",
+  color: "#000000",
   enabled: true,
   scope: createEmptyScope(),
   requestHeaders: [],
@@ -18,40 +23,43 @@ const profileWith = (overrides: Partial<Profile>): Profile => ({
 });
 
 const trafficRuleWith = (action: TrafficRuleAction, overrides: Partial<TrafficRule> = {}): TrafficRule => ({
-  id: 'rule-1',
-  name: 'Regla',
+  id: "rule-1",
+  name: "Regla",
   enabled: true,
   scope: createEmptyScope(),
   action,
   ...overrides,
 });
 
-const stateWith = (overrides: Partial<ToolkitState>): ToolkitState => ({ ...createDefaultState(), ...overrides });
+const stateWith = (overrides: Partial<ToolkitState>): ToolkitState => ({
+  ...createDefaultState(),
+  ...overrides,
+});
 
 const header = (name: string, value: string, overrides: Partial<HeaderEntry> = {}): HeaderEntry =>
   createHeaderEntry({ name, value, ...overrides });
 
 const errorMessages = (state: ToolkitState, context: CompileContext = EMPTY_CONTEXT): string[] =>
   compileRules(state, context)
-    .diagnostics.filter((diagnostic) => diagnostic.level === 'error')
+    .diagnostics.filter((diagnostic) => diagnostic.level === "error")
     .map((diagnostic) => diagnostic.message);
 
-describe('compileRules con el motor apagado', () => {
-  it('no genera ninguna regla', () => {
+describe("compileRules con el motor apagado", () => {
+  it("no genera ninguna regla", () => {
     const state = stateWith({
       globalEnabled: false,
-      profiles: [profileWith({ requestHeaders: [header('x-test', '1')] })],
+      profiles: [profileWith({ requestHeaders: [header("x-test", "1")] })],
     });
     expect(compileRules(state, EMPTY_CONTEXT).rules).toEqual([]);
   });
 });
 
-describe('compileRules con perfiles', () => {
-  it('ignora perfiles apagados y cuenta los activos', () => {
+describe("compileRules con perfiles", () => {
+  it("ignora perfiles apagados y cuenta los activos", () => {
     const state = stateWith({
       profiles: [
-        profileWith({ id: 'a', requestHeaders: [header('x-uno', '1')] }),
-        profileWith({ id: 'b', enabled: false, requestHeaders: [header('x-dos', '2')] }),
+        profileWith({ id: "a", requestHeaders: [header("x-uno", "1")] }),
+        profileWith({ id: "b", enabled: false, requestHeaders: [header("x-dos", "2")] }),
       ],
     });
     const compiled = compileRules(state, EMPTY_CONTEXT);
@@ -59,65 +67,67 @@ describe('compileRules con perfiles', () => {
     expect(compiled.rules).toHaveLength(1);
   });
 
-  it('ignora perfiles sin headers utiles', () => {
+  it("ignora perfiles sin headers utiles", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('  ', 'x'), header('x-off', '1', { enabled: false })] })],
+      profiles: [
+        profileWith({ requestHeaders: [header("  ", "x"), header("x-off", "1", { enabled: false })] }),
+      ],
     });
     expect(compileRules(state, EMPTY_CONTEXT).rules).toEqual([]);
   });
 
-  it('da mas prioridad al perfil que esta mas abajo en la lista', () => {
+  it("da mas prioridad al perfil que esta mas abajo en la lista", () => {
     const state = stateWith({
       profiles: [
-        profileWith({ id: 'a', requestHeaders: [header('x-uno', '1')] }),
-        profileWith({ id: 'b', requestHeaders: [header('x-dos', '2')] }),
+        profileWith({ id: "a", requestHeaders: [header("x-uno", "1")] }),
+        profileWith({ id: "b", requestHeaders: [header("x-dos", "2")] }),
       ],
     });
     const [first, second] = compileRules(state, EMPTY_CONTEXT).rules;
     expect(second?.priority).toBeGreaterThan(first?.priority ?? 0);
   });
 
-  it('descarta un nombre de header invalido y lo reporta', () => {
-    const state = stateWith({ profiles: [profileWith({ requestHeaders: [header('x test', '1')] })] });
-    expect(errorMessages(state)[0]).toContain('x test');
+  it("descarta un nombre de header invalido y lo reporta", () => {
+    const state = stateWith({ profiles: [profileWith({ requestHeaders: [header("x test", "1")] })] });
+    expect(errorMessages(state)[0]).toContain("x test");
   });
 
-  it('omite el valor en la operacion remove', () => {
+  it("omite el valor en la operacion remove", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('x-borrar', 'ignorado', { operation: 'remove' })] })],
+      profiles: [profileWith({ requestHeaders: [header("x-borrar", "ignorado", { operation: "remove" })] })],
     });
     const [rule] = compileRules(state, EMPTY_CONTEXT).rules;
-    expect(rule?.action.requestHeaders).toEqual([{ header: 'x-borrar', operation: 'remove' }]);
+    expect(rule?.action.requestHeaders).toEqual([{ header: "x-borrar", operation: "remove" }]);
   });
 
-  it('deduplica un set repetido avisando, pero conserva todos los append', () => {
+  it("deduplica un set repetido avisando, pero conserva todos los append", () => {
     const state = stateWith({
       profiles: [
         profileWith({
           requestHeaders: [
-            header('x-uno', 'a'),
-            header('X-Uno', 'b'),
-            header('x-dos', 'c', { operation: 'append' }),
-            header('x-dos', 'd', { operation: 'append' }),
+            header("x-uno", "a"),
+            header("X-Uno", "b"),
+            header("x-dos", "c", { operation: "append" }),
+            header("x-dos", "d", { operation: "append" }),
           ],
         }),
       ],
     });
     const compiled = compileRules(state, EMPTY_CONTEXT);
     const requestHeaders = compiled.rules[0]?.action.requestHeaders ?? [];
-    expect(requestHeaders.filter((entry) => entry.header.toLowerCase() === 'x-uno')).toEqual([
-      { header: 'X-Uno', operation: 'set', value: 'b' },
+    expect(requestHeaders.filter((entry) => entry.header.toLowerCase() === "x-uno")).toEqual([
+      { header: "X-Uno", operation: "set", value: "b" },
     ]);
-    expect(requestHeaders.filter((entry) => entry.header === 'x-dos')).toHaveLength(2);
-    expect(compiled.diagnostics.some((diagnostic) => diagnostic.level === 'warning')).toBe(true);
+    expect(requestHeaders.filter((entry) => entry.header === "x-dos")).toHaveLength(2);
+    expect(compiled.diagnostics.some((diagnostic) => diagnostic.level === "warning")).toBe(true);
   });
 
-  it('saltea el perfil cuando pide la pestaña activa y no hay ninguna', () => {
+  it("saltea el perfil cuando pide la pestaña activa y no hay ninguna", () => {
     const state = stateWith({
       profiles: [
         profileWith({
           scope: { ...createEmptyScope(), activeTabOnly: true },
-          requestHeaders: [header('x-test', '1')],
+          requestHeaders: [header("x-test", "1")],
         }),
       ],
     });
@@ -125,189 +135,205 @@ describe('compileRules con perfiles', () => {
   });
 });
 
-describe('compileRules con CORS', () => {
-  it('genera una regla por pestaña cuando refleja el origen', () => {
-    const state = stateWith({ cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: 'reflect' } });
+describe("compileRules con CORS", () => {
+  it("genera una regla por pestaña cuando refleja el origen", () => {
+    const state = stateWith({ cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: "reflect" } });
     const compiled = compileRules(state, {
       activeTabId: 1,
       tabs: [
-        { id: 1, origin: 'https://uno.com', url: 'https://uno.com/a' },
-        { id: 2, origin: 'https://dos.com', url: 'https://dos.com/b' },
+        { id: 1, origin: "https://uno.com", url: "https://uno.com/a" },
+        { id: 2, origin: "https://dos.com", url: "https://dos.com/b" },
       ],
     });
     expect(compiled.rules).toHaveLength(2);
     expect(compiled.rules[0]?.condition.tabIds).toEqual([1]);
     expect(compiled.rules[1]?.action.responseHeaders?.[0]).toEqual({
-      header: 'access-control-allow-origin',
-      operation: 'set',
-      value: 'https://dos.com',
+      header: "access-control-allow-origin",
+      operation: "set",
+      value: "https://dos.com",
     });
   });
 
-  it('avisa cuando refleja el origen y no hay pestañas', () => {
-    const state = stateWith({ cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: 'reflect' } });
+  it("avisa cuando refleja el origen y no hay pestañas", () => {
+    const state = stateWith({ cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: "reflect" } });
     const compiled = compileRules(state, EMPTY_CONTEXT);
     expect(compiled.rules).toEqual([]);
-    expect(compiled.diagnostics[0]?.level).toBe('warning');
+    expect(compiled.diagnostics[0]?.level).toBe("warning");
   });
 
-  it('avisa que el comodin no convive con credenciales', () => {
+  it("avisa que el comodin no convive con credenciales", () => {
     const state = stateWith({
-      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: 'wildcard', allowCredentials: true },
+      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: "wildcard", allowCredentials: true },
     });
     const compiled = compileRules(state, EMPTY_CONTEXT);
-    expect(compiled.diagnostics.some((diagnostic) => diagnostic.message.includes('credenciales'))).toBe(true);
+    expect(compiled.diagnostics.some((diagnostic) => diagnostic.message.includes("credenciales"))).toBe(true);
     expect(compiled.rules).toHaveLength(1);
   });
 
-  it('falla cuando el origen a medida esta vacio', () => {
+  it("falla cuando el origen a medida esta vacio", () => {
     const state = stateWith({
-      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: 'custom', customOrigin: '   ' },
+      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: "custom", customOrigin: "   " },
     });
-    expect(errorMessages(state)[0]).toContain('origen permitido');
+    expect(errorMessages(state)[0]).toContain("origen permitido");
   });
 
-  it('saca credenciales, CSP y x-frame-options cuando corresponde', () => {
+  it("saca credenciales, CSP y x-frame-options cuando corresponde", () => {
     const state = stateWith({
       cors: {
         ...DEFAULT_CORS_CONFIG,
         enabled: true,
-        allowOrigin: 'wildcard',
+        allowOrigin: "wildcard",
         allowCredentials: false,
         removeContentSecurityPolicy: true,
         removeFrameOptions: true,
       },
     });
     const removed = (compileRules(state, EMPTY_CONTEXT).rules[0]?.action.responseHeaders ?? [])
-      .filter((entry) => entry.operation === 'remove')
+      .filter((entry) => entry.operation === "remove")
       .map((entry) => entry.header);
     expect(removed).toEqual([
-      'access-control-allow-credentials',
-      'content-security-policy',
-      'content-security-policy-report-only',
-      'x-frame-options',
+      "access-control-allow-credentials",
+      "content-security-policy",
+      "content-security-policy-report-only",
+      "x-frame-options",
     ]);
   });
 });
 
-describe('compileRules con User-Agent', () => {
-  it('le gana en prioridad a los perfiles', () => {
+describe("compileRules con User-Agent", () => {
+  it("le gana en prioridad a los perfiles", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('user-agent', 'a mano')] })],
-      userAgent: { ...DEFAULT_USER_AGENT_CONFIG, enabled: true, value: 'curl/8.7.1' },
+      profiles: [profileWith({ requestHeaders: [header("user-agent", "a mano")] })],
+      userAgent: { ...DEFAULT_USER_AGENT_CONFIG, enabled: true, value: "curl/8.7.1" },
     });
     const compiled = compileRules(state, EMPTY_CONTEXT);
     const [profileRule, userAgentRule] = compiled.rules;
     expect(userAgentRule?.priority).toBeGreaterThan(profileRule?.priority ?? 0);
   });
 
-  it('deriva los client hints de un user agent mobile', () => {
+  it("deriva los client hints de un user agent mobile", () => {
     const state = stateWith({
       userAgent: {
         ...DEFAULT_USER_AGENT_CONFIG,
         enabled: true,
-        value: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/126.0.0.0 Mobile Safari/537.36',
+        value: "Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/126.0.0.0 Mobile Safari/537.36",
         spoofClientHints: true,
       },
     });
     const requestHeaders = compileRules(state, EMPTY_CONTEXT).rules[0]?.action.requestHeaders ?? [];
-    expect(requestHeaders).toContainEqual({ header: 'sec-ch-ua-mobile', operation: 'set', value: '?1' });
-    expect(requestHeaders).toContainEqual({ header: 'sec-ch-ua-platform', operation: 'set', value: '"Android"' });
-    expect(requestHeaders.some((entry) => entry.header === 'sec-ch-ua')).toBe(false);
+    expect(requestHeaders).toContainEqual({ header: "sec-ch-ua-mobile", operation: "set", value: "?1" });
+    expect(requestHeaders).toContainEqual({
+      header: "sec-ch-ua-platform",
+      operation: "set",
+      value: '"Android"',
+    });
+    expect(requestHeaders.some((entry) => entry.header === "sec-ch-ua")).toBe(false);
   });
 
-  it('borra los client hints de marca cuando el user agent no es chromium', () => {
+  it("borra los client hints de marca cuando el user agent no es chromium", () => {
     const state = stateWith({
-      userAgent: { ...DEFAULT_USER_AGENT_CONFIG, enabled: true, value: 'curl/8.7.1', spoofClientHints: true },
+      userAgent: { ...DEFAULT_USER_AGENT_CONFIG, enabled: true, value: "curl/8.7.1", spoofClientHints: true },
     });
     const requestHeaders = compileRules(state, EMPTY_CONTEXT).rules[0]?.action.requestHeaders ?? [];
-    expect(requestHeaders).toContainEqual({ header: 'sec-ch-ua', operation: 'remove' });
-    expect(requestHeaders).toContainEqual({ header: 'sec-ch-ua-mobile', operation: 'set', value: '?0' });
+    expect(requestHeaders).toContainEqual({ header: "sec-ch-ua", operation: "remove" });
+    expect(requestHeaders).toContainEqual({ header: "sec-ch-ua-mobile", operation: "set", value: "?0" });
   });
 
-  it('no toca los client hints cuando esta desactivado', () => {
+  it("no toca los client hints cuando esta desactivado", () => {
     const state = stateWith({
-      userAgent: { ...DEFAULT_USER_AGENT_CONFIG, enabled: true, value: 'curl/8.7.1', spoofClientHints: false },
+      userAgent: {
+        ...DEFAULT_USER_AGENT_CONFIG,
+        enabled: true,
+        value: "curl/8.7.1",
+        spoofClientHints: false,
+      },
     });
     const requestHeaders = compileRules(state, EMPTY_CONTEXT).rules[0]?.action.requestHeaders ?? [];
-    expect(requestHeaders).toEqual([{ header: 'user-agent', operation: 'set', value: 'curl/8.7.1' }]);
+    expect(requestHeaders).toEqual([{ header: "user-agent", operation: "set", value: "curl/8.7.1" }]);
   });
 
-  it('falla cuando el valor esta vacio', () => {
-    const state = stateWith({ userAgent: { ...DEFAULT_USER_AGENT_CONFIG, enabled: true, value: '  ' } });
-    expect(errorMessages(state)[0]).toContain('User-Agent');
+  it("falla cuando el valor esta vacio", () => {
+    const state = stateWith({ userAgent: { ...DEFAULT_USER_AGENT_CONFIG, enabled: true, value: "  " } });
+    expect(errorMessages(state)[0]).toContain("User-Agent");
   });
 });
 
-describe('compileRules con reglas de trafico', () => {
-  it('ignora los mocks porque no pasan por DNR', () => {
+describe("compileRules con reglas de trafico", () => {
+  it("ignora los mocks porque no pasan por DNR", () => {
     const state = stateWith({
       trafficRules: [
-        trafficRuleWith({ kind: 'mock', status: 200, contentType: 'application/json', body: '{}', delayMs: 0, headers: [] }),
+        trafficRuleWith({
+          kind: "mock",
+          status: 200,
+          contentType: "application/json",
+          body: "{}",
+          delayMs: 0,
+          headers: [],
+        }),
       ],
     });
     expect(compileRules(state, EMPTY_CONTEXT).rules).toEqual([]);
   });
 
-  it('el bloqueo le gana al redirect', () => {
+  it("el bloqueo le gana al redirect", () => {
     const state = stateWith({
       trafficRules: [
-        trafficRuleWith({ kind: 'redirect', target: 'https://destino.com/', useRegex: false }, { id: 'r' }),
-        trafficRuleWith({ kind: 'block' }, { id: 'b' }),
+        trafficRuleWith({ kind: "redirect", target: "https://destino.com/", useRegex: false }, { id: "r" }),
+        trafficRuleWith({ kind: "block" }, { id: "b" }),
       ],
     });
     const [redirect, block] = compileRules(state, EMPTY_CONTEXT).rules;
     expect(block?.priority).toBeGreaterThan(redirect?.priority ?? 0);
   });
 
-  it('cambia urlFilter por regexFilter cuando el redirect usa regex', () => {
+  it("cambia urlFilter por regexFilter cuando el redirect usa regex", () => {
     const state = stateWith({
       trafficRules: [
         trafficRuleWith(
-          { kind: 'redirect', target: 'https://local.test/\\1', useRegex: true },
-          { scope: { ...createEmptyScope(), urlFilter: '^https://api\\.com/(.*)$' } }
+          { kind: "redirect", target: "https://local.test/\\1", useRegex: true },
+          { scope: { ...createEmptyScope(), urlFilter: "^https://api\\.com/(.*)$" } },
         ),
       ],
     });
     const [rule] = compileRules(state, EMPTY_CONTEXT).rules;
-    expect(rule?.condition.regexFilter).toBe('^https://api\\.com/(.*)$');
+    expect(rule?.condition.regexFilter).toBe("^https://api\\.com/(.*)$");
     expect(rule?.condition.urlFilter).toBeUndefined();
-    expect(rule?.action.redirect).toEqual({ regexSubstitution: 'https://local.test/\\1' });
+    expect(rule?.action.redirect).toEqual({ regexSubstitution: "https://local.test/\\1" });
   });
 
-  it('falla con regex invalida, patron vacio, destino vacio o destino relativo', () => {
+  it("falla con regex invalida, patron vacio, destino vacio o destino relativo", () => {
     const regexInvalida = stateWith({
       trafficRules: [
         trafficRuleWith(
-          { kind: 'redirect', target: 'https://destino.com/', useRegex: true },
-          { scope: { ...createEmptyScope(), urlFilter: '([' } }
+          { kind: "redirect", target: "https://destino.com/", useRegex: true },
+          { scope: { ...createEmptyScope(), urlFilter: "([" } },
         ),
       ],
     });
     const patronVacio = stateWith({
-      trafficRules: [trafficRuleWith({ kind: 'redirect', target: 'https://destino.com/', useRegex: true })],
+      trafficRules: [trafficRuleWith({ kind: "redirect", target: "https://destino.com/", useRegex: true })],
     });
     const destinoVacio = stateWith({
-      trafficRules: [trafficRuleWith({ kind: 'redirect', target: '  ', useRegex: false })],
+      trafficRules: [trafficRuleWith({ kind: "redirect", target: "  ", useRegex: false })],
     });
     const destinoRelativo = stateWith({
-      trafficRules: [trafficRuleWith({ kind: 'redirect', target: '/local', useRegex: false })],
+      trafficRules: [trafficRuleWith({ kind: "redirect", target: "/local", useRegex: false })],
     });
 
-    expect(errorMessages(regexInvalida)[0]).toContain('regex');
-    expect(errorMessages(patronVacio)[0]).toContain('patron de URL');
-    expect(errorMessages(destinoVacio)[0]).toContain('destino');
-    expect(errorMessages(destinoRelativo)[0]).toContain('URL absoluta');
+    expect(errorMessages(regexInvalida)[0]).toContain("regex");
+    expect(errorMessages(patronVacio)[0]).toContain("patron de URL");
+    expect(errorMessages(destinoVacio)[0]).toContain("destino");
+    expect(errorMessages(destinoRelativo)[0]).toContain("URL absoluta");
   });
 });
 
-describe('compileRules en conjunto', () => {
-  it('numera las reglas sin repetir y etiqueta cada una', () => {
+describe("compileRules en conjunto", () => {
+  it("numera las reglas sin repetir y etiqueta cada una", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('x-test', '1')] })],
-      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: 'wildcard', allowCredentials: false },
-      userAgent: { ...DEFAULT_USER_AGENT_CONFIG, enabled: true, value: 'curl/8.7.1' },
-      trafficRules: [trafficRuleWith({ kind: 'block' })],
+      profiles: [profileWith({ requestHeaders: [header("x-test", "1")] })],
+      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: "wildcard", allowCredentials: false },
+      userAgent: { ...DEFAULT_USER_AGENT_CONFIG, enabled: true, value: "curl/8.7.1" },
+      trafficRules: [trafficRuleWith({ kind: "block" })],
     });
     const compiled = compileRules(state, EMPTY_CONTEXT);
     const ids = compiled.rules.map((rule) => rule.id);
@@ -316,17 +342,17 @@ describe('compileRules en conjunto', () => {
   });
 });
 
-describe('dependsOnTabs', () => {
-  it('es falso cuando nada depende de la pestaña activa', () => {
+describe("dependsOnTabs", () => {
+  it("es falso cuando nada depende de la pestaña activa", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('x-test', '1')] })],
-      trafficRules: [trafficRuleWith({ kind: 'block' })],
+      profiles: [profileWith({ requestHeaders: [header("x-test", "1")] })],
+      trafficRules: [trafficRuleWith({ kind: "block" })],
     });
 
     expect(dependsOnTabs(state)).toBe(false);
   });
 
-  it('es verdadero si un perfil activo usa solo la pestaña activa', () => {
+  it("es verdadero si un perfil activo usa solo la pestaña activa", () => {
     const state = stateWith({
       profiles: [profileWith({ scope: { ...createEmptyScope(), activeTabOnly: true } })],
     });
@@ -334,7 +360,7 @@ describe('dependsOnTabs', () => {
     expect(dependsOnTabs(state)).toBe(true);
   });
 
-  it('ignora los perfiles apagados', () => {
+  it("ignora los perfiles apagados", () => {
     const state = stateWith({
       profiles: [profileWith({ enabled: false, scope: { ...createEmptyScope(), activeTabOnly: true } })],
     });
@@ -342,48 +368,48 @@ describe('dependsOnTabs', () => {
     expect(dependsOnTabs(state)).toBe(false);
   });
 
-  it('es verdadero si CORS refleja el origen', () => {
+  it("es verdadero si CORS refleja el origen", () => {
     const state = stateWith({
-      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: 'reflect' },
+      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: "reflect" },
     });
 
     expect(dependsOnTabs(state)).toBe(true);
   });
 
-  it('es falso con el motor apagado', () => {
+  it("es falso con el motor apagado", () => {
     const state = stateWith({
       globalEnabled: false,
-      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: 'reflect' },
+      cors: { ...DEFAULT_CORS_CONFIG, enabled: true, allowOrigin: "reflect" },
     });
 
     expect(dependsOnTabs(state)).toBe(false);
   });
 });
 
-describe('compileRules con metodos e iniciador', () => {
-  it('lleva metodos y dominios iniciadores a la condicion de la regla', () => {
+describe("compileRules con metodos e iniciador", () => {
+  it("lleva metodos y dominios iniciadores a la condicion de la regla", () => {
     const state = stateWith({
       profiles: [
         profileWith({
-          requestHeaders: [header('x-test', '1')],
+          requestHeaders: [header("x-test", "1")],
           scope: {
             ...createEmptyScope(),
-            requestMethods: ['post', 'put'],
-            initiatorDomains: ['app.local'],
-            excludedInitiatorDomains: ['admin.local'],
+            requestMethods: ["post", "put"],
+            initiatorDomains: ["app.local"],
+            excludedInitiatorDomains: ["admin.local"],
           },
         }),
       ],
     });
     const [rule] = compileRules(state, EMPTY_CONTEXT).rules;
 
-    expect(rule?.condition.requestMethods).toEqual(['post', 'put']);
-    expect(rule?.condition.initiatorDomains).toEqual(['app.local']);
-    expect(rule?.condition.excludedInitiatorDomains).toEqual(['admin.local']);
+    expect(rule?.condition.requestMethods).toEqual(["post", "put"]);
+    expect(rule?.condition.initiatorDomains).toEqual(["app.local"]);
+    expect(rule?.condition.excludedInitiatorDomains).toEqual(["admin.local"]);
   });
 
-  it('no manda metodos ni iniciador cuando el alcance no los define', () => {
-    const state = stateWith({ profiles: [profileWith({ requestHeaders: [header('x-test', '1')] })] });
+  it("no manda metodos ni iniciador cuando el alcance no los define", () => {
+    const state = stateWith({ profiles: [profileWith({ requestHeaders: [header("x-test", "1")] })] });
     const [rule] = compileRules(state, EMPTY_CONTEXT).rules;
 
     expect(rule?.condition.requestMethods).toBeUndefined();
@@ -391,21 +417,21 @@ describe('compileRules con metodos e iniciador', () => {
   });
 });
 
-describe('compileRules con valores dinamicos', () => {
+describe("compileRules con valores dinamicos", () => {
   const tabContext: CompileContext = {
     activeTabId: 1,
-    tabs: [{ id: 1, origin: 'https://app.local', url: 'https://app.local/panel?x=1' }],
+    tabs: [{ id: 1, origin: "https://app.local", url: "https://app.local/panel?x=1" }],
   };
 
-  it('resuelve los marcadores de pestaña y de tiempo', () => {
+  it("resuelve los marcadores de pestaña y de tiempo", () => {
     const state = stateWith({
       profiles: [
         profileWith({
           requestHeaders: [
-            header('x-origen', '{{tabOrigin}}'),
-            header('x-host', '{{tabHostname}}'),
-            header('x-url', '{{tabUrl}}'),
-            header('x-unix', '{{unix}}'),
+            header("x-origen", "{{tabOrigin}}"),
+            header("x-host", "{{tabHostname}}"),
+            header("x-url", "{{tabUrl}}"),
+            header("x-unix", "{{unix}}"),
           ],
         }),
       ],
@@ -413,55 +439,55 @@ describe('compileRules con valores dinamicos', () => {
     const [rule] = compileRules(state, tabContext).rules;
     const values = rule?.action.requestHeaders?.map((entry) => entry.value);
 
-    expect(values?.[0]).toBe('https://app.local');
-    expect(values?.[1]).toBe('app.local');
-    expect(values?.[2]).toBe('https://app.local/panel?x=1');
+    expect(values?.[0]).toBe("https://app.local");
+    expect(values?.[1]).toBe("app.local");
+    expect(values?.[2]).toBe("https://app.local/panel?x=1");
     expect(values?.[3]).toMatch(/^\d+$/);
   });
 
-  it('genera un uuid distinto por ocurrencia', () => {
+  it("genera un uuid distinto por ocurrencia", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('x-par', '{{uuid}}|{{uuid}}')] })],
+      profiles: [profileWith({ requestHeaders: [header("x-par", "{{uuid}}|{{uuid}}")] })],
     });
     const [rule] = compileRules(state, tabContext).rules;
-    const [primero, segundo] = (rule?.action.requestHeaders?.[0]?.value ?? '').split('|');
+    const [primero, segundo] = (rule?.action.requestHeaders?.[0]?.value ?? "").split("|");
 
     expect(primero).toBeTruthy();
     expect(segundo).toBeTruthy();
     expect(primero).not.toBe(segundo);
   });
 
-  it('deja el marcador desconocido tal cual y avisa', () => {
+  it("deja el marcador desconocido tal cual y avisa", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('x-test', '{{noExiste}}')] })],
+      profiles: [profileWith({ requestHeaders: [header("x-test", "{{noExiste}}")] })],
     });
     const compiled = compileRules(state, tabContext);
 
-    expect(compiled.rules[0]?.action.requestHeaders?.[0]?.value).toBe('{{noExiste}}');
-    expect(compiled.diagnostics.some((diagnostic) => diagnostic.message.includes('noExiste'))).toBe(true);
+    expect(compiled.rules[0]?.action.requestHeaders?.[0]?.value).toBe("{{noExiste}}");
+    expect(compiled.diagnostics.some((diagnostic) => diagnostic.message.includes("noExiste"))).toBe(true);
   });
 
-  it('vacia los marcadores de pestaña cuando no hay pestaña activa y avisa', () => {
+  it("vacia los marcadores de pestaña cuando no hay pestaña activa y avisa", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('x-url', 'pre-{{tabUrl}}-post')] })],
+      profiles: [profileWith({ requestHeaders: [header("x-url", "pre-{{tabUrl}}-post")] })],
     });
     const compiled = compileRules(state, EMPTY_CONTEXT);
 
-    expect(compiled.rules[0]?.action.requestHeaders?.[0]?.value).toBe('pre--post');
-    expect(compiled.diagnostics.some((diagnostic) => diagnostic.message.includes('tabUrl'))).toBe(true);
+    expect(compiled.rules[0]?.action.requestHeaders?.[0]?.value).toBe("pre--post");
+    expect(compiled.diagnostics.some((diagnostic) => diagnostic.message.includes("tabUrl"))).toBe(true);
   });
 
-  it('obliga a recompilar por pestaña si un header usa un marcador de pestaña', () => {
+  it("obliga a recompilar por pestaña si un header usa un marcador de pestaña", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('x-url', '{{tabUrl}}')] })],
+      profiles: [profileWith({ requestHeaders: [header("x-url", "{{tabUrl}}")] })],
     });
 
     expect(dependsOnTabs(state)).toBe(true);
   });
 
-  it('no obliga a recompilar por pestaña con marcadores que no dependen de ella', () => {
+  it("no obliga a recompilar por pestaña con marcadores que no dependen de ella", () => {
     const state = stateWith({
-      profiles: [profileWith({ requestHeaders: [header('x-id', '{{uuid}}')] })],
+      profiles: [profileWith({ requestHeaders: [header("x-id", "{{uuid}}")] })],
     });
 
     expect(dependsOnTabs(state)).toBe(false);

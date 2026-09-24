@@ -1,4 +1,4 @@
-import type { DesignAudit } from '@/types';
+import type { DesignAudit } from "@/types";
 
 export const MAX_AUDITED_ELEMENTS = 4000;
 export const MAX_AUDIT_RESULTS = 60;
@@ -9,35 +9,37 @@ export const auditPageDesign = (maxElements: number, maxResults: number): Design
   const DEFAULT_ROOT_FONT_SIZE = 16;
   const NUMBER_PATTERN = /[-+]?\d*\.?\d+/g;
   const SPACING_PROPERTIES = [
-    'paddingTop',
-    'paddingRight',
-    'paddingBottom',
-    'paddingLeft',
-    'marginTop',
-    'marginRight',
-    'marginBottom',
-    'marginLeft',
-    'rowGap',
-    'columnGap',
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+    "marginTop",
+    "marginRight",
+    "marginBottom",
+    "marginLeft",
+    "rowGap",
+    "columnGap",
   ] as const;
   const RADIUS_PROPERTIES = [
-    'borderTopLeftRadius',
-    'borderTopRightRadius',
-    'borderBottomRightRadius',
-    'borderBottomLeftRadius',
+    "borderTopLeftRadius",
+    "borderTopRightRadius",
+    "borderBottomRightRadius",
+    "borderBottomLeftRadius",
   ] as const;
 
   const toHexDigits = (channel: number): string =>
-    Math.max(0, Math.min(MAX_CHANNEL, Math.round(channel))).toString(HEX_RADIX).padStart(2, '0');
+    Math.max(0, Math.min(MAX_CHANNEL, Math.round(channel)))
+      .toString(HEX_RADIX)
+      .padStart(2, "0");
 
   const toHex = (input: string): string | null => {
     const value = input.trim().toLowerCase();
-    if (!value.startsWith('rgb') && !value.startsWith('color(')) return null;
+    if (!value.startsWith("rgb") && !value.startsWith("color(")) return null;
     const [red, green, blue, parsedAlpha] = value.match(NUMBER_PATTERN)?.map(Number) ?? [];
     if (red === undefined || green === undefined || blue === undefined) return null;
     const alpha = parsedAlpha ?? 1;
     if (alpha === 0) return null;
-    const scale = value.startsWith('color(') ? MAX_CHANNEL : 1;
+    const scale = value.startsWith("color(") ? MAX_CHANNEL : 1;
     const base = `#${toHexDigits(red * scale)}${toHexDigits(green * scale)}${toHexDigits(blue * scale)}`;
     return alpha >= 1 ? base : `${base}${toHexDigits(alpha * MAX_CHANNEL)}`;
   };
@@ -62,22 +64,27 @@ export const auditPageDesign = (maxElements: number, maxResults: number): Design
   };
 
   const scanRoot = document.body ?? document.documentElement;
-  const elements = Array.from(scanRoot.querySelectorAll('*')).slice(0, maxElements);
+  const elements = Array.from(scanRoot.querySelectorAll("*")).slice(0, maxElements);
 
   for (const element of elements) {
     const styles = window.getComputedStyle(element);
-    if (styles.display === 'none' || styles.visibility === 'hidden') continue;
+    if (styles.display === "none" || styles.visibility === "hidden") continue;
 
     const hasText = Array.from(element.childNodes).some(
-      (node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim().length > 0
+      (node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? "").trim().length > 0,
     );
-    if (hasText) countColor(styles.color, 'text');
-    countColor(styles.backgroundColor, 'background');
-    if (styles.borderTopWidth !== '0px' || styles.borderLeftWidth !== '0px') countColor(styles.borderTopColor, 'border');
+    if (hasText) countColor(styles.color, "text");
+    countColor(styles.backgroundColor, "background");
+    if (styles.borderTopWidth !== "0px" || styles.borderLeftWidth !== "0px")
+      countColor(styles.borderTopColor, "border");
 
     const family = styles.fontFamily;
     if (family) {
-      const entry = fontCounts.get(family) ?? { count: 0, sizes: new Set<number>(), weights: new Set<number>() };
+      const entry = fontCounts.get(family) ?? {
+        count: 0,
+        sizes: new Set<number>(),
+        weights: new Set<number>(),
+      };
       entry.count += 1;
       entry.sizes.add(Math.round(Number.parseFloat(styles.fontSize)));
       entry.weights.add(Number.parseInt(styles.fontWeight, 10));
@@ -86,15 +93,15 @@ export const auditPageDesign = (maxElements: number, maxResults: number): Design
 
     for (const property of SPACING_PROPERTIES) {
       const value = styles[property];
-      if (value && value !== '0px' && value !== 'normal') countValue(spacingCounts, value);
+      if (value && value !== "0px" && value !== "normal") countValue(spacingCounts, value);
     }
 
     for (const property of RADIUS_PROPERTIES) {
       const value = styles[property];
-      if (value && value !== '0px') countValue(radiusCounts, value);
+      if (value && value !== "0px") countValue(radiusCounts, value);
     }
 
-    if (styles.boxShadow && styles.boxShadow !== 'none') countValue(shadowCounts, styles.boxShadow);
+    if (styles.boxShadow && styles.boxShadow !== "none") countValue(shadowCounts, styles.boxShadow);
   }
 
   const rootStyles = window.getComputedStyle(document.documentElement);
@@ -110,15 +117,16 @@ export const auditPageDesign = (maxElements: number, maxResults: number): Design
       continue;
     }
     for (const rule of Array.from(rules)) {
-      if (!(rule instanceof CSSStyleRule) || !rule.selectorText.includes(':root')) continue;
+      if (!(rule instanceof CSSStyleRule) || !rule.selectorText.includes(":root")) continue;
       for (const property of Array.from(rule.style)) {
-        if (!property.startsWith('--')) continue;
+        if (!property.startsWith("--")) continue;
         variables.push({ name: property, value: rule.style.getPropertyValue(property).trim() });
       }
     }
   }
 
-  const byCount = <TEntry extends { count: number }>(left: TEntry, right: TEntry): number => right.count - left.count;
+  const byCount = <TEntry extends { count: number }>(left: TEntry, right: TEntry): number =>
+    right.count - left.count;
   const sortedNumbers = (values: Set<number>): number[] =>
     Array.from(values)
       .filter((value) => Number.isFinite(value))
@@ -136,7 +144,7 @@ export const auditPageDesign = (maxElements: number, maxResults: number): Design
       .map(([hex, entry]) => ({
         hex,
         count: entry.count,
-        roles: Array.from(entry.roles) as DesignAudit['colors'][number]['roles'],
+        roles: Array.from(entry.roles) as DesignAudit["colors"][number]["roles"],
       }))
       .sort(byCount)
       .slice(0, maxResults),
@@ -152,6 +160,9 @@ export const auditPageDesign = (maxElements: number, maxResults: number): Design
     spacings: toValueUsages(spacingCounts),
     radii: toValueUsages(radiusCounts),
     shadows: toValueUsages(shadowCounts),
-    variables: Array.from(new Map(variables.map((variable) => [variable.name, variable])).values()).slice(0, maxResults),
+    variables: Array.from(new Map(variables.map((variable) => [variable.name, variable])).values()).slice(
+      0,
+      maxResults,
+    ),
   };
 };

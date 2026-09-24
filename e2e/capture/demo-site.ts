@@ -1,4 +1,4 @@
-import { createServer, type Server } from 'node:http';
+import { createServer, type Server } from "node:http";
 
 /**
  * Un sitio de mentira para el fondo de las capturas. Tiene que parecer una app
@@ -94,25 +94,26 @@ export interface DemoSite {
 
 export const startDemoSite = async (): Promise<DemoSite> => {
   const server: Server = createServer((request, response) => {
-    const url = request.url ?? '/';
+    const url = request.url ?? "/";
 
-    if (url.startsWith('/api/')) {
+    if (url.startsWith("/api/")) {
       response.writeHead(200, {
-        'content-type': 'application/json',
-        'access-control-allow-origin': '*',
-        'x-acme-region': 'sa-east-1',
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+        "x-acme-region": "sa-east-1",
       });
       response.end(JSON.stringify({ ok: true, path: url, items: [] }));
       return;
     }
 
-    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(PAGE);
   });
 
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
-  if (address === null || typeof address === 'string') throw new Error('el sitio de demo no expuso un puerto');
+  if (address === null || typeof address === "string")
+    throw new Error("el sitio de demo no expuso un puerto");
 
   return {
     origin: `http://127.0.0.1:${address.port}`,

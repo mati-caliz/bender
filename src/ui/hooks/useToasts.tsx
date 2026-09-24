@@ -1,9 +1,9 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { createId } from '@/lib/ids';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createId } from "@/lib/ids";
 
 const TOAST_DURATION_MS = 2600;
 
-type ToastTone = 'neutral' | 'success' | 'error';
+type ToastTone = "neutral" | "success" | "error";
 
 interface Toast {
   id: string;
@@ -22,7 +22,7 @@ export const useToasts = (): ToastApi => useContext(ToastContext);
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const notify = useCallback((message: string, tone: ToastTone = 'neutral') => {
+  const notify = useCallback((message: string, tone: ToastTone = "neutral") => {
     const toast: Toast = { id: createId(), message, tone };
     setToasts((current) => [...current, toast]);
     window.setTimeout(() => {

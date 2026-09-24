@@ -1,13 +1,13 @@
-import { NETWORK_LOG_KEY } from '@/lib/constants';
-import { errorMessage } from '@/lib/errors';
-import type { MockHitPayload } from '@/lib/messages';
-import type { CapturedBodies, EngineDiagnostic, NetworkEntry, NetworkPhase } from '@/types';
+import { NETWORK_LOG_KEY } from "@/lib/constants";
+import { errorMessage } from "@/lib/errors";
+import type { MockHitPayload } from "@/lib/messages";
+import type { CapturedBodies, EngineDiagnostic, NetworkEntry, NetworkPhase } from "@/types";
 
 const FLUSH_DELAY_MS = 400;
 const PERSISTED_ENTRY_LIMIT = 200;
 const PENDING_MATCH_TTL_MS = 10_000;
 const BLOCKED_ERROR_PATTERN = /BLOCKED_BY_CLIENT|ERR_BLOCKED/i;
-const ALL_URLS_FILTER: chrome.webRequest.RequestFilter = { urls: ['<all_urls>'] };
+const ALL_URLS_FILTER: chrome.webRequest.RequestFilter = { urls: ["<all_urls>"] };
 
 interface PendingRuleMatch {
   labels: string[];
@@ -29,7 +29,7 @@ const persist = async (): Promise<void> => {
     await chrome.storage.session.set({ [NETWORK_LOG_KEY]: persisted });
     persistenceError = null;
   } catch (error) {
-    persistenceError = errorMessage(error, 'error desconocido');
+    persistenceError = errorMessage(error, "error desconocido");
   }
 };
 
@@ -79,9 +79,9 @@ const createEntry = (details: chrome.webRequest.WebRequestBodyDetails): NetworkE
   url: details.url,
   method: details.method,
   resourceType: details.type,
-  phase: 'pending',
+  phase: "pending",
   statusCode: null,
-  statusLine: '',
+  statusLine: "",
   fromCache: false,
   startedAt: details.timeStamp,
   finishedAt: null,
@@ -90,14 +90,16 @@ const createEntry = (details: chrome.webRequest.WebRequestBodyDetails): NetworkE
   responseHeaders: [],
   matchedRuleIds: [],
   matchedRuleLabels: pendingRuleMatches.get(details.requestId)?.labels ?? [],
-  source: 'network',
+  source: "network",
   requestBody: null,
   responseBody: null,
   bodyTruncated: false,
 });
 
-const toHeaderList = (headers: chrome.webRequest.HttpHeader[] | undefined): Array<{ name: string; value: string }> =>
-  (headers ?? []).map((header) => ({ name: header.name, value: header.value ?? '' }));
+const toHeaderList = (
+  headers: chrome.webRequest.HttpHeader[] | undefined,
+): Array<{ name: string; value: string }> =>
+  (headers ?? []).map((header) => ({ name: header.name, value: header.value ?? "" }));
 
 const handleBeforeRequest = (details: chrome.webRequest.WebRequestBodyDetails): void => {
   pendingRuleMatches.delete(details.requestId);
@@ -123,7 +125,7 @@ const handleHeadersReceived = (details: chrome.webRequest.WebResponseHeadersDeta
 const handleBeforeRedirect = (details: chrome.webRequest.WebRedirectionResponseDetails): void => {
   const entry = findEntry(details.requestId);
   if (!entry) return;
-  entry.phase = 'redirected';
+  entry.phase = "redirected";
   entry.statusCode = details.statusCode;
   scheduleFlush();
 };
@@ -131,7 +133,7 @@ const handleBeforeRedirect = (details: chrome.webRequest.WebRedirectionResponseD
 const handleCompleted = (details: chrome.webRequest.WebResponseCacheDetails): void => {
   const entry = findEntry(details.requestId);
   if (!entry) return;
-  entry.phase = 'complete';
+  entry.phase = "complete";
   entry.statusCode = details.statusCode;
   entry.fromCache = details.fromCache;
   entry.finishedAt = details.timeStamp;
@@ -141,7 +143,7 @@ const handleCompleted = (details: chrome.webRequest.WebResponseCacheDetails): vo
 const handleErrorOccurred = (details: chrome.webRequest.WebResponseErrorDetails): void => {
   const entry = findEntry(details.requestId);
   if (!entry) return;
-  entry.phase = BLOCKED_ERROR_PATTERN.test(details.error) ? 'blocked' : 'error';
+  entry.phase = BLOCKED_ERROR_PATTERN.test(details.error) ? "blocked" : "error";
   entry.error = details.error;
   entry.finishedAt = details.timeStamp;
   scheduleFlush();
@@ -174,10 +176,13 @@ const attach = (): void => {
   if (listening) return;
   listening = true;
   chrome.webRequest.onBeforeRequest.addListener(handleBeforeRequest, ALL_URLS_FILTER);
-  chrome.webRequest.onSendHeaders.addListener(handleSendHeaders, ALL_URLS_FILTER, ['requestHeaders', 'extraHeaders']);
+  chrome.webRequest.onSendHeaders.addListener(handleSendHeaders, ALL_URLS_FILTER, [
+    "requestHeaders",
+    "extraHeaders",
+  ]);
   chrome.webRequest.onHeadersReceived.addListener(handleHeadersReceived, ALL_URLS_FILTER, [
-    'responseHeaders',
-    'extraHeaders',
+    "responseHeaders",
+    "extraHeaders",
   ]);
   chrome.webRequest.onBeforeRedirect.addListener(handleBeforeRedirect, ALL_URLS_FILTER);
   chrome.webRequest.onCompleted.addListener(handleCompleted, ALL_URLS_FILTER);
@@ -202,7 +207,11 @@ const detach = (): void => {
   }
 };
 
-export const configureNetworkLog = (config: { enabled: boolean; maxEntries: number; onlyModified: boolean }): void => {
+export const configureNetworkLog = (config: {
+  enabled: boolean;
+  maxEntries: number;
+  onlyModified: boolean;
+}): void => {
   maxEntries = config.maxEntries;
   onlyModified = config.onlyModified;
   trim();
@@ -223,7 +232,12 @@ export const restoreNetworkLog = async (): Promise<void> => {
 
 export const networkLogDiagnostics = (): EngineDiagnostic[] =>
   persistenceError
-    ? [{ level: 'warning', message: `El log de trafico no se pudo guardar en la sesion: ${persistenceError}` }]
+    ? [
+        {
+          level: "warning",
+          message: `El log de trafico no se pudo guardar en la sesion: ${persistenceError}`,
+        },
+      ]
     : [];
 
 export const listNetworkEntries = (): NetworkEntry[] => {
@@ -239,13 +253,13 @@ export const clearNetworkLog = (): void => {
 };
 
 export const recordMockHit = (payload: MockHitPayload, tabId: number): void => {
-  const phase: NetworkPhase = 'mocked';
+  const phase: NetworkPhase = "mocked";
   upsert({
     id: `mock-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     tabId,
     url: payload.url,
     method: payload.method,
-    resourceType: 'xmlhttprequest',
+    resourceType: "xmlhttprequest",
     phase,
     statusCode: payload.status,
     statusLine: `HTTP/1.1 ${payload.status}`,
@@ -257,7 +271,7 @@ export const recordMockHit = (payload: MockHitPayload, tabId: number): void => {
     responseHeaders: [],
     matchedRuleIds: [],
     matchedRuleLabels: [`Mock · ${payload.ruleName}`],
-    source: 'mock',
+    source: "mock",
     requestBody: null,
     responseBody: null,
     bodyTruncated: false,
@@ -267,7 +281,7 @@ export const recordMockHit = (payload: MockHitPayload, tabId: number): void => {
 export const recordCapturedBodies = (bodies: CapturedBodies, tabId: number): void => {
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index];
-    if (!entry || entry.source !== 'network') continue;
+    if (!entry || entry.source !== "network") continue;
     if (entry.tabId !== tabId || entry.url !== bodies.url || entry.method !== bodies.method) continue;
     if (entry.responseBody !== null) continue;
 

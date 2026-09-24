@@ -1,6 +1,6 @@
-import { decodeJwt } from '@/lib/jwt';
-import { formatDateTime } from '@/lib/format';
-import { Badge } from '@/ui/components/primitives';
+import { decodeJwt } from "@/lib/jwt";
+import { formatDateTime } from "@/lib/format";
+import { Badge } from "@/ui/components/primitives";
 
 export const JwtPanel = ({ value }: { value: string }) => {
   const decoded = decodeJwt(value);
@@ -11,8 +11,8 @@ export const JwtPanel = ({ value }: { value: string }) => {
       <div className="row wrap">
         <Badge tone="info">JWT</Badge>
         {decoded.expiresAt ? (
-          <Badge tone={decoded.expired ? 'danger' : 'success'}>
-            {decoded.expired ? 'vencido' : 'vigente'} · {formatDateTime(decoded.expiresAt.getTime())}
+          <Badge tone={decoded.expired ? "danger" : "success"}>
+            {decoded.expired ? "vencido" : "vigente"} · {formatDateTime(decoded.expiresAt.getTime())}
           </Badge>
         ) : null}
         {decoded.issuedAt ? <Badge>emitido {formatDateTime(decoded.issuedAt.getTime())}</Badge> : null}

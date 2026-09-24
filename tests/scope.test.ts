@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { createEmptyScope } from '@/lib/constants';
+import { describe, expect, it } from "vitest";
+import { createEmptyScope } from "@/lib/constants";
 import {
   matchesDomain,
   parseDomainList,
@@ -10,187 +10,193 @@ import {
   toRequestMethod,
   urlFilterToRegExp,
   urlMatchesScope,
-} from '@/lib/scope';
-import type { Scope } from '@/types';
+} from "@/lib/scope";
+import type { Scope } from "@/types";
 
 const scopeWith = (overrides: Partial<Scope>): Scope => ({ ...createEmptyScope(), ...overrides });
 
-describe('sanitizeDomain', () => {
-  it('saca esquema, puerto, path y comodin', () => {
-    expect(sanitizeDomain('https://Api.Example.com:8443/v1/users')).toBe('api.example.com');
-    expect(sanitizeDomain('*.example.com')).toBe('example.com');
-    expect(sanitizeDomain('.example.com')).toBe('example.com');
+describe("sanitizeDomain", () => {
+  it("saca esquema, puerto, path y comodin", () => {
+    expect(sanitizeDomain("https://Api.Example.com:8443/v1/users")).toBe("api.example.com");
+    expect(sanitizeDomain("*.example.com")).toBe("example.com");
+    expect(sanitizeDomain(".example.com")).toBe("example.com");
   });
 
-  it('rechaza dominios vacios o con caracteres invalidos', () => {
-    expect(sanitizeDomain('   ')).toBeNull();
-    expect(sanitizeDomain('exa mple.com')).toBeNull();
-    expect(sanitizeDomain('http://')).toBeNull();
+  it("rechaza dominios vacios o con caracteres invalidos", () => {
+    expect(sanitizeDomain("   ")).toBeNull();
+    expect(sanitizeDomain("exa mple.com")).toBeNull();
+    expect(sanitizeDomain("http://")).toBeNull();
   });
 });
 
-describe('sanitizeDomainList', () => {
-  it('descarta invalidos y deduplica lo que normaliza al mismo dominio', () => {
-    expect(sanitizeDomainList(['*.example.com', 'https://example.com/path', 'no valido', ''])).toEqual([
-      'example.com',
+describe("sanitizeDomainList", () => {
+  it("descarta invalidos y deduplica lo que normaliza al mismo dominio", () => {
+    expect(sanitizeDomainList(["*.example.com", "https://example.com/path", "no valido", ""])).toEqual([
+      "example.com",
     ]);
   });
 });
 
-describe('parseDomainList', () => {
-  it('separa por espacios, comas y punto y coma', () => {
-    expect(parseDomainList('example.com, api.example.com;  cdn.example.com')).toEqual([
-      'example.com',
-      'api.example.com',
-      'cdn.example.com',
+describe("parseDomainList", () => {
+  it("separa por espacios, comas y punto y coma", () => {
+    expect(parseDomainList("example.com, api.example.com;  cdn.example.com")).toEqual([
+      "example.com",
+      "api.example.com",
+      "cdn.example.com",
     ]);
   });
 });
 
-describe('matchesDomain', () => {
-  it('matchea el dominio exacto y sus subdominios', () => {
-    expect(matchesDomain('example.com', 'example.com')).toBe(true);
-    expect(matchesDomain('api.example.com', 'example.com')).toBe(true);
+describe("matchesDomain", () => {
+  it("matchea el dominio exacto y sus subdominios", () => {
+    expect(matchesDomain("example.com", "example.com")).toBe(true);
+    expect(matchesDomain("api.example.com", "example.com")).toBe(true);
   });
 
-  it('no matchea un dominio que solo termina parecido', () => {
-    expect(matchesDomain('notexample.com', 'example.com')).toBe(false);
-  });
-});
-
-describe('urlFilterToRegExp', () => {
-  it('trata el comodin como cualquier cosa', () => {
-    expect(urlFilterToRegExp('/api/*/users').test('https://example.com/api/v2/users')).toBe(true);
-  });
-
-  it('ancla el final con la barra vertical', () => {
-    const pattern = urlFilterToRegExp('/users|');
-    expect(pattern.test('https://example.com/users')).toBe(true);
-    expect(pattern.test('https://example.com/users/1')).toBe(false);
-  });
-
-  it('traduce el separador ^ a un caracter no alfanumerico', () => {
-    const pattern = urlFilterToRegExp('/api^');
-    expect(pattern.test('https://example.com/api?x=1')).toBe(true);
-    expect(pattern.test('https://example.com/apix')).toBe(false);
+  it("no matchea un dominio que solo termina parecido", () => {
+    expect(matchesDomain("notexample.com", "example.com")).toBe(false);
   });
 });
 
-describe('urlMatchesScope', () => {
-  it('acepta cualquier url cuando el alcance esta vacio', () => {
-    expect(urlMatchesScope(createEmptyScope(), 'https://example.com/')).toBe(true);
+describe("urlFilterToRegExp", () => {
+  it("trata el comodin como cualquier cosa", () => {
+    expect(urlFilterToRegExp("/api/*/users").test("https://example.com/api/v2/users")).toBe(true);
   });
 
-  it('rechaza una url invalida', () => {
-    expect(urlMatchesScope(createEmptyScope(), 'no es una url')).toBe(false);
+  it("ancla el final con la barra vertical", () => {
+    const pattern = urlFilterToRegExp("/users|");
+    expect(pattern.test("https://example.com/users")).toBe(true);
+    expect(pattern.test("https://example.com/users/1")).toBe(false);
   });
 
-  it('respeta dominios incluidos y excluidos', () => {
-    const scope = scopeWith({ includeDomains: ['example.com'], excludeDomains: ['cdn.example.com'] });
-    expect(urlMatchesScope(scope, 'https://api.example.com/data')).toBe(true);
-    expect(urlMatchesScope(scope, 'https://cdn.example.com/logo.png')).toBe(false);
-    expect(urlMatchesScope(scope, 'https://otro.com/data')).toBe(false);
-  });
-
-  it('aplica el filtro de url ademas del dominio', () => {
-    const scope = scopeWith({ includeDomains: ['example.com'], urlFilter: '/api/' });
-    expect(urlMatchesScope(scope, 'https://example.com/api/users')).toBe(true);
-    expect(urlMatchesScope(scope, 'https://example.com/home')).toBe(false);
+  it("traduce el separador ^ a un caracter no alfanumerico", () => {
+    const pattern = urlFilterToRegExp("/api^");
+    expect(pattern.test("https://example.com/api?x=1")).toBe(true);
+    expect(pattern.test("https://example.com/apix")).toBe(false);
   });
 });
 
-describe('scopeToCondition', () => {
-  it('devuelve null cuando pide solo la pestaña activa y no hay ninguna', () => {
+describe("urlMatchesScope", () => {
+  it("acepta cualquier url cuando el alcance esta vacio", () => {
+    expect(urlMatchesScope(createEmptyScope(), "https://example.com/")).toBe(true);
+  });
+
+  it("rechaza una url invalida", () => {
+    expect(urlMatchesScope(createEmptyScope(), "no es una url")).toBe(false);
+  });
+
+  it("respeta dominios incluidos y excluidos", () => {
+    const scope = scopeWith({ includeDomains: ["example.com"], excludeDomains: ["cdn.example.com"] });
+    expect(urlMatchesScope(scope, "https://api.example.com/data")).toBe(true);
+    expect(urlMatchesScope(scope, "https://cdn.example.com/logo.png")).toBe(false);
+    expect(urlMatchesScope(scope, "https://otro.com/data")).toBe(false);
+  });
+
+  it("aplica el filtro de url ademas del dominio", () => {
+    const scope = scopeWith({ includeDomains: ["example.com"], urlFilter: "/api/" });
+    expect(urlMatchesScope(scope, "https://example.com/api/users")).toBe(true);
+    expect(urlMatchesScope(scope, "https://example.com/home")).toBe(false);
+  });
+});
+
+describe("scopeToCondition", () => {
+  it("devuelve null cuando pide solo la pestaña activa y no hay ninguna", () => {
     expect(scopeToCondition(scopeWith({ activeTabOnly: true }), { activeTabId: null })).toBeNull();
   });
 
-  it('limita a la pestaña activa cuando existe', () => {
+  it("limita a la pestaña activa cuando existe", () => {
     const condition = scopeToCondition(scopeWith({ activeTabOnly: true }), { activeTabId: 7 });
     expect(condition?.tabIds).toEqual([7]);
   });
 
-  it('completa todos los tipos de recurso cuando no se eligio ninguno', () => {
+  it("completa todos los tipos de recurso cuando no se eligio ninguno", () => {
     const condition = scopeToCondition(createEmptyScope(), { activeTabId: null });
-    expect(condition?.resourceTypes).toContain('xmlhttprequest');
+    expect(condition?.resourceTypes).toContain("xmlhttprequest");
     expect(condition?.resourceTypes.length).toBeGreaterThan(1);
   });
 
-  it('omite dominios y filtro cuando estan vacios', () => {
+  it("omite dominios y filtro cuando estan vacios", () => {
     const condition = scopeToCondition(createEmptyScope(), { activeTabId: null });
     expect(condition?.requestDomains).toBeUndefined();
     expect(condition?.excludedRequestDomains).toBeUndefined();
     expect(condition?.urlFilter).toBeUndefined();
   });
 
-  it('normaliza los dominios que van a la condicion', () => {
+  it("normaliza los dominios que van a la condicion", () => {
     const condition = scopeToCondition(
-      scopeWith({ includeDomains: ['*.Example.com'], excludeDomains: ['https://cdn.example.com/'] }),
-      { activeTabId: null }
+      scopeWith({ includeDomains: ["*.Example.com"], excludeDomains: ["https://cdn.example.com/"] }),
+      { activeTabId: null },
     );
-    expect(condition?.requestDomains).toEqual(['example.com']);
-    expect(condition?.excludedRequestDomains).toEqual(['cdn.example.com']);
+    expect(condition?.requestDomains).toEqual(["example.com"]);
+    expect(condition?.excludedRequestDomains).toEqual(["cdn.example.com"]);
   });
 });
 
-describe('toRequestMethod', () => {
+describe("toRequestMethod", () => {
   it('normaliza a minusculas y cae en "other" si no lo conoce', () => {
-    expect(toRequestMethod('POST')).toBe('post');
-    expect(toRequestMethod('  Delete ')).toBe('delete');
-    expect(toRequestMethod('PURGE')).toBe('other');
+    expect(toRequestMethod("POST")).toBe("post");
+    expect(toRequestMethod("  Delete ")).toBe("delete");
+    expect(toRequestMethod("PURGE")).toBe("other");
   });
 });
 
-describe('requestMatchesScope', () => {
-  const request = { url: 'https://api.example.com/v1/users', method: 'POST', initiatorHostname: 'app.local' };
+describe("requestMatchesScope", () => {
+  const request = { url: "https://api.example.com/v1/users", method: "POST", initiatorHostname: "app.local" };
 
-  it('acepta todo cuando el alcance esta vacio', () => {
+  it("acepta todo cuando el alcance esta vacio", () => {
     expect(requestMatchesScope(createEmptyScope(), request)).toBe(true);
   });
 
-  it('filtra por metodo', () => {
-    expect(requestMatchesScope(scopeWith({ requestMethods: ['post'] }), request)).toBe(true);
-    expect(requestMatchesScope(scopeWith({ requestMethods: ['get'] }), request)).toBe(false);
+  it("filtra por metodo", () => {
+    expect(requestMatchesScope(scopeWith({ requestMethods: ["post"] }), request)).toBe(true);
+    expect(requestMatchesScope(scopeWith({ requestMethods: ["get"] }), request)).toBe(false);
   });
 
-  it('filtra por dominio iniciador incluyendo subdominios', () => {
-    expect(requestMatchesScope(scopeWith({ initiatorDomains: ['app.local'] }), request)).toBe(true);
+  it("filtra por dominio iniciador incluyendo subdominios", () => {
+    expect(requestMatchesScope(scopeWith({ initiatorDomains: ["app.local"] }), request)).toBe(true);
     expect(
-      requestMatchesScope(scopeWith({ initiatorDomains: ['local'] }), { ...request, initiatorHostname: 'a.b.local' })
+      requestMatchesScope(scopeWith({ initiatorDomains: ["local"] }), {
+        ...request,
+        initiatorHostname: "a.b.local",
+      }),
     ).toBe(true);
-    expect(requestMatchesScope(scopeWith({ initiatorDomains: ['otro.local'] }), request)).toBe(false);
+    expect(requestMatchesScope(scopeWith({ initiatorDomains: ["otro.local"] }), request)).toBe(false);
   });
 
-  it('el iniciador excluido gana sobre el incluido', () => {
-    const scope = scopeWith({ initiatorDomains: ['local'], excludedInitiatorDomains: ['app.local'] });
+  it("el iniciador excluido gana sobre el incluido", () => {
+    const scope = scopeWith({ initiatorDomains: ["local"], excludedInitiatorDomains: ["app.local"] });
     expect(requestMatchesScope(scope, request)).toBe(false);
   });
 
-  it('sigue aplicando el filtro de url y de dominio destino', () => {
-    const scope = scopeWith({ includeDomains: ['example.com'], urlFilter: '/v1/', requestMethods: ['post'] });
+  it("sigue aplicando el filtro de url y de dominio destino", () => {
+    const scope = scopeWith({ includeDomains: ["example.com"], urlFilter: "/v1/", requestMethods: ["post"] });
     expect(requestMatchesScope(scope, request)).toBe(true);
-    expect(requestMatchesScope(scope, { ...request, url: 'https://example.com/v2/users' })).toBe(false);
+    expect(requestMatchesScope(scope, { ...request, url: "https://example.com/v2/users" })).toBe(false);
   });
 });
 
-describe('scopeToCondition con metodos e iniciador', () => {
-  it('omite metodos e iniciador cuando estan vacios', () => {
+describe("scopeToCondition con metodos e iniciador", () => {
+  it("omite metodos e iniciador cuando estan vacios", () => {
     const condition = scopeToCondition(createEmptyScope(), { activeTabId: null });
     expect(condition?.requestMethods).toBeUndefined();
     expect(condition?.initiatorDomains).toBeUndefined();
     expect(condition?.excludedInitiatorDomains).toBeUndefined();
   });
 
-  it('pasa los metodos elegidos tal cual', () => {
-    const condition = scopeToCondition(scopeWith({ requestMethods: ['post', 'put'] }), { activeTabId: null });
-    expect(condition?.requestMethods).toEqual(['post', 'put']);
+  it("pasa los metodos elegidos tal cual", () => {
+    const condition = scopeToCondition(scopeWith({ requestMethods: ["post", "put"] }), { activeTabId: null });
+    expect(condition?.requestMethods).toEqual(["post", "put"]);
   });
 
-  it('normaliza los dominios iniciadores', () => {
+  it("normaliza los dominios iniciadores", () => {
     const condition = scopeToCondition(
-      scopeWith({ initiatorDomains: ['*.App.local'], excludedInitiatorDomains: ['https://admin.local/panel'] }),
-      { activeTabId: null }
+      scopeWith({
+        initiatorDomains: ["*.App.local"],
+        excludedInitiatorDomains: ["https://admin.local/panel"],
+      }),
+      { activeTabId: null },
     );
-    expect(condition?.initiatorDomains).toEqual(['app.local']);
-    expect(condition?.excludedInitiatorDomains).toEqual(['admin.local']);
+    expect(condition?.initiatorDomains).toEqual(["app.local"]);
+    expect(condition?.excludedInitiatorDomains).toEqual(["admin.local"]);
   });
 });

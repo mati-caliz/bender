@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
-import { createUserScript } from '@/lib/factories';
-import { isValidMatchPattern, parseMatchPatterns } from '@/lib/match-patterns';
-import { sendMessage } from '@/lib/messages';
-import { SCRIPT_TEMPLATES, type ScriptTemplate } from '@/lib/script-templates';
-import type { ScriptError } from '@/lib/script-errors';
+import { useEffect, useMemo, useState } from "react";
+import { createUserScript } from "@/lib/factories";
+import { isValidMatchPattern, parseMatchPatterns } from "@/lib/match-patterns";
+import { sendMessage } from "@/lib/messages";
+import { SCRIPT_TEMPLATES, type ScriptTemplate } from "@/lib/script-templates";
+import type { ScriptError } from "@/lib/script-errors";
 import {
   describeHeader,
   headerHasData,
   parseUserScriptHeader,
   type UserScriptHeader,
-} from '@/lib/userscript-header';
-import { CodeEditor } from '@/ui/components/CodeEditor';
-import { Icon } from '@/ui/components/Icon';
-import { ViewShell } from '@/ui/components/ViewShell';
+} from "@/lib/userscript-header";
+import { CodeEditor } from "@/ui/components/CodeEditor";
+import { Icon } from "@/ui/components/Icon";
+import { ViewShell } from "@/ui/components/ViewShell";
 import {
   Badge,
   Button,
@@ -25,36 +25,42 @@ import {
   Select,
   Switch,
   TextInput,
-} from '@/ui/components/primitives';
-import { useToasts } from '@/ui/hooks/useToasts';
-import type { ViewProps } from '@/ui/views/types';
-import type { UserScript, UserScriptRunAt, UserScriptWorld, UserScriptsStatus } from '@/types';
+} from "@/ui/components/primitives";
+import { useToasts } from "@/ui/hooks/useToasts";
+import type { ViewProps } from "@/ui/views/types";
+import type { UserScript, UserScriptRunAt, UserScriptWorld, UserScriptsStatus } from "@/types";
 
 const RUN_AT_OPTIONS = [
-  { value: 'document_start', label: 'Al empezar a cargar' },
-  { value: 'document_end', label: 'Con el DOM listo' },
-  { value: 'document_idle', label: 'Cuando termina de cargar' },
+  { value: "document_start", label: "Al empezar a cargar" },
+  { value: "document_end", label: "Con el DOM listo" },
+  { value: "document_idle", label: "Cuando termina de cargar" },
 ];
 
 const WORLD_OPTIONS = [
-  { value: 'MAIN', label: 'Mundo de la pagina' },
-  { value: 'USER_SCRIPT', label: 'Mundo aislado' },
+  { value: "MAIN", label: "Mundo de la pagina" },
+  { value: "USER_SCRIPT", label: "Mundo aislado" },
 ];
 
 const isRunAt = (value: string): value is UserScriptRunAt =>
-  value === 'document_start' || value === 'document_end' || value === 'document_idle';
+  value === "document_start" || value === "document_end" || value === "document_idle";
 
-const isWorld = (value: string): value is UserScriptWorld => value === 'MAIN' || value === 'USER_SCRIPT';
+const isWorld = (value: string): value is UserScriptWorld => value === "MAIN" || value === "USER_SCRIPT";
 
 const ERROR_POLL_INTERVAL_MS = 2000;
 
 /** Lo que reventó al ejecutarse, que es distinto de que falle el registro. */
-const RuntimeErrorNotice = ({ error, onDismiss }: { error: ScriptError | undefined; onDismiss: () => void }) => {
+const RuntimeErrorNotice = ({
+  error,
+  onDismiss,
+}: {
+  error: ScriptError | undefined;
+  onDismiss: () => void;
+}) => {
   if (!error) return null;
 
   return (
     <Notice tone="danger">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, width: "100%", minWidth: 0 }}>
         <div className="row wrap">
           <strong>Reventó al ejecutarse</strong>
           <span className="text-small text-muted">línea {error.line}</span>
@@ -63,7 +69,7 @@ const RuntimeErrorNotice = ({ error, onDismiss }: { error: ScriptError | undefin
             Limpiar
           </Button>
         </div>
-        <code className="text-small" style={{ wordBreak: 'break-word' }}>
+        <code className="text-small" style={{ wordBreak: "break-word" }}>
           {error.message}
         </code>
         <span className="text-small text-muted truncate" title={error.tabUrl}>
@@ -93,7 +99,7 @@ const HeaderImportNotice = ({
 
   return (
     <Notice tone="info">
-      <div className="row wrap" style={{ width: '100%' }}>
+      <div className="row wrap" style={{ width: "100%" }}>
         <span className="truncate">Este script trae header de Tampermonkey: {describeHeader(header)}.</span>
         <div className="spacer" />
         <Button
@@ -113,17 +119,17 @@ const HeaderImportNotice = ({
   );
 };
 
-const patternForHostname = (hostname: string): string => (hostname ? `https://${hostname}/*` : '');
+const patternForHostname = (hostname: string): string => (hostname ? `https://${hostname}/*` : "");
 
 export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
   const { notify } = useToasts();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [patternDraft, setPatternDraft] = useState('');
+  const [patternDraft, setPatternDraft] = useState("");
   const [status, setStatus] = useState<UserScriptsStatus | null>(null);
   const [errors, setErrors] = useState<ScriptError[]>([]);
 
   useEffect(() => {
-    void sendMessage({ type: 'userscripts/sync' })
+    void sendMessage({ type: "userscripts/sync" })
       .then(setStatus)
       .catch(() => undefined);
   }, [state.userScripts]);
@@ -132,7 +138,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
   useEffect(() => {
     let active = true;
     const refresh = () => {
-      void sendMessage({ type: 'scripts/errors' })
+      void sendMessage({ type: "scripts/errors" })
         .then((list) => {
           if (active && Array.isArray(list)) setErrors(list);
         })
@@ -153,7 +159,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
     update((current) => ({
       ...current,
       userScripts: current.userScripts.map((script) =>
-        script.id === id ? { ...mutate(script), updatedAt: Date.now() } : script
+        script.id === id ? { ...mutate(script), updatedAt: Date.now() } : script,
       ),
     }));
   };
@@ -183,9 +189,9 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
           icon="refresh"
           variant="ghost"
           onClick={() => {
-            void sendMessage({ type: 'userscripts/sync' }).then((next) => {
+            void sendMessage({ type: "userscripts/sync" }).then((next) => {
               setStatus(next);
-              notify(`${next.registeredCount} script(s) registrados`, next.error ? 'error' : 'success');
+              notify(`${next.registeredCount} script(s) registrados`, next.error ? "error" : "success");
             });
           }}
         >
@@ -195,8 +201,8 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
     >
       {status && !status.supported ? (
         <Notice tone="danger">
-          Chrome no expone <code>chrome.userScripts</code>. Entra a <code>chrome://extensions</code>, activa el modo
-          desarrollador y recarga Bender.
+          Chrome no expone <code>chrome.userScripts</code>. Entra a <code>chrome://extensions</code>, activa
+          el modo desarrollador y recarga Bender.
         </Notice>
       ) : null}
       {status?.error ? <Notice tone="warning">{status.error}</Notice> : null}
@@ -204,8 +210,14 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
       <Card title="Plantillas" subtitle="Arranca de una base y ajustala.">
         <div className="row wrap">
           {SCRIPT_TEMPLATES.map((template) => (
-            <button key={template.id} type="button" className="btn small" title={template.description} onClick={() => addFromTemplate(template)}>
-              <Icon name={template.language === 'css' ? 'sparkles' : 'code'} size={12} />
+            <button
+              key={template.id}
+              type="button"
+              className="btn small"
+              title={template.description}
+              onClick={() => addFromTemplate(template)}
+            >
+              <Icon name={template.language === "css" ? "sparkles" : "code"} size={12} />
               {template.label}
             </button>
           ))}
@@ -234,11 +246,13 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                   onChange={(enabled) => mutateScript(script.id, (current) => ({ ...current, enabled }))}
                   title="Prender o apagar este script"
                 />
-                <Badge tone={script.language === 'css' ? 'accent' : 'info'}>
-                  {script.language === 'css' ? 'CSS' : 'JS'}
+                <Badge tone={script.language === "css" ? "accent" : "info"}>
+                  {script.language === "css" ? "CSS" : "JS"}
                 </Badge>
                 <span className="item-name">{script.name}</span>
-                <span className="item-preview">{script.matches.join(', ') || 'sin patrones — no se ejecuta'}</span>
+                <span className="item-preview">
+                  {script.matches.join(", ") || "sin patrones — no se ejecuta"}
+                </span>
                 {errorFor(script.id) ? (
                   <span title="Reventó al ejecutarse. Abrilo para ver el detalle.">
                     <Badge tone="danger">error</Badge>
@@ -256,7 +270,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                     }))
                   }
                 />
-                <Icon name={expanded ? 'chevron-down' : 'chevron-right'} size={13} />
+                <Icon name={expanded ? "chevron-down" : "chevron-right"} size={13} />
               </div>
 
               {expanded ? (
@@ -271,7 +285,9 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                     <Field label="Descripcion">
                       <TextInput
                         value={script.description}
-                        onChange={(description) => mutateScript(script.id, (current) => ({ ...current, description }))}
+                        onChange={(description) =>
+                          mutateScript(script.id, (current) => ({ ...current, description }))
+                        }
                       />
                     </Field>
                   </div>
@@ -291,14 +307,14 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                         onClick={() => {
                           const patterns = parseMatchPatterns(patternDraft);
                           if (patterns.some((pattern) => !isValidMatchPattern(pattern))) {
-                            notify('Patron invalido: usa https://dominio.com/*', 'error');
+                            notify("Patron invalido: usa https://dominio.com/*", "error");
                             return;
                           }
                           mutateScript(script.id, (current) => ({
                             ...current,
                             matches: Array.from(new Set([...current.matches, ...patterns])),
                           }));
-                          setPatternDraft('');
+                          setPatternDraft("");
                         }}
                       >
                         Agregar
@@ -312,7 +328,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                             mutateScript(script.id, (current) => ({
                               ...current,
                               matches: Array.from(
-                                new Set([...current.matches, patternForHostname(activeTab.hostname)])
+                                new Set([...current.matches, patternForHostname(activeTab.hostname)]),
                               ),
                             }))
                           }
@@ -337,7 +353,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                     </div>
                     {invalidPatterns.length ? (
                       <Notice tone="warning">
-                        Patrones invalidos (se ignoran): {invalidPatterns.join(', ')}. El formato es
+                        Patrones invalidos (se ignoran): {invalidPatterns.join(", ")}. El formato es
                         <code> esquema://dominio/ruta</code>, por ejemplo <code>https://*.google.com/*</code>.
                       </Notice>
                     ) : null}
@@ -349,7 +365,8 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                         value={script.runAt}
                         options={RUN_AT_OPTIONS}
                         onChange={(value) => {
-                          if (isRunAt(value)) mutateScript(script.id, (current) => ({ ...current, runAt: value }));
+                          if (isRunAt(value))
+                            mutateScript(script.id, (current) => ({ ...current, runAt: value }));
                         }}
                       />
                     </Field>
@@ -357,13 +374,14 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                       <Select
                         value={script.world}
                         options={WORLD_OPTIONS}
-                        disabled={script.language === 'css'}
+                        disabled={script.language === "css"}
                         onChange={(value) => {
-                          if (isWorld(value)) mutateScript(script.id, (current) => ({ ...current, world: value }));
+                          if (isWorld(value))
+                            mutateScript(script.id, (current) => ({ ...current, world: value }));
                         }}
                       />
                     </Field>
-                    <div className="field" style={{ justifyContent: 'flex-end' }}>
+                    <div className="field" style={{ justifyContent: "flex-end" }}>
                       <label className="checkbox">
                         <input
                           type="checkbox"
@@ -381,7 +399,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                   <RuntimeErrorNotice
                     error={errorFor(script.id)}
                     onDismiss={() => {
-                      void sendMessage({ type: 'scripts/errors-clear' });
+                      void sendMessage({ type: "scripts/errors-clear" });
                       setErrors([]);
                     }}
                   />
@@ -401,18 +419,18 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
                     }
                   />
 
-                  <Field label={script.language === 'css' ? 'CSS' : 'JavaScript'}>
+                  <Field label={script.language === "css" ? "CSS" : "JavaScript"}>
                     <CodeEditor
                       value={script.code}
-                      language={script.language === 'css' ? 'css' : 'javascript'}
+                      language={script.language === "css" ? "css" : "javascript"}
                       minHeight={200}
                       onChange={(code) => mutateScript(script.id, (current) => ({ ...current, code }))}
                       toolbar={
                         <>
                           <Icon name="code" size={12} />
-                          <span>{script.language === 'css' ? 'hoja de estilos' : 'modulo clasico'}</span>
+                          <span>{script.language === "css" ? "hoja de estilos" : "modulo clasico"}</span>
                           <div className="spacer" />
-                          <span>{script.code.split('\n').length} lineas</span>
+                          <span>{script.code.split("\n").length} lineas</span>
                         </>
                       }
                     />
@@ -426,8 +444,8 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps) => {
 
       {state.userScripts.length ? (
         <p className="field-hint">
-          Los cambios se registran solos. El CSS se aplica al recargar la pagina; el JavaScript, en la proxima carga
-          que matchee.
+          Los cambios se registran solos. El CSS se aplica al recargar la pagina; el JavaScript, en la proxima
+          carga que matchee.
         </p>
       ) : null}
     </ViewShell>
