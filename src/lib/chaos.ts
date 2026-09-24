@@ -47,5 +47,5 @@ export const describeChaos = (chaos: { delayMs: number; failRate: number; failSt
     const failure = chaos.failStatus === NETWORK_ERROR_STATUS ? "error de red" : String(chaos.failStatus);
     parts.push(`${chaos.failRate}% ${failure}`);
   }
-  return parts.length ? parts.join(" · ") : "sin efecto";
+  return parts.length > 0 ? parts.join(" · ") : "sin efecto";
 };

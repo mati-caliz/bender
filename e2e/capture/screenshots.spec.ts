@@ -1,4 +1,3 @@
-import { mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type { BrowserContext, Page } from "@playwright/test";
 import { expect, test } from "../fixtures";
@@ -32,11 +31,8 @@ const shoot = async (page: Page, name: string, dir: string = OUT_DIR): Promise<v
   await page.screenshot({ path: `${dir}/${name}.png`, animations: "disabled" });
 };
 
-const goToView = async (page: Page, label: string): Promise<void> => {
-  await page
-    .locator(".nav-item", { hasText: new RegExp(`^${label}`) })
-    .first()
-    .click();
+const goToView = async (page: Page, label: RegExp): Promise<void> => {
+  await page.locator(".nav-item", { hasText: label }).first().click();
   await page.waitForTimeout(400);
 };
 
@@ -50,8 +46,6 @@ const openBender = async (context: BrowserContext, extensionId: string): Promise
 
 test("capturas para la ficha de la Store", async ({ context, extensionId, applyState }) => {
   test.setTimeout(180_000);
-  await mkdir(OUT_DIR, { recursive: true });
-  await mkdir(EXTRA_DIR, { recursive: true });
 
   const demo: DemoSite = await startDemoSite();
 
@@ -81,27 +75,27 @@ test("capturas para la ficha de la Store", async ({ context, extensionId, applyS
     await site.bringToFront();
     await site.waitForTimeout(1500);
 
-    await goToView(bender, "Headers");
+    await goToView(bender, /^Headers/);
     await shoot(bender, "01-headers");
 
     // El log arrastra la carga de la propia extension: se limpia y se vuelve a
     // pedir solo lo del sitio, para que la captura muestre trafico de verdad.
-    await goToView(bender, "Trafico");
+    await goToView(bender, /^Trafico/);
     await bender.getByRole("button", { name: "Limpiar" }).click();
     await site.reload();
     await site.waitForTimeout(2000);
     await shoot(bender, "02-trafico");
 
-    await goToView(bender, "Reglas");
+    await goToView(bender, /^Reglas/);
     await shoot(bender, "03-reglas");
 
-    await goToView(bender, "Cookies");
+    await goToView(bender, /^Cookies/);
     // Abrir la fila del JWT para que se vea el decodificador.
     await bender.getByText("session_token", { exact: true }).click();
     await shoot(bender, "04-cookies");
 
     // El inspector se dibuja sobre la pagina, asi que la captura es del sitio.
-    await goToView(bender, "Diseño");
+    await goToView(bender, /^Diseño/);
     await bender.getByRole("button", { name: "Activar" }).click();
     await site.bringToFront();
     await site.waitForTimeout(800);
@@ -110,13 +104,13 @@ test("capturas para la ficha de la Store", async ({ context, extensionId, applyS
     await site.waitForTimeout(600);
     await shoot(site, "05-diseno");
 
-    await goToView(bender, "Storage");
+    await goToView(bender, /^Storage/);
     await shoot(bender, "06-storage");
 
-    await goToView(bender, "Resumen");
+    await goToView(bender, /^Resumen/);
     await shoot(bender, "resumen", EXTRA_DIR);
 
-    await goToView(bender, "Scripts");
+    await goToView(bender, /^Scripts/);
     await shoot(bender, "scripts", EXTRA_DIR);
   } finally {
     await demo.close();

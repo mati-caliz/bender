@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Icon } from "@/ui/components/Icon";
 import { Badge, CopyButton, Switch } from "@/ui/components/primitives";
 
@@ -24,7 +24,7 @@ export const ToggleCard = ({
   onToggle,
   onExpand,
   children,
-}: ToggleCardProps) => (
+}: ToggleCardProps): ReactElement => (
   <div className="item-card" data-off={off} data-expanded={expanded}>
     <div className="item-head" onClick={onExpand}>
       <Switch small checked={!off} onChange={onToggle} title={off ? "Restaurar" : "Apagar"} />

@@ -27,8 +27,7 @@ const header = (id: string, name: string, value: string, comment = "") => ({
   comment,
 });
 
-const base64url = (value: string): string =>
-  Buffer.from(value).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const base64url = (value: string): string => Buffer.from(value).toString("base64url");
 
 /** JWT sin firmar de mentira, solo para que el decodificador tenga algo que mostrar. */
 export const DEMO_JWT = [

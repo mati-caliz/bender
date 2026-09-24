@@ -12,8 +12,11 @@ const READY_STATE_DONE = 4;
 const originalFetch = window.fetch.bind(window);
 const originalOpen = XMLHttpRequest.prototype.open;
 const originalSend = XMLHttpRequest.prototype.send;
-const originalSendBeacon = navigator.sendBeacon?.bind(navigator);
+const originalSendBeacon =
+  typeof navigator.sendBeacon === "function" ? navigator.sendBeacon.bind(navigator) : undefined;
 const BEACON_METHOD = "POST";
+const SAME_ORIGIN_TARGET = "/";
+const UINT32_RANGE = 2 ** 32;
 
 interface PendingRequest {
   method: string;
@@ -44,7 +47,7 @@ bridgePort.onmessage = (event: MessageEvent<BridgePortMessage>) => {
 };
 
 const handshake: BridgeHandshake = { channel: "bender", type: "connect" };
-window.postMessage(handshake, "*", [bridgeChannel.port2]);
+window.postMessage(handshake, SAME_ORIGIN_TARGET, [bridgeChannel.port2]);
 
 const reportHit = (rule: { name: string; status: number }, url: string, method: string): void => {
   const message: BridgePortMessage = {
@@ -77,7 +80,7 @@ const reportBodies = (
       method,
       requestBody: request?.body ?? null,
       responseBody: response?.body ?? null,
-      truncated: Boolean(request?.truncated || response?.truncated),
+      truncated: request?.truncated === true || response?.truncated === true,
     },
   };
   bridgePort.postMessage(message);
@@ -98,13 +101,15 @@ interface ChaosOutcome {
 
 const NO_CHAOS: ChaosOutcome = { delayMs: 0, failure: null };
 
+const randomUnit = (): number => (crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) / UINT32_RANGE;
+
 /** Tira el dado una sola vez por request para que la demora y el fallo sean coherentes. */
 const resolveChaos = (request: ScopeRequest): ChaosOutcome => {
   const chaos = findMatchingChaos(chaosRules, request);
   if (!chaos) return NO_CHAOS;
   return {
     delayMs: chaos.delayMs,
-    failure: shouldFail(chaos.failRate, Math.random()) ? chaos : null,
+    failure: shouldFail(chaos.failRate, randomUnit()) ? chaos : null,
   };
 };
 
@@ -126,7 +131,7 @@ const requestUrlOf = (input: RequestInfo | URL): string => {
 };
 
 const requestMethodOf = (input: RequestInfo | URL, init?: RequestInit): string => {
-  if (init?.method) return init.method.toUpperCase();
+  if (init?.method !== undefined && init.method !== "") return init.method.toUpperCase();
   if (typeof input !== "string" && !(input instanceof URL)) return input.method.toUpperCase();
   return "GET";
 };
@@ -171,7 +176,9 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
       void response
         .clone()
         .text()
-        .then((body) => reportBodies(url, method, readableRequestBody(init), body))
+        .then((body) => {
+          reportBodies(url, method, readableRequestBody(init), body);
+        })
         .catch(() => undefined);
     }
     return response;
@@ -252,8 +259,11 @@ const simulateXhr = (xhr: XMLHttpRequest, mock: MockDefinition, request: Pending
   }, mock.delayMs);
 };
 
-const readableXhrBody = (body?: Document | XMLHttpRequestBodyInit | null): string | null =>
-  typeof body === "string" ? body : null;
+type XhrBody = Document | XMLHttpRequestBodyInit | null;
+type OptionalOpenArguments =
+  [] | [async: boolean, username?: string | null | undefined, password?: string | null | undefined];
+
+const readableXhrBody = (body?: XhrBody): string | null => (typeof body === "string" ? body : null);
 
 const xhrResponseText = (xhr: XMLHttpRequest): string | null => {
   try {
@@ -263,11 +273,7 @@ const xhrResponseText = (xhr: XMLHttpRequest): string | null => {
   }
 };
 
-const captureXhrBodies = (
-  xhr: XMLHttpRequest,
-  request: PendingRequest,
-  body?: Document | XMLHttpRequestBodyInit | null,
-): void => {
+const captureXhrBodies = (xhr: XMLHttpRequest, request: PendingRequest, body?: XhrBody): void => {
   xhr.addEventListener("load", () => {
     reportBodies(request.url, request.method, readableXhrBody(body), xhrResponseText(xhr));
   });
@@ -277,11 +283,10 @@ XMLHttpRequest.prototype.open = function patchedOpen(
   this: XMLHttpRequest,
   method: string,
   url: string | URL,
-  ...rest: unknown[]
+  ...rest: OptionalOpenArguments
 ): void {
   pendingRequests.set(this, { method: method.toUpperCase(), url: absoluteUrl(String(url)) });
-  const args = [method, url, ...rest] as Parameters<XMLHttpRequest["open"]>;
-  originalOpen.apply(this, args);
+  Reflect.apply(originalOpen, this, [method, url, ...rest]);
 };
 
 /** Una respuesta de status fijo y cuerpo vacio es un mock degenerado, asi que se reusa. */
@@ -305,10 +310,7 @@ const failXhr = (xhr: XMLHttpRequest, request: PendingRequest): void => {
   xhr.dispatchEvent(new ProgressEvent("loadend"));
 };
 
-XMLHttpRequest.prototype.send = function patchedSend(
-  this: XMLHttpRequest,
-  body?: Document | XMLHttpRequestBodyInit | null,
-): void {
+XMLHttpRequest.prototype.send = function patchedSend(this: XMLHttpRequest, body?: XhrBody): void {
   const request = pendingRequests.get(this);
   if (!request) {
     originalSend.call(this, body);
@@ -342,7 +344,7 @@ XMLHttpRequest.prototype.send = function patchedSend(
   });
 };
 
-if (originalSendBeacon) {
+if (originalSendBeacon !== undefined) {
   navigator.sendBeacon = function patchedSendBeacon(url: string | URL, data?: BodyInit | null): boolean {
     const target = absoluteUrl(String(url));
     const request = scopeRequestFor(target, BEACON_METHOD);

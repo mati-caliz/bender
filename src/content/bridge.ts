@@ -33,10 +33,13 @@ const forwardBodies = (bodies: CapturedBodies): void => {
   sendToBackground({ type: "network/bodies", payload: bodies });
 };
 
-const isHandshake = (data: unknown): data is BridgeHandshake => {
-  const candidate = data as Partial<BridgeHandshake> | null;
-  return candidate?.channel === "bender" && candidate.type === "connect";
-};
+const isHandshake = (data: unknown): data is BridgeHandshake =>
+  typeof data === "object" &&
+  data !== null &&
+  "channel" in data &&
+  data.channel === "bender" &&
+  "type" in data &&
+  data.type === "connect";
 
 window.addEventListener("message", (event) => {
   if (pagePort || event.source !== window || !isHandshake(event.data)) return;
@@ -58,7 +61,7 @@ window.addEventListener("message", (event) => {
  */
 window.addEventListener("error", (event: ErrorEvent) => {
   const scriptId = scriptIdFromSource(event.filename);
-  if (!scriptId) return;
+  if (scriptId === null || scriptId === "") return;
 
   sendToBackground({
     type: "scripts/error",

@@ -12,10 +12,12 @@ const EMPTY_TAB: ActiveTab = { id: null, url: "", origin: "", hostname: "", inje
 const HTTP_URL_PATTERN = /^https?:/;
 
 const describeTab = (tab: chrome.tabs.Tab | undefined): ActiveTab => {
-  if (!tab?.url || typeof tab.id !== "number") return EMPTY_TAB;
-  if (!HTTP_URL_PATTERN.test(tab.url)) return { ...EMPTY_TAB, id: tab.id, url: tab.url };
-  const parsed = new URL(tab.url);
-  return { id: tab.id, url: tab.url, origin: parsed.origin, hostname: parsed.hostname, injectable: true };
+  if (tab === undefined) return EMPTY_TAB;
+  const { url, id } = tab;
+  if (url === undefined || url === "" || typeof id !== "number") return EMPTY_TAB;
+  if (!HTTP_URL_PATTERN.test(url)) return { ...EMPTY_TAB, id, url };
+  const parsed = new URL(url);
+  return { id, url, origin: parsed.origin, hostname: parsed.hostname, injectable: true };
 };
 
 export const useActiveTab = (): ActiveTab => {
@@ -23,7 +25,7 @@ export const useActiveTab = (): ActiveTab => {
 
   useEffect(() => {
     let active = true;
-    const refresh = () => {
+    const refresh = (): void => {
       void chrome.tabs.query({ active: true, currentWindow: true }).then(([current]) => {
         if (active) setTab(describeTab(current));
       });

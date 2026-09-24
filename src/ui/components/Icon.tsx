@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 export type IconName =
   | "activity"
@@ -186,7 +186,7 @@ interface IconProps {
   className?: string;
 }
 
-export const Icon = ({ name, size = 15, className }: IconProps) => (
+export const Icon = ({ name, size = 15, className }: IconProps): ReactElement => (
   <svg
     width={size}
     height={size}

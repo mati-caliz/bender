@@ -1,5 +1,5 @@
 import { ALL_REQUEST_METHODS, ALL_RESOURCE_TYPES } from "@/lib/constants";
-import { escapeForRegExp } from "@/lib/regexp";
+import { compileRegExp, escapeForRegExp } from "@/lib/regexp";
 import type { RequestMethod, ResourceType, Scope } from "@/types";
 
 const DOMAIN_PATTERN = /^[a-z0-9.-]+$/;
@@ -27,11 +27,14 @@ export const parseDomainList = (input: string): string[] =>
   sanitizeDomainList(input.split(/[\s,;]+/).filter(Boolean));
 
 export const resolveResourceTypes = (scope: Scope): ResourceType[] =>
-  scope.resourceTypes.length ? scope.resourceTypes : ALL_RESOURCE_TYPES;
+  scope.resourceTypes.length > 0 ? scope.resourceTypes : ALL_RESOURCE_TYPES;
+
+const isRequestMethod = (value: string): value is RequestMethod =>
+  ALL_REQUEST_METHODS.some((method) => method === value);
 
 export const toRequestMethod = (method: string): RequestMethod => {
   const normalized = method.trim().toLowerCase();
-  return ALL_REQUEST_METHODS.includes(normalized as RequestMethod) ? (normalized as RequestMethod) : "other";
+  return isRequestMethod(normalized) ? normalized : "other";
 };
 
 export interface CompiledCondition {
@@ -50,6 +53,24 @@ export interface ConditionContext {
   activeTabId: number | null;
 }
 
+type DomainConditionKey =
+  "requestDomains" | "excludedRequestDomains" | "initiatorDomains" | "excludedInitiatorDomains";
+
+const domainConditions = (scope: Scope): Pick<CompiledCondition, DomainConditionKey> => {
+  const sources: [DomainConditionKey, string[]][] = [
+    ["requestDomains", scope.includeDomains],
+    ["excludedRequestDomains", scope.excludeDomains],
+    ["initiatorDomains", scope.initiatorDomains],
+    ["excludedInitiatorDomains", scope.excludedInitiatorDomains],
+  ];
+  const conditions: Pick<CompiledCondition, DomainConditionKey> = {};
+  for (const [key, domains] of sources) {
+    const sanitized = sanitizeDomainList(domains);
+    if (sanitized.length > 0) conditions[key] = sanitized;
+  }
+  return conditions;
+};
+
 export const scopeToCondition = (scope: Scope, context: ConditionContext): CompiledCondition | null => {
   if (scope.activeTabOnly && context.activeTabId === null) return null;
 
@@ -60,38 +81,33 @@ export const scopeToCondition = (scope: Scope, context: ConditionContext): Compi
   const urlFilter = scope.urlFilter.trim();
   if (urlFilter) condition.urlFilter = urlFilter;
 
-  const includeDomains = sanitizeDomainList(scope.includeDomains);
-  if (includeDomains.length) condition.requestDomains = includeDomains;
+  Object.assign(condition, domainConditions(scope));
 
-  const excludeDomains = sanitizeDomainList(scope.excludeDomains);
-  if (excludeDomains.length) condition.excludedRequestDomains = excludeDomains;
-
-  const initiatorDomains = sanitizeDomainList(scope.initiatorDomains);
-  if (initiatorDomains.length) condition.initiatorDomains = initiatorDomains;
-
-  const excludedInitiatorDomains = sanitizeDomainList(scope.excludedInitiatorDomains);
-  if (excludedInitiatorDomains.length) condition.excludedInitiatorDomains = excludedInitiatorDomains;
-
-  if (scope.requestMethods.length) condition.requestMethods = scope.requestMethods;
+  if (scope.requestMethods.length > 0) condition.requestMethods = scope.requestMethods;
 
   if (scope.activeTabOnly && context.activeTabId !== null) condition.tabIds = [context.activeTabId];
 
   return condition;
 };
 
+const describeList = (prefix: string, values: string[]): string[] =>
+  values.length > 0 ? [`${prefix}${values.join(", ")}`] : [];
+
 export const describeScope = (scope: Scope): string => {
-  const parts: string[] = [];
-  if (scope.activeTabOnly) parts.push("solo pestaña activa");
-  if (scope.requestMethods.length)
-    parts.push(scope.requestMethods.map((method) => method.toUpperCase()).join("/"));
-  if (scope.includeDomains.length) parts.push(scope.includeDomains.join(", "));
-  if (scope.excludeDomains.length) parts.push(`excepto ${scope.excludeDomains.join(", ")}`);
-  if (scope.initiatorDomains.length) parts.push(`desde ${scope.initiatorDomains.join(", ")}`);
-  if (scope.excludedInitiatorDomains.length)
-    parts.push(`no desde ${scope.excludedInitiatorDomains.join(", ")}`);
-  if (scope.urlFilter.trim()) parts.push(`url ~ ${scope.urlFilter.trim()}`);
-  if (scope.resourceTypes.length) parts.push(`${scope.resourceTypes.length} tipo(s)`);
-  return parts.length ? parts.join(" · ") : "todas las requests";
+  const urlFilter = scope.urlFilter.trim();
+  const parts = [
+    ...(scope.activeTabOnly ? ["solo pestaña activa"] : []),
+    ...(scope.requestMethods.length > 0
+      ? [scope.requestMethods.map((method) => method.toUpperCase()).join("/")]
+      : []),
+    ...describeList("", scope.includeDomains),
+    ...describeList("excepto ", scope.excludeDomains),
+    ...describeList("desde ", scope.initiatorDomains),
+    ...describeList("no desde ", scope.excludedInitiatorDomains),
+    ...(urlFilter ? [`url ~ ${urlFilter}`] : []),
+    ...(scope.resourceTypes.length > 0 ? [`${scope.resourceTypes.length} tipo(s)`] : []),
+  ];
+  return parts.length > 0 ? parts.join(" · ") : "todas las requests";
 };
 
 export const isScopeRestricted = (scope: Scope): boolean =>
@@ -136,7 +152,7 @@ export const urlFilterToRegExp = (urlFilter: string): RegExp => {
   }
 
   const body = urlFilterBodyToSource(pattern);
-  return new RegExp(`${anchoredStart ? "^.*?" : ""}${body}${anchoredEnd ? "$" : ""}`);
+  return compileRegExp(`${anchoredStart ? "^.*?" : ""}${body}${anchoredEnd ? "$" : ""}`);
 };
 
 export const matchesDomain = (hostname: string, domain: string): boolean =>
@@ -151,7 +167,7 @@ export const urlMatchesScope = (scope: Scope, url: string): boolean => {
   }
 
   const includeDomains = sanitizeDomainList(scope.includeDomains);
-  if (includeDomains.length && !includeDomains.some((domain) => matchesDomain(hostname, domain)))
+  if (includeDomains.length > 0 && !includeDomains.some((domain) => matchesDomain(hostname, domain)))
     return false;
 
   const excludeDomains = sanitizeDomainList(scope.excludeDomains);
@@ -172,13 +188,13 @@ export interface ScopeRequest {
 export const requestMatchesScope = (scope: Scope, request: ScopeRequest): boolean => {
   if (!urlMatchesScope(scope, request.url)) return false;
 
-  if (scope.requestMethods.length && !scope.requestMethods.includes(toRequestMethod(request.method)))
+  if (scope.requestMethods.length > 0 && !scope.requestMethods.includes(toRequestMethod(request.method)))
     return false;
 
   const initiatorHostname = request.initiatorHostname.toLowerCase();
   const initiatorDomains = sanitizeDomainList(scope.initiatorDomains);
   if (
-    initiatorDomains.length &&
+    initiatorDomains.length > 0 &&
     !initiatorDomains.some((domain) => matchesDomain(initiatorHostname, domain))
   ) {
     return false;

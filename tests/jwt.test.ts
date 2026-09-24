@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeJwt, looksLikeJwt } from "@/lib/jwt";
 
-const base64Url = (value: object): string =>
-  Buffer.from(JSON.stringify(value))
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+const base64Url = (value: object): string => Buffer.from(JSON.stringify(value)).toString("base64url");
 
 const buildJwt = (payload: object, header: object = { alg: "HS256", typ: "JWT" }): string =>
   `${base64Url(header)}.${base64Url(payload)}.firma`;
@@ -31,7 +26,7 @@ describe("decodeJwt", () => {
   });
 
   it("soporta caracteres no ascii", () => {
-    expect(decodeJwt(buildJwt({ name: "Matías Cáliz" }))?.payload.name).toBe("Matías Cáliz");
+    expect(decodeJwt(buildJwt({ name: "Matías Cáliz" }))?.payload["name"]).toBe("Matías Cáliz");
   });
 
   it("convierte iat y exp a fechas", () => {

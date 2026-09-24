@@ -1,3 +1,4 @@
+import { compileFunction } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_USER_AGENT_CONFIG, createDefaultState, createEmptyScope } from "@/lib/constants";
 import {
@@ -113,11 +114,11 @@ describe("buildNavigatorSpoofCode", () => {
 
   it("escapa un user agent con comillas para no romper el script", () => {
     const code = buildNavigatorSpoofCode('raro "con comillas" y \\ barra');
-    expect(() => new Function(code)).not.toThrow();
+    expect(() => compileFunction(code)).not.toThrow();
   });
 
   it("genera codigo evaluable", () => {
-    expect(() => new Function(buildNavigatorSpoofCode(IPHONE_USER_AGENT))).not.toThrow();
+    expect(() => compileFunction(buildNavigatorSpoofCode(IPHONE_USER_AGENT))).not.toThrow();
   });
 });
 

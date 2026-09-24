@@ -73,7 +73,7 @@ export const createTrafficRule = (kind: TrafficRuleAction["kind"], existingCount
   action: createTrafficRuleAction(kind),
 });
 
-const headerValueOf = (headers: Array<{ name: string; value: string }>, name: string): string | null =>
+const headerValueOf = (headers: { name: string; value: string }[], name: string): string | null =>
   headers.find((header) => header.name.toLowerCase() === name)?.value ?? null;
 
 export const createMockRuleFromEntry = (entry: NetworkEntry, existingCount: number): TrafficRule => {

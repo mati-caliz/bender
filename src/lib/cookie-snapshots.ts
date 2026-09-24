@@ -1,5 +1,6 @@
 import { COOKIE_SNAPSHOTS_KEY } from "@/lib/constants";
 import { createId } from "@/lib/ids";
+import { isRecord } from "@/lib/records";
 import { coerceCookieSnapshotSet } from "@/lib/sanitize";
 import { loadScopedMap, saveScopedMap, withoutKey } from "@/lib/toggleable";
 import type { CookieSnapshot, CookieSnapshotSet } from "@/types";
@@ -8,7 +9,7 @@ const byNewestFirst = (left: CookieSnapshotSet, right: CookieSnapshotSet): numbe
   right.createdAt - left.createdAt;
 
 const readSets = async (domain: string): Promise<Record<string, CookieSnapshotSet>> => {
-  const stored = await loadScopedMap<unknown>(COOKIE_SNAPSHOTS_KEY, domain);
+  const stored = await loadScopedMap(COOKIE_SNAPSHOTS_KEY, domain, isRecord);
   const sets: Record<string, CookieSnapshotSet> = {};
   for (const [id, candidate] of Object.entries(stored)) {
     const set = coerceCookieSnapshotSet(candidate);

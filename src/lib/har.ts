@@ -1,4 +1,5 @@
 import type { NetworkEntry } from "@/types";
+import { hasText } from "@/lib/text";
 
 const HAR_VERSION = "1.2";
 const HTTP_VERSION = "HTTP/1.1";
@@ -59,6 +60,12 @@ const queryStringOf = (url: string): HarNameValue[] => {
 const headerValue = (headers: HarNameValue[], name: string): string =>
   headers.find((header) => header.name.toLowerCase() === name)?.value ?? "";
 
+const entryNotes = (entry: NetworkEntry): string[] => [
+  ...entry.matchedRuleLabels,
+  ...(entry.bodyTruncated ? ["cuerpo truncado por Bender"] : []),
+  ...(hasText(entry.error) ? [entry.error] : []),
+];
+
 const toHarEntry = (entry: NetworkEntry): HarEntry => {
   const time = entry.finishedAt === null ? 0 : Math.max(0, entry.finishedAt - entry.startedAt);
   const responseMimeType = headerValue(entry.responseHeaders, CONTENT_TYPE_HEADER);
@@ -102,12 +109,8 @@ const toHarEntry = (entry: NetworkEntry): HarEntry => {
     };
   }
 
-  const notes = [
-    ...entry.matchedRuleLabels,
-    ...(entry.bodyTruncated ? ["cuerpo truncado por Bender"] : []),
-    ...(entry.error ? [entry.error] : []),
-  ];
-  if (notes.length) harEntry.comment = notes.join(" · ");
+  const notes = entryNotes(entry);
+  if (notes.length > 0) harEntry.comment = notes.join(" · ");
 
   return harEntry;
 };

@@ -1,8 +1,9 @@
+import type { ReactElement } from "react";
 import { decodeJwt } from "@/lib/jwt";
 import { formatDateTime } from "@/lib/format";
 import { Badge } from "@/ui/components/primitives";
 
-export const JwtPanel = ({ value }: { value: string }) => {
+export const JwtPanel = ({ value }: { value: string }): ReactElement | null => {
   const decoded = decodeJwt(value);
   if (!decoded) return null;
 

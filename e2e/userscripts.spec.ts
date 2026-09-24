@@ -1,6 +1,6 @@
 import { createUserScript } from "../src/lib/factories";
 import type { UserScript } from "../src/types";
-import { expect, expectPoll, test } from "./fixtures";
+import { expect, test } from "./fixtures";
 
 const script = (overrides: Partial<UserScript> = {}): UserScript => ({
   ...createUserScript("javascript", 0),
@@ -17,6 +17,7 @@ const requireUserScripts = async (serviceWorker: {
   evaluate: <T>(fn: () => T) => Promise<T>;
 }): Promise<void> => {
   const supported = await serviceWorker.evaluate(() => typeof chrome.userScripts !== "undefined");
+  // Se saltea por el entorno y no por el código: sin modo desarrollador Chrome no expone la API.
   test.skip(!supported, "este Chrome no expone chrome.userScripts (hace falta modo desarrollador)");
 };
 
@@ -43,7 +44,7 @@ test("un userscript activo corre en la pagina que matchea", async ({
   const page = await context.newPage();
   await page.goto(server.origin);
 
-  await expectPoll(async () => (await page.title()) === "tocado por bender");
+  await expect(page).toHaveTitle("tocado por bender");
 });
 
 test("un userscript apagado no corre", async ({ context, server, serviceWorker, applyState }) => {

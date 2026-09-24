@@ -90,7 +90,7 @@ describe("parseJsonTree", () => {
     const root = parseJsonTree('{"a":{"b":1},"c":[2]}');
     const paths = [
       root?.path,
-      ...(root?.children.flatMap((child) => [child.path, ...child.children.map((n) => n.path)]) ?? []),
+      ...(root?.children.flatMap((child) => [child.path, ...child.children.map((node) => node.path)]) ?? []),
     ];
 
     expect(paths).toEqual(["$", "$.a", "$.a.b", "$.c", "$.c.0"]);

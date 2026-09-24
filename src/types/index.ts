@@ -196,8 +196,8 @@ export interface NetworkEntry {
   startedAt: number;
   finishedAt: number | null;
   error: string | null;
-  requestHeaders: Array<{ name: string; value: string }>;
-  responseHeaders: Array<{ name: string; value: string }>;
+  requestHeaders: { name: string; value: string }[];
+  responseHeaders: { name: string; value: string }[];
   matchedRuleIds: number[];
   matchedRuleLabels: string[];
   source: "network" | "mock";
@@ -221,7 +221,7 @@ export interface CookieSnapshot {
   sameSite: chrome.cookies.SameSiteStatus;
   hostOnly: boolean;
   expirationDate: number | null;
-  partitionKey?: chrome.cookies.CookiePartitionKey;
+  partitionKey?: chrome.cookies.CookiePartitionKey | undefined;
 }
 
 export interface CookieSnapshotSet {
@@ -248,7 +248,7 @@ export interface MockDefinition {
   contentType: string;
   body: string;
   delayMs: number;
-  headers: Array<{ name: string; value: string }>;
+  headers: { name: string; value: string }[];
 }
 
 export type DesignTool = "inspect" | "ruler" | "spacing";

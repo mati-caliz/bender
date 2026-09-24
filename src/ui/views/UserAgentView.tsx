@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { CUSTOM_USER_AGENT_PRESET_ID, USER_AGENT_PRESETS } from "@/lib/constants";
 import { ScopeEditor } from "@/ui/components/ScopeEditor";
 import { ViewShell } from "@/ui/components/ViewShell";
@@ -5,10 +6,10 @@ import { Badge, Card, Notice, Switch, TextArea } from "@/ui/components/primitive
 import type { ViewProps } from "@/ui/views/types";
 import type { UserAgentConfig } from "@/types";
 
-export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
+export const UserAgentView = ({ state, update, activeTab }: ViewProps): ReactElement => {
   const userAgent = state.userAgent;
 
-  const mutate = (mutateConfig: (config: UserAgentConfig) => UserAgentConfig) => {
+  const mutate = (mutateConfig: (config: UserAgentConfig) => UserAgentConfig): void => {
     update((current) => ({ ...current, userAgent: mutateConfig(current.userAgent) }));
   };
 
@@ -35,7 +36,9 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
         <div className="spacer" />
         <Switch
           checked={userAgent.enabled}
-          onChange={(enabled) => mutate((config) => ({ ...config, enabled }))}
+          onChange={(enabled) => {
+            mutate((config) => ({ ...config, enabled }));
+          }}
         />
       </div>
 
@@ -49,9 +52,9 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
                   key={preset.id}
                   type="button"
                   className={preset.id === userAgent.presetId ? "btn primary small" : "btn small"}
-                  onClick={() =>
-                    mutate((config) => ({ ...config, presetId: preset.id, value: preset.value }))
-                  }
+                  onClick={() => {
+                    mutate((config) => ({ ...config, presetId: preset.id, value: preset.value }));
+                  }}
                 >
                   {preset.label}
                 </button>
@@ -74,9 +77,9 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
           mono
           rows={3}
           placeholder="Mozilla/5.0 …"
-          onChange={(value) =>
-            mutate((config) => ({ ...config, value, presetId: CUSTOM_USER_AGENT_PRESET_ID }))
-          }
+          onChange={(value) => {
+            mutate((config) => ({ ...config, value, presetId: CUSTOM_USER_AGENT_PRESET_ID }));
+          }}
         />
         <label className="checkbox">
           <input
@@ -118,7 +121,9 @@ export const UserAgentView = ({ state, update, activeTab }: ViewProps) => {
         <ScopeEditor
           scope={userAgent.scope}
           currentHostname={activeTab.hostname}
-          onChange={(scope) => mutate((config) => ({ ...config, scope }))}
+          onChange={(scope) => {
+            mutate((config) => ({ ...config, scope }));
+          }}
         />
       </Card>
     </ViewShell>

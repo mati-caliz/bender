@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { createId } from "@/lib/ids";
 
 const TOAST_DURATION_MS = 2600;
@@ -19,7 +27,7 @@ const ToastContext = createContext<ToastApi>({ notify: () => undefined });
 
 export const useToasts = (): ToastApi => useContext(ToastContext);
 
-export const ToastProvider = ({ children }: { children: ReactNode }) => {
+export const ToastProvider = ({ children }: { children: ReactNode }): ReactElement => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const notify = useCallback((message: string, tone: ToastTone = "neutral") => {

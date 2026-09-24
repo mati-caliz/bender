@@ -10,7 +10,7 @@ import {
 import { createProfile, createTrafficRule } from "@/lib/factories";
 import type { Environment, ToolkitState } from "@/types";
 
-const stateWith = (profiles: Array<[string, boolean]>, rules: Array<[string, boolean]>): ToolkitState => ({
+const stateWith = (profiles: [string, boolean][], rules: [string, boolean][]): ToolkitState => ({
   ...createDefaultState(),
   profiles: profiles.map(([id, enabled]) => ({ ...createProfile(0), id, enabled })),
   trafficRules: rules.map(([id, enabled]) => ({ ...createTrafficRule("block", 0), id, enabled })),

@@ -31,39 +31,39 @@ export interface NormalizedState {
 
 const NOTHING_DROPPED: DroppedItems = { profiles: 0, trafficRules: 0, userScripts: 0, environments: 0 };
 
-const mergeSection = <T extends object>(defaults: T, stored: unknown): T =>
-  isRecord(stored) ? { ...defaults, ...(stored as Partial<T>) } : defaults;
+const mergeSection = <TSection extends object>(defaults: TSection, stored: unknown): TSection =>
+  isRecord(stored) ? { ...defaults, ...stored } : defaults;
 
 export const normalizeStateDetailed = (stored: unknown): NormalizedState => {
   const defaults = createDefaultState();
   if (!isRecord(stored)) return { state: defaults, dropped: NOTHING_DROPPED };
 
   const migrated = migrateStoredState(stored);
-  const profiles = coerceList(migrated.profiles, coerceProfile);
-  const trafficRules = coerceList(migrated.trafficRules, coerceTrafficRule);
-  const userScripts = coerceList(migrated.userScripts, coerceUserScript);
-  const environments = coerceList(migrated.environments, coerceEnvironment);
+  const profiles = coerceList(migrated["profiles"], coerceProfile);
+  const trafficRules = coerceList(migrated["trafficRules"], coerceTrafficRule);
+  const userScripts = coerceList(migrated["userScripts"], coerceUserScript);
+  const environments = coerceList(migrated["environments"], coerceEnvironment);
+  const storedSelection = migrated["selectedProfileId"];
   const selectedProfileId =
-    typeof migrated.selectedProfileId === "string" &&
-    profiles.items.some((profile) => profile.id === migrated.selectedProfileId)
-      ? migrated.selectedProfileId
+    typeof storedSelection === "string" && profiles.items.some((profile) => profile.id === storedSelection)
+      ? storedSelection
       : null;
+  const schemaVersion = migrated["schemaVersion"];
+  const globalEnabled = migrated["globalEnabled"];
 
   return {
     state: {
-      schemaVersion:
-        typeof migrated.schemaVersion === "number" ? migrated.schemaVersion : defaults.schemaVersion,
-      globalEnabled:
-        typeof migrated.globalEnabled === "boolean" ? migrated.globalEnabled : defaults.globalEnabled,
+      schemaVersion: typeof schemaVersion === "number" ? schemaVersion : defaults.schemaVersion,
+      globalEnabled: typeof globalEnabled === "boolean" ? globalEnabled : defaults.globalEnabled,
       profiles: profiles.items,
       selectedProfileId,
       trafficRules: trafficRules.items,
       userScripts: userScripts.items,
       environments: environments.items,
-      cors: mergeSection(DEFAULT_CORS_CONFIG, migrated.cors),
-      userAgent: mergeSection(DEFAULT_USER_AGENT_CONFIG, migrated.userAgent),
-      network: mergeSection(DEFAULT_NETWORK_CONFIG, migrated.network),
-      ui: mergeSection(DEFAULT_UI_CONFIG, migrated.ui),
+      cors: mergeSection(DEFAULT_CORS_CONFIG, migrated["cors"]),
+      userAgent: mergeSection(DEFAULT_USER_AGENT_CONFIG, migrated["userAgent"]),
+      network: mergeSection(DEFAULT_NETWORK_CONFIG, migrated["network"]),
+      ui: mergeSection(DEFAULT_UI_CONFIG, migrated["ui"]),
     },
     dropped: {
       profiles: profiles.dropped,
@@ -94,10 +94,13 @@ export const updateState = async (mutate: (state: ToolkitState) => ToolkitState)
 };
 
 export const subscribeToState = (listener: (state: ToolkitState) => void): (() => void) => {
-  const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-    if (area !== "local" || !changes[STORAGE_KEY]) return;
-    listener(normalizeState(changes[STORAGE_KEY].newValue));
+  const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string): void => {
+    const change = changes[STORAGE_KEY];
+    if (area !== "local" || change === undefined) return;
+    listener(normalizeState(change.newValue));
   };
   chrome.storage.onChanged.addListener(handler);
-  return () => chrome.storage.onChanged.removeListener(handler);
+  return () => {
+    chrome.storage.onChanged.removeListener(handler);
+  };
 };

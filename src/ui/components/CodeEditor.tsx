@@ -1,4 +1,5 @@
-import { Suspense, lazy, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { Suspense, lazy, useRef, type KeyboardEvent, type ReactElement, type ReactNode } from "react";
+import { hasRenderableNode, minHeightStyle } from "@/ui/components/render-guards";
 
 const INDENT = "  ";
 
@@ -15,9 +16,9 @@ interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   language?: CodeLanguage;
-  placeholder?: string;
+  placeholder?: string | undefined;
   toolbar?: ReactNode;
-  minHeight?: number;
+  minHeight?: number | undefined;
 }
 
 /** El textarea de siempre: fallback mientras carga el chunk y red de seguridad. */
@@ -26,10 +27,10 @@ const PlainEditor = ({
   onChange,
   placeholder,
   minHeight,
-}: Pick<CodeEditorProps, "value" | "onChange" | "placeholder" | "minHeight">) => {
+}: Pick<CodeEditorProps, "value" | "onChange" | "placeholder" | "minHeight">): ReactElement => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
     if (event.key !== "Tab") return;
     event.preventDefault();
     const textarea = textareaRef.current;
@@ -50,9 +51,11 @@ const PlainEditor = ({
       value={value}
       placeholder={placeholder}
       spellCheck={false}
-      style={minHeight ? { minHeight } : undefined}
+      style={minHeightStyle(minHeight)}
       onKeyDown={handleKeyDown}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) => {
+        onChange(event.target.value);
+      }}
     />
   );
 };
@@ -64,9 +67,9 @@ export const CodeEditor = ({
   placeholder,
   toolbar,
   minHeight,
-}: CodeEditorProps) => (
+}: CodeEditorProps): ReactElement => (
   <div className="code-editor">
-    {toolbar ? <div className="code-toolbar">{toolbar}</div> : null}
+    {hasRenderableNode(toolbar) ? <div className="code-toolbar">{toolbar}</div> : null}
     <Suspense
       fallback={
         <PlainEditor value={value} onChange={onChange} placeholder={placeholder} minHeight={minHeight} />

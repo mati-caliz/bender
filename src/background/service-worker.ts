@@ -37,7 +37,7 @@ const collectTabOrigins = async (): Promise<TabOrigin[]> => {
   const tabs = await chrome.tabs.query({});
   const origins: TabOrigin[] = [];
   for (const tab of tabs) {
-    if (typeof tab.id !== "number" || !tab.url || !HTTP_URL_PATTERN.test(tab.url)) continue;
+    if (typeof tab.id !== "number" || tab.url === undefined || !HTTP_URL_PATTERN.test(tab.url)) continue;
     try {
       origins.push({ id: tab.id, origin: new URL(tab.url).origin, url: tab.url });
     } catch {
@@ -60,17 +60,24 @@ const updateBadge = (state: ToolkitState, status: EngineStatus): void => {
   }
 
   const hasErrors = status.diagnostics.some((diagnostic) => diagnostic.level === "error");
-  void chrome.action.setBadgeText({ text: status.activeHeaderCount ? String(status.activeHeaderCount) : "" });
+  void chrome.action.setBadgeText({
+    text: status.activeHeaderCount > 0 ? String(status.activeHeaderCount) : "",
+  });
   void chrome.action.setBadgeBackgroundColor({ color: hasErrors ? BADGE_ERROR_COLOR : state.ui.accent });
 };
 
+const DROPPED_ITEM_LABELS: readonly (readonly [keyof DroppedItems, string])[] = [
+  ["profiles", "perfil(es)"],
+  ["trafficRules", "regla(s)"],
+  ["userScripts", "script(s)"],
+  ["environments", "entorno(s)"],
+];
+
 const droppedItemsDiagnostics = (dropped: DroppedItems): EngineStatus["diagnostics"] => {
-  const descriptions: string[] = [];
-  if (dropped.profiles) descriptions.push(`${dropped.profiles} perfil(es)`);
-  if (dropped.trafficRules) descriptions.push(`${dropped.trafficRules} regla(s)`);
-  if (dropped.userScripts) descriptions.push(`${dropped.userScripts} script(s)`);
-  if (dropped.environments) descriptions.push(`${dropped.environments} entorno(s)`);
-  if (!descriptions.length) return [];
+  const descriptions = DROPPED_ITEM_LABELS.filter(([kind]) => dropped[kind] > 0).map(
+    ([kind, label]) => `${dropped[kind]} ${label}`,
+  );
+  if (descriptions.length === 0) return [];
 
   return [
     {
@@ -109,8 +116,9 @@ const applyEngine = async (): Promise<EngineStatus> => {
   });
   await publishPageConfig(state);
   lastUserScriptsStatus = await syncUserScripts(state);
-  if (lastUserScriptsStatus.error) {
-    diagnostics.push({ level: "warning", message: `Userscripts: ${lastUserScriptsStatus.error}` });
+  const userScriptsError = lastUserScriptsStatus.error;
+  if (userScriptsError !== null && userScriptsError !== "") {
+    diagnostics.push({ level: "warning", message: `Userscripts: ${userScriptsError}` });
   }
   diagnostics.push(...networkLogDiagnostics());
 
@@ -142,7 +150,7 @@ const scheduleApply = (): Promise<EngineStatus> => {
 
 const seedDefaultProfile = async (): Promise<void> => {
   await updateState((state) => {
-    if (state.profiles.length) return state;
+    if (state.profiles.length > 0) return state;
     const profile = createProfile(0, { name: "Local" });
     return { ...state, profiles: [profile], selectedProfileId: profile.id };
   });
@@ -175,10 +183,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "loading" && tab.url && HTTP_URL_PATTERN.test(tab.url)) {
+  if (changeInfo.status === "loading" && tab.url !== undefined && HTTP_URL_PATTERN.test(tab.url)) {
     void readState().then((state) => applyUserStyles(state, tabId, tab.url ?? ""));
   }
-  if (changeInfo.url) applyIfTabsMatter();
+  if (changeInfo.url !== undefined && changeInfo.url !== "") applyIfTabsMatter();
 });
 
 chrome.commands.onCommand.addListener((command) => {
@@ -216,51 +224,61 @@ const clearScriptErrors = (): void => {
   scriptErrors = new Map();
 };
 
-chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
+type ImmediateReply = { value: unknown } | null;
+
+type ImmediateMessage = Exclude<ExtensionMessage, { type: "engine/refresh" | "userscripts/sync" }>;
+
+const immediateReplyFor = (message: ImmediateMessage, senderTabId: number): ImmediateReply => {
   switch (message.type) {
-    case "engine/refresh":
-      void scheduleApply().then(sendResponse);
-      return true;
     case "engine/status":
-      sendResponse(lastStatus);
-      return false;
+      return { value: lastStatus };
     case "network/list":
-      sendResponse(listNetworkEntries());
-      return false;
+      return { value: listNetworkEntries() };
     case "network/clear":
       clearNetworkLog();
-      sendResponse(null);
-      return false;
+      return { value: null };
     case "network/hit":
-      recordMockHit(message.payload, sender.tab?.id ?? -1);
-      sendResponse(null);
-      return false;
+      recordMockHit(message.payload, senderTabId);
+      return { value: null };
     case "network/bodies":
-      recordCapturedBodies(message.payload, sender.tab?.id ?? -1);
-      sendResponse(null);
-      return false;
+      recordCapturedBodies(message.payload, senderTabId);
+      return { value: null };
     case "scripts/error":
       recordScriptError(message.payload);
-      sendResponse(null);
-      return false;
+      return { value: null };
     case "scripts/errors":
-      sendResponse(listScriptErrors());
-      return false;
+      return { value: listScriptErrors() };
     case "scripts/errors-clear":
       clearScriptErrors();
-      sendResponse(null);
-      return false;
-    case "userscripts/sync":
-      void readState()
-        .then(syncUserScripts)
-        .then((status) => {
-          lastUserScriptsStatus = status;
-          sendResponse(status);
-        });
-      return true;
+      return { value: null };
     default:
-      return false;
+      return null;
   }
+};
+
+const syncUserScriptsAndReply = (sendResponse: (response: UserScriptsStatus) => void): void => {
+  void readState()
+    .then(syncUserScripts)
+    .then((status) => {
+      lastUserScriptsStatus = status;
+      sendResponse(status);
+    });
+};
+
+const UNKNOWN_SENDER_TAB_ID = -1;
+
+chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
+  if (message.type === "engine/refresh") {
+    void scheduleApply().then(sendResponse);
+    return true;
+  }
+  if (message.type === "userscripts/sync") {
+    syncUserScriptsAndReply(sendResponse);
+    return true;
+  }
+  const reply = immediateReplyFor(message, sender.tab?.id ?? UNKNOWN_SENDER_TAB_ID);
+  if (reply !== null) sendResponse(reply.value);
+  return false;
 });
 
 void restoreNetworkLog().then(scheduleApply);

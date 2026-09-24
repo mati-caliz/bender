@@ -22,7 +22,7 @@ export const collectMockDefinitions = (state: ToolkitState): MockDefinition[] =>
         body: action.body,
         delayMs: action.delayMs,
         headers: action.headers
-          .filter((header) => header.enabled && header.name.trim())
+          .filter((header) => header.enabled && header.name.trim() !== "")
           .map((header) => ({ name: header.name.trim(), value: header.value })),
       };
     })
@@ -38,12 +38,16 @@ export const collectPageConfig = (state: ToolkitState): PageConfig => ({
   captureBodies: state.globalEnabled && state.network.enabled && state.network.captureBodies,
 });
 
+const isMockDefinitionList = (value: unknown): value is MockDefinition[] => Array.isArray(value);
+
+const isChaosDefinitionList = (value: unknown): value is ChaosDefinition[] => Array.isArray(value);
+
 export const toPageConfig = (stored: unknown): PageConfig => {
   if (!isRecord(stored)) return { mocks: [], chaos: [], captureBodies: false };
   return {
-    mocks: Array.isArray(stored.mocks) ? (stored.mocks as MockDefinition[]) : [],
-    chaos: Array.isArray(stored.chaos) ? (stored.chaos as ChaosDefinition[]) : [],
-    captureBodies: stored.captureBodies === true,
+    mocks: isMockDefinitionList(stored["mocks"]) ? stored["mocks"] : [],
+    chaos: isChaosDefinitionList(stored["chaos"]) ? stored["chaos"] : [],
+    captureBodies: stored["captureBodies"] === true,
   };
 };
 

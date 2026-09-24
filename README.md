@@ -46,6 +46,9 @@ el, Chrome no expone esa API y la pestaña Scripts avisa.
 Para desarrollar, `pnpm run dev` deja Vite y esbuild en watch; los cambios de UI necesitan cerrar y
 volver a abrir el popup, y los del service worker un click en ↻ dentro de `chrome://extensions`.
 
+El gate antes de cada commit es `pnpm verify`, con las reglas del estándar común de
+`dotfiles/quality`. Los e2e de Playwright van aparte porque necesitan un Chrome.
+
 ## Decisiones que no se leen en el código
 
 **Todo se compila a una sola tanda de reglas DNR de sesión.** El motor (`src/lib/dnr.ts`) toma el

@@ -119,7 +119,11 @@ export const startDemoSite = async (): Promise<DemoSite> => {
     origin: `http://127.0.0.1:${address.port}`,
     close: async () => {
       server.closeAllConnections();
-      await new Promise<void>((resolve) => server.close(() => resolve()));
+      await new Promise<void>((resolve) =>
+        server.close(() => {
+          resolve();
+        }),
+      );
     },
   };
 };

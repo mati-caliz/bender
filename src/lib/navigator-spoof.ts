@@ -17,7 +17,7 @@ const domainToMatch = (domain: string): string => `*://*.${domain}/*`;
 
 export const navigatorSpoofMatches = (scope: UserAgentConfig["scope"]): string[] => {
   const includeDomains = sanitizeDomainList(scope.includeDomains);
-  return includeDomains.length ? includeDomains.map(domainToMatch) : [ALL_URLS_MATCH];
+  return includeDomains.length > 0 ? includeDomains.map(domainToMatch) : [ALL_URLS_MATCH];
 };
 
 export const navigatorSpoofExcludeMatches = (scope: UserAgentConfig["scope"]): string[] =>

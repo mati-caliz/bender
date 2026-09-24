@@ -1,49 +1,19 @@
 import { useState } from "react";
+import type { ReactElement } from "react";
 import { downloadJson } from "@/lib/download";
 import { parseCookies } from "@/lib/import";
 import { ImportDialog } from "@/ui/components/ImportDialog";
-import { JwtPanel } from "@/ui/components/JwtPanel";
 import { ToggleCard } from "@/ui/components/ToggleCard";
 import { ViewShell } from "@/ui/components/ViewShell";
-import {
-  Button,
-  Card,
-  ConfirmBar,
-  EmptyState,
-  Field,
-  Notice,
-  SearchInput,
-  Select,
-  TextArea,
-  TextInput,
-} from "@/ui/components/primitives";
-import { cookieKeyOf, useCookies } from "@/ui/hooks/useCookies";
+import { Button, Card, ConfirmBar, EmptyState, Notice, SearchInput } from "@/ui/components/primitives";
+import { hasText } from "@/ui/components/render-guards";
+import { cookieKeyOf, useCookies, type CookiesController } from "@/ui/hooks/useCookies";
 import { usePendingImport } from "@/ui/hooks/usePendingImport";
 import { useToasts } from "@/ui/hooks/useToasts";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
-import type { CookieSnapshot } from "@/types";
-
-const SAME_SITE_OPTIONS = [
-  { value: "lax", label: "SameSite: Lax" },
-  { value: "strict", label: "SameSite: Strict" },
-  { value: "no_restriction", label: "SameSite: None" },
-  { value: "unspecified", label: "SameSite: sin especificar" },
-];
-
-const SECONDS_PER_YEAR = 365 * 24 * 3600;
-const MILLISECONDS_PER_SECOND = 1000;
-
-const isSameSite = (value: string): value is chrome.cookies.SameSiteStatus =>
-  value === "lax" || value === "strict" || value === "no_restriction" || value === "unspecified";
-
-const toInputValue = (epochSeconds: number): string => {
-  const date = new Date(epochSeconds * MILLISECONDS_PER_SECOND);
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
-
-const fromInputValue = (value: string): number =>
-  Math.floor(new Date(value).getTime() / MILLISECONDS_PER_SECOND);
+import type { CookieSnapshot, ToggleRow } from "@/types";
+import { CookieForm } from "@/ui/views/cookies/CookieForm";
+import { CookieSnapshotsCard } from "@/ui/views/cookies/CookieSnapshotsCard";
 
 const blankCookie = (hostname: string, secure: boolean): CookieSnapshot => ({
   name: "",
@@ -57,114 +27,179 @@ const blankCookie = (hostname: string, secure: boolean): CookieSnapshot => ({
   expirationDate: null,
 });
 
-interface CookieFormProps {
-  draft: CookieSnapshot;
-  onChange: (cookie: CookieSnapshot) => void;
-  onSave: () => void;
-  onDelete: () => void;
-  onCancel: () => void;
-  isNew: boolean;
+type Notify = ReturnType<typeof useToasts>["notify"];
+
+interface CookiesHeaderActionsProps {
+  cookies: CookiesController;
+  activeTab: ActiveTab;
+  notify: Notify;
+  onImport: () => void;
+  onClear: () => void;
 }
 
-const CookieForm = ({ draft, onChange, onSave, onDelete, onCancel, isNew }: CookieFormProps) => (
+const CookiesHeaderActions = ({
+  cookies,
+  activeTab,
+  notify,
+  onImport,
+  onClear,
+}: CookiesHeaderActionsProps): ReactElement => (
   <>
-    <div className="grid-2">
-      <Field label="Nombre">
-        <TextInput value={draft.name} mono onChange={(name) => onChange({ ...draft, name })} />
-      </Field>
-      <Field label="Dominio">
-        <TextInput value={draft.domain} mono onChange={(domain) => onChange({ ...draft, domain })} />
-      </Field>
-    </div>
-
-    <Field label="Valor">
-      <TextArea value={draft.value} mono rows={3} onChange={(value) => onChange({ ...draft, value })} />
-    </Field>
-
-    <JwtPanel value={draft.value} />
-
-    <div className="grid-2">
-      <Field label="Path">
-        <TextInput value={draft.path} mono onChange={(path) => onChange({ ...draft, path })} />
-      </Field>
-      <Field label="SameSite">
-        <Select
-          value={draft.sameSite}
-          options={SAME_SITE_OPTIONS}
-          onChange={(value) => {
-            if (isSameSite(value)) onChange({ ...draft, sameSite: value });
-          }}
-        />
-      </Field>
-    </div>
-
-    <div className="row wrap">
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={draft.secure}
-          onChange={(event) => onChange({ ...draft, secure: event.target.checked })}
-        />
-        Secure
-      </label>
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={draft.httpOnly}
-          onChange={(event) => onChange({ ...draft, httpOnly: event.target.checked })}
-        />
-        HttpOnly
-      </label>
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={draft.hostOnly}
-          onChange={(event) => onChange({ ...draft, hostOnly: event.target.checked })}
-        />
-        Solo este host
-      </label>
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={draft.expirationDate === null}
-          onChange={(event) =>
-            onChange({
-              ...draft,
-              expirationDate: event.target.checked
-                ? null
-                : Math.floor(Date.now() / MILLISECONDS_PER_SECOND) + SECONDS_PER_YEAR,
-            })
-          }
-        />
-        Cookie de sesion
-      </label>
-    </div>
-
-    {draft.expirationDate !== null ? (
-      <Field label="Expira">
-        <TextInput
-          type="datetime-local"
-          value={toInputValue(draft.expirationDate)}
-          onChange={(value) => onChange({ ...draft, expirationDate: fromInputValue(value) })}
-        />
-      </Field>
-    ) : null}
-
-    <div className="row">
-      <Button variant="primary" icon="check" onClick={onSave} disabled={!draft.name.trim()}>
-        Guardar
-      </Button>
-      <Button variant="danger" icon="trash" onClick={onDelete}>
-        {isNew ? "Descartar" : "Borrar"}
-      </Button>
-      <Button variant="ghost" onClick={onCancel}>
-        Cerrar
-      </Button>
-    </div>
+    <Button small icon="refresh" variant="ghost" onClick={cookies.reload} title="Recargar">
+      Recargar
+    </Button>
+    <Button small icon="upload" onClick={onImport} disabled={!activeTab.injectable}>
+      Importar
+    </Button>
+    <Button
+      small
+      icon="download"
+      disabled={cookies.liveCookies.length === 0}
+      onClick={() => {
+        downloadJson(`cookies-${activeTab.hostname || "export"}.json`, cookies.liveCookies);
+        notify("Cookies exportadas", "success");
+      }}
+    >
+      Exportar
+    </Button>
+    <Button small variant="danger" icon="trash" disabled={cookies.rows.length === 0} onClick={onClear}>
+      Borrar todas
+    </Button>
   </>
 );
 
-export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
+interface NewCookieCardProps {
+  newCookie: CookieSnapshot;
+  cookies: CookiesController;
+  notify: Notify;
+  onChange: (cookie: CookieSnapshot | null) => void;
+}
+
+const NewCookieCard = ({ newCookie, cookies, notify, onChange }: NewCookieCardProps): ReactElement => (
+  <Card title="Nueva cookie">
+    <CookieForm
+      draft={newCookie}
+      isNew
+      onChange={onChange}
+      onCancel={() => {
+        onChange(null);
+      }}
+      onDelete={() => {
+        onChange(null);
+      }}
+      onSave={() => {
+        void cookies.save(null, newCookie, false).then(() => {
+          notify("Cookie creada", "success");
+        });
+        onChange(null);
+      }}
+    />
+  </Card>
+);
+
+interface CookieRowCardProps {
+  row: ToggleRow<CookieSnapshot>;
+  expanded: boolean;
+  draft: CookieSnapshot | null;
+  cookies: CookiesController;
+  notify: Notify;
+  onDraftChange: (cookie: CookieSnapshot | null) => void;
+  onExpandedKeyChange: (key: string | null) => void;
+}
+
+const CookieRowCard = ({
+  row,
+  expanded,
+  draft,
+  cookies,
+  notify,
+  onDraftChange,
+  onExpandedKeyChange,
+}: CookieRowCardProps): ReactElement => {
+  const current = expanded && draft ? draft : row.item;
+  return (
+    <ToggleCard
+      name={row.item.name || "(sin nombre)"}
+      preview={row.item.value}
+      off={row.off}
+      reappeared={row.reappeared}
+      expanded={expanded}
+      reappearedTitle="El sitio volvio a crear esta cookie mientras estaba apagada."
+      onToggle={(enabled) => void cookies.toggle(row, enabled)}
+      onExpand={() => {
+        onExpandedKeyChange(expanded ? null : row.key);
+        onDraftChange(expanded ? null : row.item);
+      }}
+    >
+      <CookieForm
+        draft={current}
+        isNew={false}
+        onChange={onDraftChange}
+        onCancel={() => {
+          onExpandedKeyChange(null);
+          onDraftChange(null);
+        }}
+        onDelete={() => {
+          void cookies.remove(row.item, row.off).then(() => {
+            notify("Cookie borrada");
+          });
+          onExpandedKeyChange(null);
+          onDraftChange(null);
+        }}
+        onSave={() => {
+          void cookies.save(row.item, current, row.off).then(() => {
+            notify("Cookie guardada", "success");
+          });
+          onExpandedKeyChange(cookieKeyOf(current) === row.key ? row.key : null);
+          onDraftChange(null);
+        }}
+      />
+    </ToggleCard>
+  );
+};
+
+const filterRows = (rows: ToggleRow<CookieSnapshot>[], filter: string): ToggleRow<CookieSnapshot>[] => {
+  const normalizedFilter = filter.trim().toLowerCase();
+  if (!normalizedFilter) return rows;
+  return rows.filter(
+    (row) =>
+      row.item.name.toLowerCase().includes(normalizedFilter) ||
+      row.item.value.toLowerCase().includes(normalizedFilter),
+  );
+};
+
+interface CookiesImportDialogProps {
+  cookies: CookiesController;
+  activeTab: ActiveTab;
+  notify: Notify;
+  onClose: () => void;
+}
+
+const CookiesImportDialog = ({
+  cookies,
+  activeTab,
+  notify,
+  onClose,
+}: CookiesImportDialogProps): ReactElement => (
+  <ImportDialog
+    viewId="cookies"
+    title="Importar cookies"
+    description="Acepta el formato de chrome.cookies.getAll y los exports de Cookie-Editor."
+    allowAppend={false}
+    onClose={onClose}
+    onImport={(text) => {
+      const parsed = parseCookies(text, activeTab.hostname);
+      void cookies.importCookies(parsed).then((imported) => {
+        notify(
+          `${imported}/${parsed.length} cookies importadas`,
+          imported === parsed.length ? "success" : "error",
+        );
+      });
+    }}
+  />
+);
+
+export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }): ReactElement => {
   const { notify } = useToasts();
   const cookies = useCookies(activeTab);
   const [filter, setFilter] = useState("");
@@ -172,132 +207,47 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
   const [draft, setDraft] = useState<CookieSnapshot | null>(null);
   const [newCookie, setNewCookie] = useState<CookieSnapshot | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [snapshotName, setSnapshotName] = useState("");
   const [importing, setImporting] = usePendingImport("cookies");
 
-  const normalizedFilter = filter.trim().toLowerCase();
-  const visible = normalizedFilter
-    ? cookies.rows.filter(
-        (row) =>
-          row.item.name.toLowerCase().includes(normalizedFilter) ||
-          row.item.value.toLowerCase().includes(normalizedFilter),
-      )
-    : cookies.rows;
+  const visible = filterRows(cookies.rows, filter);
 
   return (
     <ViewShell
       title="Cookies"
       subtitle={activeTab.hostname ? `Cookies de ${activeTab.hostname}` : "Abri una pagina http(s)"}
       actions={
-        <>
-          <Button small icon="refresh" variant="ghost" onClick={cookies.reload} title="Recargar">
-            Recargar
-          </Button>
-          <Button small icon="upload" onClick={() => setImporting(true)} disabled={!activeTab.injectable}>
-            Importar
-          </Button>
-          <Button
-            small
-            icon="download"
-            disabled={!cookies.liveCookies.length}
-            onClick={() => {
-              downloadJson(`cookies-${activeTab.hostname || "export"}.json`, cookies.liveCookies);
-              notify("Cookies exportadas", "success");
-            }}
-          >
-            Exportar
-          </Button>
-          <Button
-            small
-            variant="danger"
-            icon="trash"
-            disabled={!cookies.rows.length}
-            onClick={() => setConfirmClear(true)}
-          >
-            Borrar todas
-          </Button>
-        </>
+        <CookiesHeaderActions
+          cookies={cookies}
+          activeTab={activeTab}
+          notify={notify}
+          onImport={() => {
+            setImporting(true);
+          }}
+          onClear={() => {
+            setConfirmClear(true);
+          }}
+        />
       }
     >
-      {cookies.error ? <Notice tone="danger">{cookies.error}</Notice> : null}
+      {hasText(cookies.error) ? <Notice tone="danger">{cookies.error}</Notice> : null}
 
       {confirmClear ? (
         <ConfirmBar
           message={`Borrar las ${cookies.rows.length} cookies de ${activeTab.hostname} (incluidas las apagadas)?`}
           confirmLabel="Borrar todas"
-          onCancel={() => setConfirmClear(false)}
+          onCancel={() => {
+            setConfirmClear(false);
+          }}
           onConfirm={() => {
-            void cookies.removeAll().then(() => notify("Cookies borradas"));
+            void cookies.removeAll().then(() => {
+              notify("Cookies borradas");
+            });
             setConfirmClear(false);
           }}
         />
       ) : null}
 
-      <Card
-        title="Snapshots"
-        subtitle="Guarda el set completo de cookies del dominio y volve a el de un click."
-      >
-        <div className="toolbar">
-          <TextInput
-            value={snapshotName}
-            placeholder="Nombre del snapshot (admin, user readonly…)"
-            onChange={setSnapshotName}
-          />
-          <Button
-            small
-            icon="plus"
-            disabled={!snapshotName.trim() || !cookies.liveCookies.length}
-            onClick={() => {
-              const name = snapshotName.trim();
-              void cookies.saveSnapshotSet(name).then(() => notify(`Snapshot "${name}" guardado`, "success"));
-              setSnapshotName("");
-            }}
-          >
-            Guardar actual
-          </Button>
-        </div>
-
-        {cookies.snapshotSets.length ? (
-          <div className="list" style={{ marginTop: 8 }}>
-            {cookies.snapshotSets.map((set) => (
-              <div key={set.id} className="row" style={{ gap: 8, padding: "6px 0" }}>
-                <strong className="text-small">{set.name}</strong>
-                <span className="text-small text-muted">
-                  {set.cookies.length} cookie(s) · {new Date(set.createdAt).toLocaleString()}
-                </span>
-                <div className="spacer" />
-                <Button
-                  small
-                  icon="refresh"
-                  disabled={!activeTab.injectable}
-                  onClick={() =>
-                    void cookies
-                      .restoreSnapshotSet(set)
-                      .then(() => notify(`Snapshot "${set.name}" restaurado`, "success"))
-                  }
-                >
-                  Restaurar
-                </Button>
-                <Button
-                  small
-                  variant="danger"
-                  icon="trash"
-                  onClick={() =>
-                    void cookies.deleteSnapshotSet(set.id).then(() => notify("Snapshot borrado"))
-                  }
-                >
-                  Borrar
-                </Button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-small text-muted" style={{ margin: 0 }}>
-            Todavia no guardaste ninguno. Restaurar borra las cookies actuales del dominio y escribe las del
-            snapshot.
-          </p>
-        )}
-      </Card>
+      <CookieSnapshotsCard cookies={cookies} activeTab={activeTab} notify={notify} />
 
       <div className="toolbar">
         <SearchInput value={filter} onChange={setFilter} placeholder="Filtrar por nombre o valor…" />
@@ -305,97 +255,51 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }) => {
           small
           icon="plus"
           disabled={!activeTab.injectable}
-          onClick={() => setNewCookie(blankCookie(activeTab.hostname, activeTab.url.startsWith("https")))}
+          onClick={() => {
+            setNewCookie(blankCookie(activeTab.hostname, activeTab.url.startsWith("https")));
+          }}
         >
           Nueva cookie
         </Button>
       </div>
 
       {newCookie ? (
-        <Card title="Nueva cookie">
-          <CookieForm
-            draft={newCookie}
-            isNew
-            onChange={setNewCookie}
-            onCancel={() => setNewCookie(null)}
-            onDelete={() => setNewCookie(null)}
-            onSave={() => {
-              void cookies.save(null, newCookie, false).then(() => notify("Cookie creada", "success"));
-              setNewCookie(null);
-            }}
-          />
-        </Card>
+        <NewCookieCard newCookie={newCookie} cookies={cookies} notify={notify} onChange={setNewCookie} />
       ) : null}
 
-      {visible.length ? (
+      {visible.length > 0 ? (
         <div className="list">
-          {visible.map((row) => {
-            const expanded = expandedKey === row.key;
-            const current = expanded && draft ? draft : row.item;
-            return (
-              <ToggleCard
-                key={row.key}
-                name={row.item.name || "(sin nombre)"}
-                preview={row.item.value}
-                off={row.off}
-                reappeared={row.reappeared}
-                expanded={expanded}
-                reappearedTitle="El sitio volvio a crear esta cookie mientras estaba apagada."
-                onToggle={(enabled) => void cookies.toggle(row, enabled)}
-                onExpand={() => {
-                  setExpandedKey(expanded ? null : row.key);
-                  setDraft(expanded ? null : row.item);
-                }}
-              >
-                <CookieForm
-                  draft={current}
-                  isNew={false}
-                  onChange={setDraft}
-                  onCancel={() => {
-                    setExpandedKey(null);
-                    setDraft(null);
-                  }}
-                  onDelete={() => {
-                    void cookies.remove(row.item, row.off).then(() => notify("Cookie borrada"));
-                    setExpandedKey(null);
-                    setDraft(null);
-                  }}
-                  onSave={() => {
-                    void cookies
-                      .save(row.item, current, row.off)
-                      .then(() => notify("Cookie guardada", "success"));
-                    setExpandedKey(cookieKeyOf(current) === row.key ? row.key : null);
-                    setDraft(null);
-                  }}
-                />
-              </ToggleCard>
-            );
-          })}
+          {visible.map((row) => (
+            <CookieRowCard
+              key={row.key}
+              row={row}
+              expanded={expandedKey === row.key}
+              draft={draft}
+              cookies={cookies}
+              notify={notify}
+              onDraftChange={setDraft}
+              onExpandedKeyChange={setExpandedKey}
+            />
+          ))}
         </div>
       ) : (
         <EmptyState
           icon="cookie"
           title={
-            cookies.rows.length ? "Ninguna cookie coincide con el filtro" : "No hay cookies para este dominio"
+            cookies.rows.length > 0
+              ? "Ninguna cookie coincide con el filtro"
+              : "No hay cookies para este dominio"
           }
         />
       )}
 
       {importing ? (
-        <ImportDialog
-          viewId="cookies"
-          title="Importar cookies"
-          description="Acepta el formato de chrome.cookies.getAll y los exports de Cookie-Editor."
-          allowAppend={false}
-          onClose={() => setImporting(false)}
-          onImport={(text) => {
-            const parsed = parseCookies(text, activeTab.hostname);
-            void cookies.importCookies(parsed).then((imported) => {
-              notify(
-                `${imported}/${parsed.length} cookies importadas`,
-                imported === parsed.length ? "success" : "error",
-              );
-            });
+        <CookiesImportDialog
+          cookies={cookies}
+          activeTab={activeTab}
+          notify={notify}
+          onClose={() => {
+            setImporting(false);
           }}
         />
       ) : null}

@@ -2,7 +2,8 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-const resolveFromRoot = (relativePath: string) => fileURLToPath(new URL(relativePath, import.meta.url));
+const resolveFromRoot = (relativePath: string): string =>
+  fileURLToPath(new URL(relativePath, import.meta.url));
 
 export default defineConfig({
   root: resolveFromRoot("src/ui"),

@@ -7,7 +7,8 @@ type Migration = (stored: StoredState) => StoredState;
 const MIGRATIONS: Record<number, Migration> = {};
 
 export const migrateStoredState = (stored: StoredState): StoredState => {
-  let version = typeof stored.schemaVersion === "number" ? stored.schemaVersion : SCHEMA_VERSION;
+  const storedVersion = stored["schemaVersion"];
+  let version = typeof storedVersion === "number" ? storedVersion : SCHEMA_VERSION;
   let current = stored;
 
   while (version < SCHEMA_VERSION) {

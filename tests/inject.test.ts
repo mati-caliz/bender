@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyScope } from "@/lib/constants";
+import { isRecord } from "@/lib/records";
 import type { ChaosDefinition, MockDefinition, PageConfig } from "@/types";
 
 const mock = (overrides: Partial<MockDefinition> = {}): MockDefinition => ({
@@ -28,8 +29,15 @@ const chaos = (overrides: Partial<ChaosDefinition> = {}): ChaosDefinition => ({
 interface Harness {
   realFetch: ReturnType<typeof vi.fn>;
   realBeacon: ReturnType<typeof vi.fn>;
-  hits: Array<{ ruleName: string; status: number; url: string }>;
+  hits: { ruleName: string; status: number; url: string }[];
 }
+
+const isMockHit = (value: unknown): value is { ruleName: string; status: number; url: string } =>
+  isRecord(value) &&
+  value["type"] === "mock-hit" &&
+  typeof value["ruleName"] === "string" &&
+  typeof value["status"] === "number" &&
+  typeof value["url"] === "string";
 
 /** La entrega por MessagePort es asincrona: hay que dejar pasar un tick. */
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
@@ -51,24 +59,33 @@ const loadInject = async (config: Partial<PageConfig> = {}): Promise<Harness> =>
   const realBeacon = vi.fn(() => true);
   navigator.sendBeacon = realBeacon;
 
-  let transferred: MessagePort | null = null;
+  const handshake: { port: MessagePort | null } = { port: null };
   const originalPostMessage = window.postMessage.bind(window);
-  window.postMessage = ((message: unknown, targetOrigin: string, transfer?: Transferable[]) => {
+  function capturingPostMessage(message: unknown, targetOrigin: string, transfer?: Transferable[]): void;
+  function capturingPostMessage(message: unknown, options?: WindowPostMessageOptions): void;
+  function capturingPostMessage(
+    message: unknown,
+    targetOrOptions?: string | WindowPostMessageOptions,
+    transfer?: Transferable[],
+  ): void {
     const port = transfer?.[0];
-    if (port instanceof MessagePort) transferred = port;
+    if (port instanceof MessagePort) handshake.port = port;
+    const targetOrigin =
+      typeof targetOrOptions === "string" ? targetOrOptions : (targetOrOptions?.targetOrigin ?? "/");
     originalPostMessage(message, targetOrigin);
-  }) as typeof window.postMessage;
+  }
+  window.postMessage = capturingPostMessage;
 
   vi.resetModules();
   await import("@/content/inject");
 
   window.postMessage = originalPostMessage;
-  if (!transferred) throw new Error("inject.ts no transfirio el port del handshake");
-  const port: MessagePort = transferred;
+  const port = handshake.port;
+  if (port === null) throw new Error("inject.ts no transfirio el port del handshake");
   const hits: Harness["hits"] = [];
   port.onmessage = (event: MessageEvent) => {
-    const data = event.data as { type: string; ruleName: string; status: number; url: string };
-    if (data.type === "mock-hit") hits.push({ ruleName: data.ruleName, status: data.status, url: data.url });
+    const data: unknown = event.data;
+    if (isMockHit(data)) hits.push({ ruleName: data.ruleName, status: data.status, url: data.url });
   };
   port.start();
 
@@ -131,9 +148,15 @@ const runXhr = (url: string, method = "GET"): Promise<XMLHttpRequest> =>
   new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open(method, url);
-    xhr.addEventListener("load", () => resolve(xhr));
-    xhr.addEventListener("error", () => resolve(xhr));
-    setTimeout(() => reject(new Error("el XHR nunca termino")), 2000);
+    xhr.addEventListener("load", () => {
+      resolve(xhr);
+    });
+    xhr.addEventListener("error", () => {
+      resolve(xhr);
+    });
+    setTimeout(() => {
+      reject(new Error("el XHR nunca termino"));
+    }, 2000);
     xhr.send();
   });
 
@@ -180,7 +203,9 @@ describe("XMLHttpRequest parcheado", () => {
         seen.push("load");
         resolve();
       });
-      setTimeout(() => reject(new Error("el XHR nunca termino")), 2000);
+      setTimeout(() => {
+        reject(new Error("el XHR nunca termino"));
+      }, 2000);
       xhr.send();
     });
 

@@ -48,11 +48,11 @@ describe("parseUserScriptHeader", () => {
 
   it("acepta @include y @exclude de Greasemonkey", () => {
     const header = parseUserScriptHeader(
-      wrap(["// @include http://a.com/*", "// @exclude-match http://a.com/x"]),
+      wrap(["// @include https://a.com/*", "// @exclude-match https://a.com/x"]),
     );
 
-    expect(header.matches).toEqual(["http://a.com/*"]);
-    expect(header.excludeMatches).toEqual(["http://a.com/x"]);
+    expect(header.matches).toEqual(["https://a.com/*"]);
+    expect(header.excludeMatches).toEqual(["https://a.com/x"]);
   });
 
   it("se queda con el primer @name cuando esta repetido", () => {

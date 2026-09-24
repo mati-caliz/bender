@@ -1,6 +1,7 @@
 const BYTES_PER_UNIT = 1024;
 const SIZE_UNITS = ["B", "KB", "MB", "GB"];
 const MILLISECONDS_PER_SECOND = 1000;
+const ONE_DECIMAL_BELOW = 10;
 
 export const formatBytes = (bytes: number): string => {
   let value = bytes;
@@ -9,7 +10,7 @@ export const formatBytes = (bytes: number): string => {
     value /= BYTES_PER_UNIT;
     unitIndex += 1;
   }
-  return `${value < 10 && unitIndex > 0 ? value.toFixed(1) : Math.round(value)} ${SIZE_UNITS[unitIndex]}`;
+  return `${value < ONE_DECIMAL_BELOW && unitIndex > 0 ? value.toFixed(1) : Math.round(value)} ${SIZE_UNITS[unitIndex]}`;
 };
 
 export const formatDuration = (milliseconds: number): string =>
@@ -33,7 +34,7 @@ export const slugify = (value: string): string => {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-|-$/g, "");
   return slug || "perfil";
 };
 

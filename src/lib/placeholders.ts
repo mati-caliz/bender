@@ -1,3 +1,4 @@
+import { hasText } from "@/lib/text";
 import { createId } from "@/lib/ids";
 
 export interface PlaceholderContext {
@@ -18,6 +19,7 @@ export interface ResolvedValue {
 
 const PLACEHOLDER_PATTERN = /\{\{\s*([a-zA-Z]+)\s*\}\}/g;
 const RANDOM_INT_CEILING = 1_000_000;
+const MILLISECONDS_PER_SECOND = 1000;
 
 export const PLACEHOLDERS: PlaceholderInfo[] = [
   { name: "uuid", description: "UUID nuevo en cada aplicacion del motor" },
@@ -42,6 +44,11 @@ const fromTabUrl = (name: string, tabUrl: string): string | null => {
   }
 };
 
+const randomBelow = (ceiling: number): number => {
+  const [randomValue = 0] = crypto.getRandomValues(new Uint32Array(1));
+  return randomValue % ceiling;
+};
+
 const resolveName = (name: string, context: PlaceholderContext): string | null => {
   switch (name) {
     case "uuid":
@@ -49,13 +56,13 @@ const resolveName = (name: string, context: PlaceholderContext): string | null =
     case "timestamp":
       return String(context.now);
     case "unix":
-      return String(Math.floor(context.now / 1000));
+      return String(Math.floor(context.now / MILLISECONDS_PER_SECOND));
     case "isoDate":
       return new Date(context.now).toISOString();
     case "random":
-      return String(Math.floor(Math.random() * RANDOM_INT_CEILING));
+      return String(randomBelow(RANDOM_INT_CEILING));
     default:
-      return context.tabUrl ? fromTabUrl(name, context.tabUrl) : null;
+      return hasText(context.tabUrl) ? fromTabUrl(name, context.tabUrl) : null;
   }
 };
 

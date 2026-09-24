@@ -6,8 +6,9 @@ import { HighlightStyle, bracketMatching, indentUnit, syntaxHighlighting } from 
 import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, placeholder as placeholderExt } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 import type { CodeLanguage } from "@/ui/components/CodeEditor";
+import { hasText, minHeightStyle } from "@/ui/components/render-guards";
 
 /**
  * Los colores salen de las variables del tema, asi que el editor sigue al modo
@@ -54,11 +55,17 @@ interface CodeMirrorEditorProps {
   value: string;
   language: CodeLanguage;
   onChange: (value: string) => void;
-  placeholder?: string;
-  minHeight?: number;
+  placeholder?: string | undefined;
+  minHeight?: number | undefined;
 }
 
-const CodeMirrorEditor = ({ value, language, onChange, placeholder, minHeight }: CodeMirrorEditorProps) => {
+const CodeMirrorEditor = ({
+  value,
+  language,
+  onChange,
+  placeholder,
+  minHeight,
+}: CodeMirrorEditorProps): ReactElement => {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   // El callback vive en un ref para no rearmar el editor en cada render del padre.
@@ -87,7 +94,7 @@ const CodeMirrorEditor = ({ value, language, onChange, placeholder, minHeight }:
           theme,
           languageExtension(language),
           EditorView.lineWrapping,
-          ...(placeholder ? [placeholderExt(placeholder)] : []),
+          ...(hasText(placeholder) ? [placeholderExt(placeholder)] : []),
           keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) onChangeRef.current(update.state.doc.toString());
@@ -112,7 +119,7 @@ const CodeMirrorEditor = ({ value, language, onChange, placeholder, minHeight }:
     editor.dispatch({ changes: { from: 0, to: current.length, insert: value } });
   }, [value]);
 
-  return <div className="cm-host" ref={host} style={minHeight ? { minHeight } : undefined} />;
+  return <div className="cm-host" ref={host} style={minHeightStyle(minHeight)} />;
 };
 
 export default CodeMirrorEditor;

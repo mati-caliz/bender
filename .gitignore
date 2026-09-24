@@ -6,3 +6,4 @@ playwright-report/
 store/screenshots/raw/
 .DS_Store
 .idea/
+coverage/

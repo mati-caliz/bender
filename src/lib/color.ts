@@ -21,6 +21,13 @@ const LUMINANCE_GREEN = 0.7152;
 const LUMINANCE_BLUE = 0.0722;
 const CONTRAST_OFFSET = 0.05;
 const READABLE_ON_DARK_THRESHOLD = 0.45;
+const SHORT_HEX_LENGTHS = new Set([3, 4]);
+const RGB_HEX_LENGTH = 6;
+const RGBA_HEX_LENGTH = 8;
+const ALPHA_CHANNEL_INDEX = 3;
+const HUE_SECTORS = 6;
+const GREEN_HUE_OFFSET = 2;
+const BLUE_HUE_OFFSET = 4;
 
 const expandShorthand = (digits: string): string =>
   digits
@@ -32,42 +39,49 @@ const channelFromHex = (digits: string, index: number): number =>
   Number.parseInt(digits.slice(index * 2, index * 2 + 2), HEX_RADIX);
 
 const parseHexColor = (digits: string): RgbColor | null => {
-  const normalized = digits.length === 3 || digits.length === 4 ? expandShorthand(digits) : digits;
-  if (normalized.length !== 6 && normalized.length !== 8) return null;
+  const normalized = SHORT_HEX_LENGTHS.has(digits.length) ? expandShorthand(digits) : digits;
+  if (normalized.length !== RGB_HEX_LENGTH && normalized.length !== RGBA_HEX_LENGTH) return null;
   return {
     red: channelFromHex(normalized, 0),
     green: channelFromHex(normalized, 1),
     blue: channelFromHex(normalized, 2),
-    alpha: normalized.length === 8 ? channelFromHex(normalized, 3) / MAX_CHANNEL : 1,
+    alpha:
+      normalized.length === RGBA_HEX_LENGTH
+        ? channelFromHex(normalized, ALPHA_CHANNEL_INDEX) / MAX_CHANNEL
+        : 1,
   };
 };
 
 const toAlpha = (token: string): number =>
   token.endsWith("%") ? Number.parseFloat(token) / PERCENT : Number(token);
 
+const toChannel = (token: string, channelScale: number): number =>
+  Math.round(
+    token.endsWith("%") ? (Number.parseFloat(token) / PERCENT) * MAX_CHANNEL : Number(token) * channelScale,
+  );
+
+const parseFunctionalColor = (value: string): RgbColor | null => {
+  const [red, green, blue, alpha] = value.match(NUMBER_PATTERN) ?? [];
+  if (red === undefined || green === undefined || blue === undefined) return null;
+
+  const channelScale = value.startsWith("color(") ? MAX_CHANNEL : 1;
+  return {
+    red: toChannel(red, channelScale),
+    green: toChannel(green, channelScale),
+    blue: toChannel(blue, channelScale),
+    alpha: alpha === undefined ? 1 : toAlpha(alpha),
+  };
+};
+
 export const parseCssColor = (input: string): RgbColor | null => {
   const value = input.trim().toLowerCase();
   if (!value || value === "transparent" || value === "none") return null;
 
   const hexDigits = HEX_PATTERN.exec(value)?.[1];
-  if (hexDigits) return parseHexColor(hexDigits);
+  if (hexDigits !== undefined) return parseHexColor(hexDigits);
 
   if (!value.startsWith("rgb") && !value.startsWith("color(")) return null;
-  const [red, green, blue, alpha] = value.match(NUMBER_PATTERN) ?? [];
-  if (red === undefined || green === undefined || blue === undefined) return null;
-
-  const channelScale = value.startsWith("color(") ? MAX_CHANNEL : 1;
-  const toChannel = (token: string): number =>
-    Math.round(
-      token.endsWith("%") ? (Number.parseFloat(token) / PERCENT) * MAX_CHANNEL : Number(token) * channelScale,
-    );
-
-  return {
-    red: toChannel(red),
-    green: toChannel(green),
-    blue: toChannel(blue),
-    alpha: alpha === undefined ? 1 : toAlpha(alpha),
-  };
+  return parseFunctionalColor(value);
 };
 
 const toHexDigits = (channel: number): string =>
@@ -96,10 +110,10 @@ export const toHslString = (color: RgbColor): string => {
 
   let hue = 0;
   if (delta !== 0) {
-    if (max === red) hue = ((green - blue) / delta) % 6;
-    else if (max === green) hue = (blue - red) / delta + 2;
-    else hue = (red - green) / delta + 4;
-    hue = (hue * (DEGREES_IN_CIRCLE / 6) + DEGREES_IN_CIRCLE) % DEGREES_IN_CIRCLE;
+    if (max === red) hue = ((green - blue) / delta) % HUE_SECTORS;
+    else if (max === green) hue = (blue - red) / delta + GREEN_HUE_OFFSET;
+    else hue = (red - green) / delta + BLUE_HUE_OFFSET;
+    hue = (hue * (DEGREES_IN_CIRCLE / HUE_SECTORS) + DEGREES_IN_CIRCLE) % DEGREES_IN_CIRCLE;
   }
 
   const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));

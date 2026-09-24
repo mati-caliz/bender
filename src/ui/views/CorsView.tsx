@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { DEFAULT_CORS_CONFIG } from "@/lib/constants";
 import { ScopeEditor } from "@/ui/components/ScopeEditor";
 import { ViewShell } from "@/ui/components/ViewShell";
@@ -5,18 +6,140 @@ import { Button, Card, Field, Notice, Segmented, Switch, TextInput } from "@/ui/
 import type { ViewProps } from "@/ui/views/types";
 import type { CorsAllowOrigin, CorsConfig } from "@/types";
 
-const ORIGIN_OPTIONS: Array<{ value: CorsAllowOrigin; label: string }> = [
+const ORIGIN_OPTIONS: { value: CorsAllowOrigin; label: string }[] = [
   { value: "reflect", label: "Reflejar origen" },
   { value: "wildcard", label: "Comodin *" },
   { value: "custom", label: "Fijo" },
 ];
 
 const DEFAULT_MAX_AGE = 600;
+const DECIMAL_RADIX = 10;
 
-export const CorsView = ({ state, update, activeTab }: ViewProps) => {
+type MutateCors = (mutate: (config: CorsConfig) => CorsConfig) => void;
+
+interface CorsCardProps {
+  cors: CorsConfig;
+  mutateCors: MutateCors;
+}
+
+const parseMaxAgeSeconds = (value: string): number => {
+  const parsed = Number.parseInt(value, DECIMAL_RADIX);
+  return Number.isNaN(parsed) || parsed < 0 ? DEFAULT_MAX_AGE : parsed;
+};
+
+const CorsPermissionsCard = ({ cors, mutateCors }: CorsCardProps): ReactElement => (
+  <Card title="Permisos">
+    <Field
+      label="Origen permitido"
+      hint="Reflejar copia el origen exacto de la pestaña, que es lo unico valido con credenciales."
+    >
+      <Segmented
+        value={cors.allowOrigin}
+        options={ORIGIN_OPTIONS}
+        onChange={(allowOrigin) => {
+          mutateCors((config) => ({ ...config, allowOrigin }));
+        }}
+      />
+    </Field>
+
+    {cors.allowOrigin === "custom" ? (
+      <Field label="Origen fijo">
+        <TextInput
+          value={cors.customOrigin}
+          mono
+          placeholder="https://app.midominio.com"
+          onChange={(customOrigin) => {
+            mutateCors((config) => ({ ...config, customOrigin }));
+          }}
+        />
+      </Field>
+    ) : null}
+
+    <label className="checkbox">
+      <input
+        type="checkbox"
+        checked={cors.allowCredentials}
+        onChange={(event) => {
+          const allowCredentials = event.target.checked;
+          mutateCors((config) => ({ ...config, allowCredentials }));
+        }}
+      />
+      Permitir credenciales (cookies y auth headers)
+    </label>
+
+    <div className="grid-2">
+      <Field label="Metodos permitidos">
+        <TextInput
+          value={cors.allowMethods}
+          mono
+          onChange={(allowMethods) => {
+            mutateCors((config) => ({ ...config, allowMethods }));
+          }}
+        />
+      </Field>
+      <Field label="Headers permitidos">
+        <TextInput
+          value={cors.allowHeaders}
+          mono
+          onChange={(allowHeaders) => {
+            mutateCors((config) => ({ ...config, allowHeaders }));
+          }}
+        />
+      </Field>
+      <Field label="Headers expuestos">
+        <TextInput
+          value={cors.exposeHeaders}
+          mono
+          onChange={(exposeHeaders) => {
+            mutateCors((config) => ({ ...config, exposeHeaders }));
+          }}
+        />
+      </Field>
+      <Field label="Max-Age (segundos)" hint="Cuanto cachea el navegador el preflight.">
+        <TextInput
+          type="number"
+          value={String(cors.maxAgeSeconds)}
+          onChange={(value) => {
+            const maxAgeSeconds = parseMaxAgeSeconds(value);
+            mutateCors((config) => ({ ...config, maxAgeSeconds }));
+          }}
+        />
+      </Field>
+    </div>
+  </Card>
+);
+
+const CorsSecurityPoliciesCard = ({ cors, mutateCors }: CorsCardProps): ReactElement => (
+  <Card title="Politicas de seguridad" subtitle="Solo para desarrollo: bajan defensas reales del sitio.">
+    <label className="checkbox">
+      <input
+        type="checkbox"
+        checked={cors.removeContentSecurityPolicy}
+        onChange={(event) => {
+          const removeContentSecurityPolicy = event.target.checked;
+          mutateCors((config) => ({ ...config, removeContentSecurityPolicy }));
+        }}
+      />
+      Eliminar Content-Security-Policy
+    </label>
+    <label className="checkbox">
+      <input
+        type="checkbox"
+        checked={cors.removeFrameOptions}
+        onChange={(event) => {
+          const removeFrameOptions = event.target.checked;
+          mutateCors((config) => ({ ...config, removeFrameOptions }));
+        }}
+      />
+      Eliminar X-Frame-Options (para embeber el sitio en un iframe)
+    </label>
+  </Card>
+);
+
+export const CorsView = ({ state, update, activeTab }: ViewProps): ReactElement => {
   const cors = state.cors;
 
-  const mutateCors = (mutate: (config: CorsConfig) => CorsConfig) => {
+  const mutateCors: MutateCors = (mutate) => {
     update((current) => ({ ...current, cors: mutate(current.cors) }));
   };
 
@@ -31,7 +154,9 @@ export const CorsView = ({ state, update, activeTab }: ViewProps) => {
           small
           variant="ghost"
           icon="refresh"
-          onClick={() => mutateCors(() => ({ ...DEFAULT_CORS_CONFIG, enabled: cors.enabled }))}
+          onClick={() => {
+            mutateCors(() => ({ ...DEFAULT_CORS_CONFIG, enabled: cors.enabled }));
+          }}
         >
           Restaurar valores
         </Button>
@@ -58,7 +183,9 @@ export const CorsView = ({ state, update, activeTab }: ViewProps) => {
         <div className="spacer" />
         <Switch
           checked={cors.enabled}
-          onChange={(enabled) => mutateCors((config) => ({ ...config, enabled }))}
+          onChange={(enabled) => {
+            mutateCors((config) => ({ ...config, enabled }));
+          }}
         />
       </div>
 
@@ -69,107 +196,17 @@ export const CorsView = ({ state, update, activeTab }: ViewProps) => {
         </Notice>
       ) : null}
 
-      <Card title="Permisos">
-        <Field
-          label="Origen permitido"
-          hint="Reflejar copia el origen exacto de la pestaña, que es lo unico valido con credenciales."
-        >
-          <Segmented
-            value={cors.allowOrigin}
-            options={ORIGIN_OPTIONS}
-            onChange={(allowOrigin) => mutateCors((config) => ({ ...config, allowOrigin }))}
-          />
-        </Field>
+      <CorsPermissionsCard cors={cors} mutateCors={mutateCors} />
 
-        {cors.allowOrigin === "custom" ? (
-          <Field label="Origen fijo">
-            <TextInput
-              value={cors.customOrigin}
-              mono
-              placeholder="https://app.midominio.com"
-              onChange={(customOrigin) => mutateCors((config) => ({ ...config, customOrigin }))}
-            />
-          </Field>
-        ) : null}
-
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={cors.allowCredentials}
-            onChange={(event) => {
-              const allowCredentials = event.target.checked;
-              mutateCors((config) => ({ ...config, allowCredentials }));
-            }}
-          />
-          Permitir credenciales (cookies y auth headers)
-        </label>
-
-        <div className="grid-2">
-          <Field label="Metodos permitidos">
-            <TextInput
-              value={cors.allowMethods}
-              mono
-              onChange={(allowMethods) => mutateCors((config) => ({ ...config, allowMethods }))}
-            />
-          </Field>
-          <Field label="Headers permitidos">
-            <TextInput
-              value={cors.allowHeaders}
-              mono
-              onChange={(allowHeaders) => mutateCors((config) => ({ ...config, allowHeaders }))}
-            />
-          </Field>
-          <Field label="Headers expuestos">
-            <TextInput
-              value={cors.exposeHeaders}
-              mono
-              onChange={(exposeHeaders) => mutateCors((config) => ({ ...config, exposeHeaders }))}
-            />
-          </Field>
-          <Field label="Max-Age (segundos)" hint="Cuanto cachea el navegador el preflight.">
-            <TextInput
-              type="number"
-              value={String(cors.maxAgeSeconds)}
-              onChange={(value) => {
-                const parsed = Number.parseInt(value, 10);
-                const maxAgeSeconds = Number.isNaN(parsed) || parsed < 0 ? DEFAULT_MAX_AGE : parsed;
-                mutateCors((config) => ({ ...config, maxAgeSeconds }));
-              }}
-            />
-          </Field>
-        </div>
-      </Card>
-
-      <Card title="Politicas de seguridad" subtitle="Solo para desarrollo: bajan defensas reales del sitio.">
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={cors.removeContentSecurityPolicy}
-            onChange={(event) => {
-              const removeContentSecurityPolicy = event.target.checked;
-              mutateCors((config) => ({ ...config, removeContentSecurityPolicy }));
-            }}
-          />
-          Eliminar Content-Security-Policy
-        </label>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={cors.removeFrameOptions}
-            onChange={(event) => {
-              const removeFrameOptions = event.target.checked;
-              mutateCors((config) => ({ ...config, removeFrameOptions }));
-            }}
-          />
-          Eliminar X-Frame-Options (para embeber el sitio en un iframe)
-        </label>
-      </Card>
+      <CorsSecurityPoliciesCard cors={cors} mutateCors={mutateCors} />
 
       <Card title="Alcance">
         <ScopeEditor
           scope={cors.scope}
           currentHostname={activeTab.hostname}
-          onChange={(scope) => mutateCors((config) => ({ ...config, scope }))}
+          onChange={(scope) => {
+            mutateCors((config) => ({ ...config, scope }));
+          }}
         />
       </Card>
     </ViewShell>

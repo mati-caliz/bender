@@ -15,7 +15,10 @@ const runnableScripts = (state: ToolkitState, language: UserScript["language"]):
   state.globalEnabled
     ? state.userScripts.filter(
         (script) =>
-          script.enabled && script.language === language && script.code.trim() && script.matches.length > 0,
+          script.enabled &&
+          script.language === language &&
+          script.code.trim() !== "" &&
+          script.matches.length > 0,
       )
     : [];
 
@@ -51,7 +54,7 @@ export const syncUserScripts = async (state: ToolkitState): Promise<UserScriptsS
   try {
     await chrome.userScripts.configureWorld({ messaging: true, csp: USER_SCRIPT_WORLD_CSP });
     const existing = await chrome.userScripts.getScripts();
-    if (existing.length) {
+    if (existing.length > 0) {
       await chrome.userScripts.unregister({ ids: existing.map((script) => script.id) });
     }
 
@@ -61,7 +64,7 @@ export const syncUserScripts = async (state: ToolkitState): Promise<UserScriptsS
     const spoof = navigatorSpoofRegistration(state);
     const scripts = spoof ? [toRegisteredSpoof(spoof), ...ownScripts] : ownScripts;
 
-    if (scripts.length) await chrome.userScripts.register(scripts);
+    if (scripts.length > 0) await chrome.userScripts.register(scripts);
     return { supported: true, registeredCount: ownScripts.length, error: null };
   } catch (error) {
     return {

@@ -11,7 +11,11 @@ export const downloadJson = (fileName: string, data: unknown): void => {
 export const readFileAsText = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
-    reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer el archivo"));
+    reader.onload = () => {
+      resolve(typeof reader.result === "string" ? reader.result : "");
+    };
+    reader.onerror = () => {
+      reject(reader.error ?? new Error("No se pudo leer el archivo"));
+    };
     reader.readAsText(file);
   });

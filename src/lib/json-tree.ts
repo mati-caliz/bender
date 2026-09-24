@@ -31,7 +31,7 @@ export const isBranch = (kind: JsonKind): boolean => kind === "object" || kind =
 const clip = (text: string): string =>
   text.length > MAX_PREVIEW_CHARS ? `${text.slice(0, MAX_PREVIEW_CHARS - 1)}…` : text;
 
-const isJsonObject = (value: JsonValue): value is { [key: string]: JsonValue } =>
+const isJsonObject = (value: JsonValue): value is Record<string, JsonValue> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 
 export const previewOf = (value: JsonValue): string => {
@@ -64,14 +64,16 @@ export const buildJsonTree = (value: JsonValue, label = "", path = "$"): JsonNod
  * Devuelve el arbol solo si el texto es un objeto o un array. Un string o un
  * numero sueltos son JSON validos pero no ganan nada mostrados como arbol.
  */
+const isJsonContainer = (value: unknown): value is JsonValue[] | Record<string, JsonValue> =>
+  typeof value === "object" && value !== null;
+
 export const parseJsonTree = (text: string): JsonNode | null => {
   const trimmed = text.trim();
   if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return null;
 
   try {
     const parsed: unknown = JSON.parse(trimmed);
-    if (!Array.isArray(parsed) && !isJsonObject(parsed as JsonValue)) return null;
-    return buildJsonTree(parsed as JsonValue);
+    return isJsonContainer(parsed) ? buildJsonTree(parsed) : null;
   } catch {
     return null;
   }

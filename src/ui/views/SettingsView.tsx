@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactElement } from "react";
 import { ACCENT_COLORS, createDefaultState } from "@/lib/constants";
 import { downloadJson } from "@/lib/download";
 import { sendMessage } from "@/lib/messages";
@@ -20,13 +21,13 @@ import { useToasts } from "@/ui/hooks/useToasts";
 import type { UpdateState } from "@/ui/views/types";
 import type { EngineStatus, ThemeMode, ToolkitState, UiConfig } from "@/types";
 
-const THEME_OPTIONS: Array<{ value: ThemeMode; label: string }> = [
+const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
   { value: "system", label: "Sistema" },
   { value: "dark", label: "Oscuro" },
   { value: "light", label: "Claro" },
 ];
 
-const DENSITY_OPTIONS: Array<{ value: UiConfig["density"]; label: string }> = [
+const DENSITY_OPTIONS: { value: UiConfig["density"]; label: string }[] = [
   { value: "comfortable", label: "Comoda" },
   { value: "compact", label: "Compacta" },
 ];
@@ -39,6 +40,13 @@ const BUFFER_OPTIONS = [
 ];
 
 const DEFAULT_BUFFER_SIZE = 500;
+const DECIMAL_RADIX = 10;
+const ISO_DATE_LENGTH = 10;
+
+const parseBufferSize = (value: string): number => {
+  const parsed = Number.parseInt(value, DECIMAL_RADIX);
+  return Number.isNaN(parsed) ? DEFAULT_BUFFER_SIZE : parsed;
+};
 
 interface SettingsViewProps {
   state: ToolkitState;
@@ -46,176 +54,230 @@ interface SettingsViewProps {
   status: EngineStatus;
 }
 
-export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
+interface StateCardProps {
+  state: ToolkitState;
+  update: UpdateState;
+}
+
+type Notify = ReturnType<typeof useToasts>["notify"];
+
+const AppearanceCard = ({ state, update }: StateCardProps): ReactElement => (
+  <Card title="Apariencia">
+    <Field label="Tema">
+      <Segmented
+        value={state.ui.theme}
+        options={THEME_OPTIONS}
+        onChange={(theme) => {
+          update((current) => ({ ...current, ui: { ...current.ui, theme } }));
+        }}
+      />
+    </Field>
+    <Field label="Densidad">
+      <Segmented
+        value={state.ui.density}
+        options={DENSITY_OPTIONS}
+        onChange={(density) => {
+          update((current) => ({ ...current, ui: { ...current.ui, density } }));
+        }}
+      />
+    </Field>
+    <Field label="Color de acento">
+      <div className="row wrap">
+        {ACCENT_COLORS.map((accent) => (
+          <button
+            key={accent}
+            type="button"
+            aria-label={`Acento ${accent}`}
+            onClick={() => {
+              update((current) => ({ ...current, ui: { ...current.ui, accent } }));
+            }}
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 9,
+              background: accent,
+              border: state.ui.accent === accent ? "2px solid var(--text)" : "2px solid transparent",
+            }}
+          />
+        ))}
+      </div>
+    </Field>
+  </Card>
+);
+
+const TrafficCaptureCard = ({ state, update }: StateCardProps): ReactElement => (
+  <Card title="Captura de trafico">
+    <Field label="Tamaño del buffer" hint="Las requests viven solo en la sesion del navegador.">
+      <Select
+        value={String(state.network.maxEntries)}
+        options={BUFFER_OPTIONS}
+        onChange={(value) => {
+          const maxEntries = parseBufferSize(value);
+          update((current) => ({ ...current, network: { ...current.network, maxEntries } }));
+        }}
+      />
+    </Field>
+    <label className="row" style={{ cursor: "pointer" }}>
+      <Switch
+        checked={state.network.captureBodies}
+        onChange={(captureBodies) => {
+          update((current) => ({ ...current, network: { ...current.network, captureBodies } }));
+        }}
+        small
+      />
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 600 }}>Guardar los cuerpos de las requests</div>
+        <div className="field-hint">
+          Los lee la propia pagina, asi que solo cubre lo que pide su JavaScript y se corta a los 20.000
+          caracteres.
+        </div>
+      </div>
+    </label>
+  </Card>
+);
+
+interface BackupCardProps extends StateCardProps {
+  notify: Notify;
+  onImport: () => void;
+}
+
+const BackupCard = ({ state, update, notify, onImport }: BackupCardProps): ReactElement => {
+  const [confirmReset, setConfirmReset] = useState(false);
+  return (
+    <Card title="Backup">
+      <p className="text-small text-muted" style={{ margin: 0 }}>
+        El backup incluye perfiles, reglas, mocks, scripts y preferencias. No incluye cookies ni storage de
+        los sitios.
+      </p>
+      <div className="row wrap">
+        <Button
+          icon="download"
+          onClick={() => {
+            downloadJson(`bender-backup-${new Date().toISOString().slice(0, ISO_DATE_LENGTH)}.json`, state);
+            notify("Backup exportado", "success");
+          }}
+        >
+          Exportar todo
+        </Button>
+        <Button icon="upload" onClick={onImport}>
+          Importar backup
+        </Button>
+        <div className="spacer" />
+        <Button
+          variant="danger"
+          icon="trash"
+          onClick={() => {
+            setConfirmReset(true);
+          }}
+        >
+          Restablecer
+        </Button>
+      </div>
+
+      {confirmReset ? (
+        <ConfirmBar
+          message="Esto borra perfiles, reglas y scripts. No se puede deshacer."
+          confirmLabel="Restablecer todo"
+          onCancel={() => {
+            setConfirmReset(false);
+          }}
+          onConfirm={() => {
+            update(() => createDefaultState());
+            setConfirmReset(false);
+            notify("Configuracion restablecida");
+          }}
+        />
+      ) : null}
+    </Card>
+  );
+};
+
+const ShortcutsCard = (): ReactElement => (
+  <Card title="Atajos de teclado">
+    <div className="kv-table">
+      <span className="kv-key">Alt+Shift+T</span>
+      <span className="kv-value">Prender o apagar todas las reglas</span>
+      <span className="kv-key">Alt+Shift+P</span>
+      <span className="kv-value">Abrir Bender en el panel lateral</span>
+    </div>
+    <Button
+      small
+      variant="ghost"
+      icon="external"
+      onClick={() => void chrome.tabs.create({ url: "chrome://extensions/shortcuts" })}
+    >
+      Cambiar atajos
+    </Button>
+  </Card>
+);
+
+const EngineCard = ({ status, notify }: { status: EngineStatus; notify: Notify }): ReactElement => (
+  <Card
+    title="Motor"
+    subtitle={
+      status.updatedAt === 0
+        ? "Sin aplicar todavia"
+        : `Ultima aplicacion: ${new Date(status.updatedAt).toLocaleTimeString("es-AR")}`
+    }
+    actions={
+      <Button
+        small
+        icon="refresh"
+        onClick={() => {
+          void sendMessage({ type: "engine/refresh" }).then(() => {
+            notify("Reglas reaplicadas", "success");
+          });
+        }}
+      >
+        Reaplicar
+      </Button>
+    }
+  >
+    <div className="kv-table">
+      <span className="kv-key">Reglas activas</span>
+      <span className="kv-value">{status.appliedRuleCount}</span>
+      <span className="kv-key">Perfiles activos</span>
+      <span className="kv-value">{status.activeProfileCount}</span>
+      <span className="kv-key">Headers activos</span>
+      <span className="kv-value">{status.activeHeaderCount}</span>
+    </div>
+    {status.diagnostics.length > 0 ? (
+      status.diagnostics.map((diagnostic, index) => (
+        <Notice
+          key={`${diagnostic.message}-${index}`}
+          tone={diagnostic.level === "error" ? "danger" : "warning"}
+        >
+          {diagnostic.message}
+        </Notice>
+      ))
+    ) : (
+      <Notice>Sin advertencias: todo lo configurado se esta aplicando.</Notice>
+    )}
+  </Card>
+);
+
+export const SettingsView = ({ state, update, status }: SettingsViewProps): ReactElement => {
   const { notify } = useToasts();
   const [importing, setImporting] = usePendingImport("settings");
-  const [confirmReset, setConfirmReset] = useState(false);
 
   return (
     <ViewShell title="Ajustes" subtitle="Apariencia, backups y estado del motor.">
-      <Card title="Apariencia">
-        <Field label="Tema">
-          <Segmented
-            value={state.ui.theme}
-            options={THEME_OPTIONS}
-            onChange={(theme) => update((current) => ({ ...current, ui: { ...current.ui, theme } }))}
-          />
-        </Field>
-        <Field label="Densidad">
-          <Segmented
-            value={state.ui.density}
-            options={DENSITY_OPTIONS}
-            onChange={(density) => update((current) => ({ ...current, ui: { ...current.ui, density } }))}
-          />
-        </Field>
-        <Field label="Color de acento">
-          <div className="row wrap">
-            {ACCENT_COLORS.map((accent) => (
-              <button
-                key={accent}
-                type="button"
-                aria-label={`Acento ${accent}`}
-                onClick={() => update((current) => ({ ...current, ui: { ...current.ui, accent } }))}
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 9,
-                  background: accent,
-                  border: state.ui.accent === accent ? "2px solid var(--text)" : "2px solid transparent",
-                }}
-              />
-            ))}
-          </div>
-        </Field>
-      </Card>
+      <AppearanceCard state={state} update={update} />
 
-      <Card title="Captura de trafico">
-        <Field label="Tamaño del buffer" hint="Las requests viven solo en la sesion del navegador.">
-          <Select
-            value={String(state.network.maxEntries)}
-            options={BUFFER_OPTIONS}
-            onChange={(value) => {
-              const parsed = Number.parseInt(value, 10);
-              const maxEntries = Number.isNaN(parsed) ? DEFAULT_BUFFER_SIZE : parsed;
-              update((current) => ({ ...current, network: { ...current.network, maxEntries } }));
-            }}
-          />
-        </Field>
-        <label className="row" style={{ cursor: "pointer" }}>
-          <Switch
-            checked={state.network.captureBodies}
-            onChange={(captureBodies) =>
-              update((current) => ({ ...current, network: { ...current.network, captureBodies } }))
-            }
-            small
-          />
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600 }}>Guardar los cuerpos de las requests</div>
-            <div className="field-hint">
-              Los lee la propia pagina, asi que solo cubre lo que pide su JavaScript y se corta a los 20.000
-              caracteres.
-            </div>
-          </div>
-        </label>
-      </Card>
+      <TrafficCaptureCard state={state} update={update} />
 
-      <Card title="Backup">
-        <p className="text-small text-muted" style={{ margin: 0 }}>
-          El backup incluye perfiles, reglas, mocks, scripts y preferencias. No incluye cookies ni storage de
-          los sitios.
-        </p>
-        <div className="row wrap">
-          <Button
-            icon="download"
-            onClick={() => {
-              downloadJson(`bender-backup-${new Date().toISOString().slice(0, 10)}.json`, state);
-              notify("Backup exportado", "success");
-            }}
-          >
-            Exportar todo
-          </Button>
-          <Button icon="upload" onClick={() => setImporting(true)}>
-            Importar backup
-          </Button>
-          <div className="spacer" />
-          <Button variant="danger" icon="trash" onClick={() => setConfirmReset(true)}>
-            Restablecer
-          </Button>
-        </div>
+      <BackupCard
+        state={state}
+        update={update}
+        notify={notify}
+        onImport={() => {
+          setImporting(true);
+        }}
+      />
 
-        {confirmReset ? (
-          <ConfirmBar
-            message="Esto borra perfiles, reglas y scripts. No se puede deshacer."
-            confirmLabel="Restablecer todo"
-            onCancel={() => setConfirmReset(false)}
-            onConfirm={() => {
-              update(() => createDefaultState());
-              setConfirmReset(false);
-              notify("Configuracion restablecida");
-            }}
-          />
-        ) : null}
-      </Card>
+      <ShortcutsCard />
 
-      <Card title="Atajos de teclado">
-        <div className="kv-table">
-          <span className="kv-key">Alt+Shift+T</span>
-          <span className="kv-value">Prender o apagar todas las reglas</span>
-          <span className="kv-key">Alt+Shift+P</span>
-          <span className="kv-value">Abrir Bender en el panel lateral</span>
-        </div>
-        <Button
-          small
-          variant="ghost"
-          icon="external"
-          onClick={() => void chrome.tabs.create({ url: "chrome://extensions/shortcuts" })}
-        >
-          Cambiar atajos
-        </Button>
-      </Card>
-
-      <Card
-        title="Motor"
-        subtitle={
-          status.updatedAt
-            ? `Ultima aplicacion: ${new Date(status.updatedAt).toLocaleTimeString("es-AR")}`
-            : "Sin aplicar todavia"
-        }
-        actions={
-          <Button
-            small
-            icon="refresh"
-            onClick={() => {
-              void sendMessage({ type: "engine/refresh" }).then(() =>
-                notify("Reglas reaplicadas", "success"),
-              );
-            }}
-          >
-            Reaplicar
-          </Button>
-        }
-      >
-        <div className="kv-table">
-          <span className="kv-key">Reglas activas</span>
-          <span className="kv-value">{status.appliedRuleCount}</span>
-          <span className="kv-key">Perfiles activos</span>
-          <span className="kv-value">{status.activeProfileCount}</span>
-          <span className="kv-key">Headers activos</span>
-          <span className="kv-value">{status.activeHeaderCount}</span>
-        </div>
-        {status.diagnostics.length ? (
-          status.diagnostics.map((diagnostic, index) => (
-            <Notice
-              key={`${diagnostic.message}-${index}`}
-              tone={diagnostic.level === "error" ? "danger" : "warning"}
-            >
-              {diagnostic.message}
-            </Notice>
-          ))
-        ) : (
-          <Notice>Sin advertencias: todo lo configurado se esta aplicando.</Notice>
-        )}
-      </Card>
+      <EngineCard status={status} notify={notify} />
 
       {importing ? (
         <ImportDialog
@@ -223,7 +285,9 @@ export const SettingsView = ({ state, update, status }: SettingsViewProps) => {
           title="Importar backup"
           description="Pega un backup completo de Bender. Reemplaza toda la configuracion actual."
           allowAppend={false}
-          onClose={() => setImporting(false)}
+          onClose={() => {
+            setImporting(false);
+          }}
           onImport={(text) => {
             const parsed: unknown = JSON.parse(text);
             update(() => normalizeState(parsed));

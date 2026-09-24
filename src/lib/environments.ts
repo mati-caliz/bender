@@ -1,9 +1,9 @@
 import { createId } from "@/lib/ids";
 import type { Environment, ToolkitState } from "@/types";
 
-const idsOf = <TItem extends { id: string }>(items: TItem[]): string[] => items.map((item) => item.id);
+const idsOf = (items: { id: string }[]): string[] => items.map((item) => item.id);
 
-const enabledIdsOf = <TItem extends { id: string; enabled: boolean }>(items: TItem[]): string[] =>
+const enabledIdsOf = (items: { id: string; enabled: boolean }[]): string[] =>
   idsOf(items.filter((item) => item.enabled));
 
 const sameIdSet = (left: string[], right: string[]): boolean => {

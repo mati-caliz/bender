@@ -9,7 +9,7 @@ export default defineConfig({
   fullyParallel: false,
   timeout: 30000,
   expect: { timeout: 10000 },
-  reporter: process.env.CI ? "list" : "list",
+  reporter: "list",
   use: {
     trace: "retain-on-failure",
   },

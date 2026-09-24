@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import type { ReactElement } from "react";
 import { downloadJson } from "@/lib/download";
 import { createMockRuleFromEntry } from "@/lib/factories";
-import { formatDuration, formatTime, prettyJson, shortUrl } from "@/lib/format";
+import { formatTime, shortUrl } from "@/lib/format";
 import { toHar } from "@/lib/har";
 import { sendMessage } from "@/lib/messages";
 import { toCurl, toFetchSnippet } from "@/lib/request-snippets";
@@ -10,13 +11,15 @@ import { ViewShell } from "@/ui/components/ViewShell";
 import { Badge, Button, Card, EmptyState, Notice, SearchInput, Switch } from "@/ui/components/primitives";
 import { useToasts } from "@/ui/hooks/useToasts";
 import type { ViewId } from "@/ui/App";
+import { NetworkEntryDetail } from "@/ui/views/network/NetworkEntryDetail";
 import type { UpdateState } from "@/ui/views/types";
 import type { NetworkEntry, ToolkitState } from "@/types";
 
 const POLL_INTERVAL_MS = 1000;
-const BODY_PREVIEW_LIMIT = 4000;
 const CLIENT_ERROR_STATUS = 400;
 const REDIRECT_STATUS = 300;
+const ISO_DATE_LENGTH = 10;
+const ROW_RULE_LABEL_LIMIT = 2;
 
 const statusTone = (entry: NetworkEntry): "neutral" | "success" | "warning" | "danger" | "info" => {
   if (entry.phase === "blocked") return "danger";
@@ -35,45 +38,12 @@ const statusLabel = (entry: NetworkEntry): string => {
   return entry.statusCode === null ? "···" : String(entry.statusCode);
 };
 
-const HeaderTable = ({ headers }: { headers: Array<{ name: string; value: string }> }) =>
-  headers.length ? (
-    <div className="kv-table">
-      {headers.map((header, index) => (
-        <div key={`${header.name}-${index}`} style={{ display: "contents" }}>
-          <span className="kv-key">{header.name}</span>
-          <span className="kv-value">{header.value}</span>
-        </div>
-      ))}
-    </div>
-  ) : (
-    <span className="field-hint">Sin datos capturados.</span>
-  );
-
-const BodyBlock = ({ label, body, truncated }: { label: string; body: string; truncated: boolean }) => (
-  <div>
-    <div className="field-label">
-      {label}
-      {truncated ? <span className="text-muted"> · truncado</span> : null}
-    </div>
-    <pre className="code-block">{prettyJson(body).slice(0, BODY_PREVIEW_LIMIT)}</pre>
-  </div>
-);
-
-interface NetworkViewProps {
-  state: ToolkitState;
-  update: UpdateState;
-  onNavigate: (view: ViewId) => void;
-}
-
-export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => {
-  const { notify } = useToasts();
+const useNetworkEntries = (): [NetworkEntry[], (entries: NetworkEntry[]) => void] => {
   const [entries, setEntries] = useState<NetworkEntry[]>([]);
-  const [filter, setFilter] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    const refresh = () => {
+    const refresh = (): void => {
       void sendMessage({ type: "network/list" })
         .then((list) => {
           if (active && Array.isArray(list)) setEntries(list);
@@ -88,35 +58,98 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
     };
   }, []);
 
-  const normalizedFilter = filter.trim().toLowerCase();
-  const visible = normalizedFilter
-    ? entries.filter(
-        (entry) =>
-          entry.url.toLowerCase().includes(normalizedFilter) ||
-          entry.matchedRuleLabels.some((label) => label.toLowerCase().includes(normalizedFilter)),
-      )
-    : entries;
+  return [entries, setEntries];
+};
 
+const filterEntries = (entries: NetworkEntry[], filter: string): NetworkEntry[] => {
+  const normalizedFilter = filter.trim().toLowerCase();
+  if (!normalizedFilter) return entries;
+  return entries.filter(
+    (entry) =>
+      entry.url.toLowerCase().includes(normalizedFilter) ||
+      entry.matchedRuleLabels.some((label) => label.toLowerCase().includes(normalizedFilter)),
+  );
+};
+
+const copyToClipboard = (value: string, message: string, notify: Notify): void => {
+  void navigator.clipboard
+    .writeText(value)
+    .then(() => {
+      notify(message, "success");
+    })
+    .catch(() => {
+      notify("No se pudo copiar al portapapeles", "error");
+    });
+};
+
+type Notify = ReturnType<typeof useToasts>["notify"];
+
+interface NetworkEntryRowProps {
+  entry: NetworkEntry;
+  selected: boolean;
+  onSelect: () => void;
+}
+
+const NetworkEntryRow = ({ entry, selected, onSelect }: NetworkEntryRowProps): ReactElement => (
+  <div className="net-row log-row" data-selected={selected} onClick={onSelect}>
+    <Badge tone={statusTone(entry)}>{statusLabel(entry)}</Badge>
+    <span className="text-muted mono" style={{ fontSize: 10.5 }}>
+      {entry.method}
+    </span>
+    <span className="net-url" title={entry.url}>
+      {shortUrl(entry.url)}
+    </span>
+    <div className="row" style={{ gap: 4 }}>
+      {entry.matchedRuleLabels.slice(0, ROW_RULE_LABEL_LIMIT).map((label, index) => (
+        <Badge key={`${label}-${index}`} tone="accent">
+          {label}
+        </Badge>
+      ))}
+      <span className="text-muted" style={{ fontSize: 10.5 }}>
+        {formatTime(entry.startedAt)}
+      </span>
+    </div>
+  </div>
+);
+
+const NetworkEmptyState = ({ enabled }: { enabled: boolean }): ReactElement => (
+  <EmptyState
+    icon="activity"
+    title={enabled ? "Todavia no se capturo nada" : "Captura apagada"}
+    text={
+      enabled
+        ? "Recarga la pagina que estas debuggeando y las requests van a aparecer aca."
+        : "Prende la captura para ver el trafico y que reglas se aplicaron."
+    }
+  />
+);
+
+interface NetworkViewProps {
+  state: ToolkitState;
+  update: UpdateState;
+  onNavigate: (view: ViewId) => void;
+}
+
+export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps): ReactElement => {
+  const { notify } = useToasts();
+  const [entries, setEntries] = useNetworkEntries();
+  const [filter, setFilter] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const visible = filterEntries(entries, filter);
   const selected = visible.find((entry) => entry.id === selectedId) ?? null;
 
-  const copyToClipboard = (value: string, message: string) => {
-    void navigator.clipboard
-      .writeText(value)
-      .then(() => notify(message, "success"))
-      .catch(() => notify("No se pudo copiar al portapapeles", "error"));
-  };
-
-  const exportHar = () => {
-    if (!visible.length) {
+  const exportHar = (): void => {
+    if (visible.length === 0) {
       notify("No hay requests para exportar");
       return;
     }
-    const fileName = `bender-${new Date().toISOString().slice(0, 10)}.har`;
+    const fileName = `bender-${new Date().toISOString().slice(0, ISO_DATE_LENGTH)}.har`;
     downloadJson(fileName, toHar(visible, chrome.runtime.getManifest().version));
     notify("HAR exportado", "success");
   };
 
-  const createMockFrom = (entry: NetworkEntry) => {
+  const createMockFrom = (entry: NetworkEntry): void => {
     update((current) => ({
       ...current,
       trafficRules: [...current.trafficRules, createMockRuleFromEntry(entry, current.trafficRules.length)],
@@ -147,9 +180,9 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
           </Button>
           <Switch
             checked={state.network.enabled}
-            onChange={(enabled) =>
-              update((current) => ({ ...current, network: { ...current.network, enabled } }))
-            }
+            onChange={(enabled) => {
+              update((current) => ({ ...current, network: { ...current.network, enabled } }));
+            }}
             title="Prender o apagar la captura"
           />
         </>
@@ -178,126 +211,38 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps) => 
       </div>
 
       <Card flush>
-        {visible.length ? (
+        {visible.length > 0 ? (
           <div>
             {visible.map((entry) => (
               <div key={entry.id}>
-                <div
-                  className="net-row log-row"
-                  data-selected={entry.id === selectedId}
-                  onClick={() => setSelectedId(entry.id === selectedId ? null : entry.id)}
-                >
-                  <Badge tone={statusTone(entry)}>{statusLabel(entry)}</Badge>
-                  <span className="text-muted mono" style={{ fontSize: 10.5 }}>
-                    {entry.method}
-                  </span>
-                  <span className="net-url" title={entry.url}>
-                    {shortUrl(entry.url)}
-                  </span>
-                  <div className="row" style={{ gap: 4 }}>
-                    {entry.matchedRuleLabels.slice(0, 2).map((label, index) => (
-                      <Badge key={`${label}-${index}`} tone="accent">
-                        {label}
-                      </Badge>
-                    ))}
-                    <span className="text-muted" style={{ fontSize: 10.5 }}>
-                      {formatTime(entry.startedAt)}
-                    </span>
-                  </div>
-                </div>
+                <NetworkEntryRow
+                  entry={entry}
+                  selected={entry.id === selectedId}
+                  onSelect={() => {
+                    setSelectedId(entry.id === selectedId ? null : entry.id);
+                  }}
+                />
 
                 {entry.id === selectedId ? (
-                  <div className="net-detail">
-                    <div className="row wrap">
-                      <Badge>{entry.resourceType}</Badge>
-                      {entry.fromCache ? <Badge tone="info">cache</Badge> : null}
-                      {entry.finishedAt ? (
-                        <Badge>{formatDuration(entry.finishedAt - entry.startedAt)}</Badge>
-                      ) : null}
-                      {entry.error ? <Badge tone="danger">{entry.error}</Badge> : null}
-                    </div>
-                    <div className="kv-value">{entry.url}</div>
-
-                    {entry.matchedRuleLabels.length ? (
-                      <div>
-                        <div className="field-label">Reglas aplicadas</div>
-                        <div className="row wrap">
-                          {entry.matchedRuleLabels.map((label, index) => (
-                            <Badge key={`${label}-${index}`} tone="accent">
-                              {label}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <div>
-                      <div className="field-label">Headers enviados</div>
-                      <HeaderTable headers={entry.requestHeaders} />
-                    </div>
-
-                    <div>
-                      <div className="field-label">Headers recibidos</div>
-                      <HeaderTable headers={entry.responseHeaders} />
-                    </div>
-
-                    {entry.requestBody ? (
-                      <BodyBlock
-                        label="Cuerpo enviado"
-                        body={entry.requestBody}
-                        truncated={entry.bodyTruncated}
-                      />
-                    ) : null}
-
-                    {entry.responseBody ? (
-                      <BodyBlock
-                        label="Cuerpo recibido"
-                        body={entry.responseBody}
-                        truncated={entry.bodyTruncated}
-                      />
-                    ) : null}
-
-                    {state.network.captureBodies || entry.source === "mock" ? null : (
-                      <span className="field-hint">
-                        Los cuerpos no se estan capturando: prendelo en Ajustes para verlos aca.
-                      </span>
-                    )}
-
-                    <div className="row wrap">
-                      <Button
-                        small
-                        icon="copy"
-                        onClick={() => copyToClipboard(toCurl(entry), "cURL copiado")}
-                      >
-                        Copiar cURL
-                      </Button>
-                      <Button
-                        small
-                        icon="copy"
-                        variant="ghost"
-                        onClick={() => copyToClipboard(toFetchSnippet(entry), "fetch copiado")}
-                      >
-                        Copiar fetch
-                      </Button>
-                      <Button small variant="ghost" icon="plus" onClick={() => createMockFrom(entry)}>
-                        Convertir en mock
-                      </Button>
-                    </div>
-                  </div>
+                  <NetworkEntryDetail
+                    entry={entry}
+                    captureBodies={state.network.captureBodies}
+                    onCopyCurl={() => {
+                      copyToClipboard(toCurl(entry), "cURL copiado", notify);
+                    }}
+                    onCopyFetch={() => {
+                      copyToClipboard(toFetchSnippet(entry), "fetch copiado", notify);
+                    }}
+                    onCreateMock={() => {
+                      createMockFrom(entry);
+                    }}
+                  />
                 ) : null}
               </div>
             ))}
           </div>
         ) : (
-          <EmptyState
-            icon="activity"
-            title={state.network.enabled ? "Todavia no se capturo nada" : "Captura apagada"}
-            text={
-              state.network.enabled
-                ? "Recarga la pagina que estas debuggeando y las requests van a aparecer aca."
-                : "Prende la captura para ver el trafico y que reglas se aplicaron."
-            }
-          />
+          <NetworkEmptyState enabled={state.network.enabled} />
         )}
       </Card>
 

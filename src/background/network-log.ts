@@ -1,5 +1,6 @@
 import { NETWORK_LOG_KEY } from "@/lib/constants";
 import { errorMessage } from "@/lib/errors";
+import { createId } from "@/lib/ids";
 import type { MockHitPayload } from "@/lib/messages";
 import type { CapturedBodies, EngineDiagnostic, NetworkEntry, NetworkPhase } from "@/types";
 
@@ -18,7 +19,7 @@ let entries: NetworkEntry[] = [];
 let maxEntries = 500;
 let onlyModified = false;
 let listening = false;
-let flushHandle: number | null = null;
+let flushHandle: ReturnType<typeof setTimeout> | null = null;
 let persistenceError: string | null = null;
 const entriesById = new Map<string, NetworkEntry>();
 const pendingRuleMatches = new Map<string, PendingRuleMatch>();
@@ -38,7 +39,7 @@ const scheduleFlush = (): void => {
   flushHandle = setTimeout(() => {
     flushHandle = null;
     void persist();
-  }, FLUSH_DELAY_MS) as unknown as number;
+  }, FLUSH_DELAY_MS);
 };
 
 const indexEntries = (): void => {
@@ -98,7 +99,7 @@ const createEntry = (details: chrome.webRequest.WebRequestBodyDetails): NetworkE
 
 const toHeaderList = (
   headers: chrome.webRequest.HttpHeader[] | undefined,
-): Array<{ name: string; value: string }> =>
+): { name: string; value: string }[] =>
   (headers ?? []).map((header) => ({ name: header.name, value: header.value ?? "" }));
 
 const handleBeforeRequest = (details: chrome.webRequest.WebRequestBodyDetails): void => {
@@ -172,6 +173,9 @@ const handleRuleMatched = (info: chrome.declarativeNetRequest.MatchedRuleInfoDeb
   }
 };
 
+const supportsRuleMatchedDebug = (): boolean =>
+  typeof chrome.declarativeNetRequest.onRuleMatchedDebug !== "undefined";
+
 const attach = (): void => {
   if (listening) return;
   listening = true;
@@ -187,7 +191,7 @@ const attach = (): void => {
   chrome.webRequest.onBeforeRedirect.addListener(handleBeforeRedirect, ALL_URLS_FILTER);
   chrome.webRequest.onCompleted.addListener(handleCompleted, ALL_URLS_FILTER);
   chrome.webRequest.onErrorOccurred.addListener(handleErrorOccurred, ALL_URLS_FILTER);
-  if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
+  if (supportsRuleMatchedDebug()) {
     chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(handleRuleMatched);
   }
 };
@@ -202,7 +206,7 @@ const detach = (): void => {
   chrome.webRequest.onBeforeRedirect.removeListener(handleBeforeRedirect);
   chrome.webRequest.onCompleted.removeListener(handleCompleted);
   chrome.webRequest.onErrorOccurred.removeListener(handleErrorOccurred);
-  if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
+  if (supportsRuleMatchedDebug()) {
     chrome.declarativeNetRequest.onRuleMatchedDebug.removeListener(handleRuleMatched);
   }
 };
@@ -222,16 +226,18 @@ export const configureNetworkLog = (config: {
   }
 };
 
+const isPersistedEntryList = (value: unknown): value is NetworkEntry[] => Array.isArray(value);
+
 export const restoreNetworkLog = async (): Promise<void> => {
   const stored = await chrome.storage.session.get(NETWORK_LOG_KEY);
   const restored: unknown = stored[NETWORK_LOG_KEY];
-  if (!Array.isArray(restored)) return;
-  entries = restored as NetworkEntry[];
+  if (!isPersistedEntryList(restored)) return;
+  entries = restored;
   indexEntries();
 };
 
 export const networkLogDiagnostics = (): EngineDiagnostic[] =>
-  persistenceError
+  persistenceError !== null && persistenceError !== ""
     ? [
         {
           level: "warning",
@@ -255,7 +261,7 @@ export const clearNetworkLog = (): void => {
 export const recordMockHit = (payload: MockHitPayload, tabId: number): void => {
   const phase: NetworkPhase = "mocked";
   upsert({
-    id: `mock-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    id: `mock-${Date.now()}-${createId()}`,
     tabId,
     url: payload.url,
     method: payload.method,
@@ -281,7 +287,7 @@ export const recordMockHit = (payload: MockHitPayload, tabId: number): void => {
 export const recordCapturedBodies = (bodies: CapturedBodies, tabId: number): void => {
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index];
-    if (!entry || entry.source !== "network") continue;
+    if (entry?.source !== "network") continue;
     if (entry.tabId !== tabId || entry.url !== bodies.url || entry.method !== bodies.method) continue;
     if (entry.responseBody !== null) continue;
 

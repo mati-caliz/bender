@@ -3,10 +3,13 @@ import type { DesignPick } from "@/types";
 
 export const MAX_DESIGN_PICKS = 60;
 
+const isDesignPickList = (value: unknown): value is DesignPick[] => Array.isArray(value);
+
+const toDesignPicks = (value: unknown): DesignPick[] => (isDesignPickList(value) ? value : []);
+
 export const readDesignPicks = async (): Promise<DesignPick[]> => {
   const stored = await chrome.storage.local.get(DESIGN_PICKS_KEY);
-  const picks: unknown = stored[DESIGN_PICKS_KEY];
-  return Array.isArray(picks) ? (picks as DesignPick[]) : [];
+  return toDesignPicks(stored[DESIGN_PICKS_KEY]);
 };
 
 export const writeDesignPicks = async (picks: DesignPick[]): Promise<void> => {
@@ -18,11 +21,13 @@ export const appendDesignPick = async (pick: DesignPick): Promise<void> => {
 };
 
 export const subscribeToDesignPicks = (listener: (picks: DesignPick[]) => void): (() => void) => {
-  const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-    if (area !== "local" || !changes[DESIGN_PICKS_KEY]) return;
-    const picks: unknown = changes[DESIGN_PICKS_KEY].newValue;
-    listener(Array.isArray(picks) ? (picks as DesignPick[]) : []);
+  const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string): void => {
+    const change = changes[DESIGN_PICKS_KEY];
+    if (area !== "local" || change === undefined) return;
+    listener(toDesignPicks(change.newValue));
   };
   chrome.storage.onChanged.addListener(handler);
-  return () => chrome.storage.onChanged.removeListener(handler);
+  return () => {
+    chrome.storage.onChanged.removeListener(handler);
+  };
 };

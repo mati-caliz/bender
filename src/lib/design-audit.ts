@@ -1,168 +1,156 @@
-import type { DesignAudit } from "@/types";
+import type { ColorRole, CssVariable, DesignAudit, FontUsage, ValueUsage } from "@/types";
 
 export const MAX_AUDITED_ELEMENTS = 4000;
 export const MAX_AUDIT_RESULTS = 60;
 
+interface ColorTally {
+  count: number;
+  roles: Set<ColorRole>;
+}
+
+interface FontTally {
+  count: number;
+  sizes: Set<number>;
+  weights: Set<number>;
+}
+
+// Se inyecta con chrome.scripting.executeScript({ func }): se serializa sola, así que todo lo que
+// usa en tiempo de ejecución tiene que estar declarado adentro (los tipos no cuentan).
 export const auditPageDesign = (maxElements: number, maxResults: number): DesignAudit => {
   const HEX_RADIX = 16;
   const MAX_CHANNEL = 255;
   const DEFAULT_ROOT_FONT_SIZE = 16;
+  const DECIMAL_RADIX = 10;
   const NUMBER_PATTERN = /[-+]?\d*\.?\d+/g;
-  const SPACING_PROPERTIES = [
-    "paddingTop",
-    "paddingRight",
-    "paddingBottom",
-    "paddingLeft",
-    "marginTop",
-    "marginRight",
-    "marginBottom",
-    "marginLeft",
-    "rowGap",
-    "columnGap",
-  ] as const;
-  const RADIUS_PROPERTIES = [
-    "borderTopLeftRadius",
-    "borderTopRightRadius",
-    "borderBottomRightRadius",
-    "borderBottomLeftRadius",
-  ] as const;
+  const SKIPPED_VALUES = new Set(["", "0px", "normal", "none"]);
+  const SPACING_PROPERTIES =
+    "padding-top padding-right padding-bottom padding-left margin-top margin-right margin-bottom margin-left row-gap column-gap";
+  const RADIUS_PROPERTIES =
+    "border-top-left-radius border-top-right-radius border-bottom-right-radius border-bottom-left-radius";
 
-  const toHexDigits = (channel: number): string =>
-    Math.max(0, Math.min(MAX_CHANNEL, Math.round(channel)))
-      .toString(HEX_RADIX)
-      .padStart(2, "0");
+  const clampChannel = (channel: number): number => Math.max(0, Math.min(MAX_CHANNEL, Math.round(channel)));
+  const toHexDigits = (channel: number): string => clampChannel(channel).toString(HEX_RADIX).padStart(2, "0");
+
+  const channelsOf = (value: string): number[] =>
+    value.startsWith("rgb") || value.startsWith("color(")
+      ? (value.match(NUMBER_PATTERN) ?? []).map(Number)
+      : [];
 
   const toHex = (input: string): string | null => {
     const value = input.trim().toLowerCase();
-    if (!value.startsWith("rgb") && !value.startsWith("color(")) return null;
-    const [red, green, blue, parsedAlpha] = value.match(NUMBER_PATTERN)?.map(Number) ?? [];
-    if (red === undefined || green === undefined || blue === undefined) return null;
-    const alpha = parsedAlpha ?? 1;
-    if (alpha === 0) return null;
+    const [red, green, blue, alpha = 1] = channelsOf(value);
+    if (red === undefined || green === undefined || blue === undefined || alpha === 0) return null;
     const scale = value.startsWith("color(") ? MAX_CHANNEL : 1;
-    const base = `#${toHexDigits(red * scale)}${toHexDigits(green * scale)}${toHexDigits(blue * scale)}`;
+    const base = `#${[red, green, blue].map((channel) => toHexDigits(channel * scale)).join("")}`;
     return alpha >= 1 ? base : `${base}${toHexDigits(alpha * MAX_CHANNEL)}`;
   };
 
-  const colorCounts = new Map<string, { count: number; roles: Set<string> }>();
-  const fontCounts = new Map<string, { count: number; sizes: Set<number>; weights: Set<number> }>();
+  const colorCounts = new Map<string, ColorTally>();
+  const fontCounts = new Map<string, FontTally>();
   const spacingCounts = new Map<string, number>();
   const radiusCounts = new Map<string, number>();
   const shadowCounts = new Map<string, number>();
 
-  const countColor = (rawValue: string, role: string): void => {
+  const countColor = (rawValue: string, role: ColorRole): void => {
     const hex = toHex(rawValue);
-    if (!hex) return;
-    const entry = colorCounts.get(hex) ?? { count: 0, roles: new Set<string>() };
+    if (hex === null) return;
+    const entry: ColorTally = colorCounts.get(hex) ?? { count: 0, roles: new Set() };
     entry.count += 1;
     entry.roles.add(role);
     colorCounts.set(hex, entry);
   };
 
-  const countValue = (map: Map<string, number>, value: string): void => {
-    map.set(value, (map.get(value) ?? 0) + 1);
+  const countValues = (map: Map<string, number>, styles: CSSStyleDeclaration, properties: string): void => {
+    for (const property of properties.split(" ")) {
+      const value = styles.getPropertyValue(property);
+      if (!SKIPPED_VALUES.has(value)) map.set(value, (map.get(value) ?? 0) + 1);
+    }
   };
 
-  const scanRoot = document.body ?? document.documentElement;
-  const elements = Array.from(scanRoot.querySelectorAll("*")).slice(0, maxElements);
-
-  for (const element of elements) {
-    const styles = window.getComputedStyle(element);
-    if (styles.display === "none" || styles.visibility === "hidden") continue;
-
-    const hasText = Array.from(element.childNodes).some(
+  const hasOwnText = (element: Element): boolean =>
+    Array.from(element.childNodes).some(
       (node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? "").trim().length > 0,
     );
-    if (hasText) countColor(styles.color, "text");
+
+  const hasWidth = (width: string): boolean => Number.parseFloat(width) > 0;
+
+  const countColors = (element: Element, styles: CSSStyleDeclaration): void => {
+    if (hasOwnText(element)) countColor(styles.color, "text");
     countColor(styles.backgroundColor, "background");
-    if (styles.borderTopWidth !== "0px" || styles.borderLeftWidth !== "0px")
+    if (hasWidth(styles.borderTopWidth) || hasWidth(styles.borderLeftWidth)) {
       countColor(styles.borderTopColor, "border");
+    }
+  };
 
+  const countFont = (styles: CSSStyleDeclaration): void => {
     const family = styles.fontFamily;
-    if (family) {
-      const entry = fontCounts.get(family) ?? {
-        count: 0,
-        sizes: new Set<number>(),
-        weights: new Set<number>(),
-      };
-      entry.count += 1;
-      entry.sizes.add(Math.round(Number.parseFloat(styles.fontSize)));
-      entry.weights.add(Number.parseInt(styles.fontWeight, 10));
-      fontCounts.set(family, entry);
-    }
+    if (family === "") return;
+    const entry: FontTally = fontCounts.get(family) ?? { count: 0, sizes: new Set(), weights: new Set() };
+    entry.count += 1;
+    entry.sizes.add(Math.round(Number.parseFloat(styles.fontSize)));
+    entry.weights.add(Number.parseInt(styles.fontWeight, DECIMAL_RADIX));
+    fontCounts.set(family, entry);
+  };
 
-    for (const property of SPACING_PROPERTIES) {
-      const value = styles[property];
-      if (value && value !== "0px" && value !== "normal") countValue(spacingCounts, value);
-    }
+  const auditElement = (element: Element): void => {
+    const styles = window.getComputedStyle(element);
+    if (styles.display === "none" || styles.visibility === "hidden") return;
+    countColors(element, styles);
+    countFont(styles);
+    countValues(spacingCounts, styles, SPACING_PROPERTIES);
+    countValues(radiusCounts, styles, RADIUS_PROPERTIES);
+    countValues(shadowCounts, styles, "box-shadow");
+  };
 
-    for (const property of RADIUS_PROPERTIES) {
-      const value = styles[property];
-      if (value && value !== "0px") countValue(radiusCounts, value);
-    }
-
-    if (styles.boxShadow && styles.boxShadow !== "none") countValue(shadowCounts, styles.boxShadow);
-  }
-
-  const rootStyles = window.getComputedStyle(document.documentElement);
-  const rootFontSize = Number.parseFloat(rootStyles.fontSize) || DEFAULT_ROOT_FONT_SIZE;
-
-  const variables: Array<{ name: string; value: string }> = [];
-  for (const sheet of Array.from(document.styleSheets)) {
-    // Una hoja de otro origen tira SecurityError al leer cssRules.
-    let rules: CSSRuleList;
+  const readSheetRules = (sheet: CSSStyleSheet): CSSRule[] => {
     try {
-      rules = sheet.cssRules;
+      return Array.from(sheet.cssRules);
     } catch {
-      continue;
+      // Una hoja de otro origen tira SecurityError al leer cssRules.
+      return [];
     }
-    for (const rule of Array.from(rules)) {
-      if (!(rule instanceof CSSStyleRule) || !rule.selectorText.includes(":root")) continue;
-      for (const property of Array.from(rule.style)) {
-        if (!property.startsWith("--")) continue;
-        variables.push({ name: property, value: rule.style.getPropertyValue(property).trim() });
-      }
-    }
-  }
+  };
 
-  const byCount = <TEntry extends { count: number }>(left: TEntry, right: TEntry): number =>
-    right.count - left.count;
+  const rootVariablesOf = (rule: CSSRule): CssVariable[] =>
+    rule instanceof CSSStyleRule && rule.selectorText.includes(":root")
+      ? Array.from(rule.style)
+          .filter((property) => property.startsWith("--"))
+          .map((property) => ({ name: property, value: rule.style.getPropertyValue(property).trim() }))
+      : [];
+
+  // lib.dom tipa document.body como no nulo, pero es null mientras el documento no tiene <body>.
+  const bodyOrNull = (): HTMLElement | null => document.body;
+
+  const topResults = <TEntry extends { count: number }>(entries: TEntry[]): TEntry[] =>
+    [...entries].sort((left, right) => right.count - left.count).slice(0, maxResults);
   const sortedNumbers = (values: Set<number>): number[] =>
-    Array.from(values)
-      .filter((value) => Number.isFinite(value))
-      .sort((left, right) => left - right);
-  const toValueUsages = (map: Map<string, number>) =>
-    Array.from(map.entries())
-      .map(([value, count]) => ({ value, count }))
-      .sort(byCount)
-      .slice(0, maxResults);
+    [...values].filter(isFinite).sort((left, right) => left - right);
+  const toValueUsages = (map: Map<string, number>): ValueUsage[] =>
+    topResults(Array.from(map.entries(), ([value, count]) => ({ value, count })));
+  const toFontUsage = ([family, entry]: [string, FontTally]): FontUsage => ({
+    family,
+    count: entry.count,
+    sizes: sortedNumbers(entry.sizes),
+    weights: sortedNumbers(entry.weights),
+  });
+
+  const scanRoot = bodyOrNull() ?? document.documentElement;
+  const elements = Array.from(scanRoot.querySelectorAll("*")).slice(0, maxElements);
+  elements.forEach(auditElement);
+  const variables = Array.from(document.styleSheets, readSheetRules).flat().flatMap(rootVariablesOf);
+  const rootFontSize = Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize);
+  const variablesByName = new Map(variables.map((variable) => [variable.name, variable]));
 
   return {
     elementCount: elements.length,
-    rootFontSize,
-    colors: Array.from(colorCounts.entries())
-      .map(([hex, entry]) => ({
-        hex,
-        count: entry.count,
-        roles: Array.from(entry.roles) as DesignAudit["colors"][number]["roles"],
-      }))
-      .sort(byCount)
-      .slice(0, maxResults),
-    fonts: Array.from(fontCounts.entries())
-      .map(([family, entry]) => ({
-        family,
-        count: entry.count,
-        sizes: sortedNumbers(entry.sizes),
-        weights: sortedNumbers(entry.weights),
-      }))
-      .sort(byCount)
-      .slice(0, maxResults),
+    rootFontSize: Number.isNaN(rootFontSize) || rootFontSize === 0 ? DEFAULT_ROOT_FONT_SIZE : rootFontSize,
+    colors: topResults(
+      Array.from(colorCounts, ([hex, { count, roles }]) => ({ hex, count, roles: [...roles] })),
+    ),
+    fonts: topResults(Array.from(fontCounts.entries(), toFontUsage)),
     spacings: toValueUsages(spacingCounts),
     radii: toValueUsages(radiusCounts),
     shadows: toValueUsages(shadowCounts),
-    variables: Array.from(new Map(variables.map((variable) => [variable.name, variable])).values()).slice(
-      0,
-      maxResults,
-    ),
+    variables: Array.from(variablesByName.values()).slice(0, maxResults),
   };
 };

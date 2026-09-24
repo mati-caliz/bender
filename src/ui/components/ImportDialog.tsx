@@ -1,8 +1,8 @@
-import { useRef, useState, type DragEvent } from "react";
+import { useRef, useState, type DragEvent, type ReactElement } from "react";
 import { IMPORT_PARAM, SURFACE_PARAM } from "@/lib/constants";
 import { readFileAsText } from "@/lib/download";
 import { errorMessage } from "@/lib/errors";
-import type { ViewId } from "@/ui/App";
+import type { ViewId } from "@/ui/components/app-navigation";
 import { Button, Dialog, Notice } from "@/ui/components/primitives";
 
 export type ImportMode = "replace" | "append";
@@ -23,13 +23,13 @@ export const ImportDialog = ({
   allowAppend = true,
   onClose,
   onImport,
-}: ImportDialogProps) => {
+}: ImportDialogProps): ReactElement => {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isPopup = document.body.dataset.surface === "popup";
+  const isPopup = document.body.dataset["surface"] === "popup";
 
-  const submit = (mode: ImportMode) => {
+  const submit = (mode: ImportMode): void => {
     if (!text.trim()) {
       setError("Pega el JSON o elegi un archivo.");
       return;
@@ -42,13 +42,13 @@ export const ImportDialog = ({
     }
   };
 
-  const openInTab = () => {
+  const openInTab = (): void => {
     const url = chrome.runtime.getURL(`index.html?${SURFACE_PARAM}=tab&${IMPORT_PARAM}=${viewId}`);
     void chrome.tabs.create({ url });
     window.close();
   };
 
-  const handleDrop = (event: DragEvent<HTMLTextAreaElement>) => {
+  const handleDrop = (event: DragEvent<HTMLTextAreaElement>): void => {
     event.preventDefault();
     const file = event.dataTransfer.files[0];
     if (file) void readFileAsText(file).then(setText);
@@ -65,14 +65,22 @@ export const ImportDialog = ({
           </Button>
           {allowAppend ? (
             <Button
-              onClick={() => submit("append")}
+              onClick={() => {
+                submit("append");
+              }}
               icon="plus"
               title="No toca lo que no venga en el archivo"
             >
               Agregar a lo actual
             </Button>
           ) : null}
-          <Button variant="primary" icon="download" onClick={() => submit("replace")}>
+          <Button
+            variant="primary"
+            icon="download"
+            onClick={() => {
+              submit("replace");
+            }}
+          >
             {allowAppend ? "Reemplazar todo" : "Importar"}
           </Button>
         </>
@@ -82,15 +90,19 @@ export const ImportDialog = ({
         {description}
       </p>
 
-      {error ? <Notice tone="danger">{error}</Notice> : null}
+      {error !== null && error !== "" ? <Notice tone="danger">{error}</Notice> : null}
 
       <textarea
         className="textarea mono"
         value={text}
         rows={10}
         placeholder='[{ "name": "Local", "requestHeaders": [{ "name": "X-Debug", "value": "true" }] }]'
-        onChange={(event) => setText(event.target.value)}
-        onDragOver={(event) => event.preventDefault()}
+        onChange={(event) => {
+          setText(event.target.value);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+        }}
         onDrop={handleDrop}
       />
 

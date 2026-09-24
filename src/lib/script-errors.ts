@@ -26,7 +26,7 @@ export const sourceUrlFor = (scriptId: string): string | null =>
  */
 export const withSourceUrl = (code: string, scriptId: string): string => {
   const sourceUrl = sourceUrlFor(scriptId);
-  if (!sourceUrl) return code;
+  if (sourceUrl === null) return code;
   return `${code}\n//# sourceURL=${sourceUrl}`;
 };
 

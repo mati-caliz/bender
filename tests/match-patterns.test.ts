@@ -89,6 +89,6 @@ describe("urlMatchesPatterns", () => {
   });
 
   it("ignora patrones invalidos en vez de romper", () => {
-    expect(urlMatchesPatterns("https://example.com/x", ["ftp://x/*", "https://example.com/*"])).toBe(true);
+    expect(urlMatchesPatterns("https://example.com/x", ["chrome://x/*", "https://example.com/*"])).toBe(true);
   });
 });

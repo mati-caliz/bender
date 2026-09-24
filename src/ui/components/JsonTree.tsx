@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import { branchPaths, isBranch, type JsonNode } from "@/lib/json-tree";
 import { Icon } from "@/ui/components/Icon";
 import { Button, CopyButton } from "@/ui/components/primitives";
 
 /** Cuantos niveles quedan abiertos al entrar, para no tapar la pantalla con un JSON grande. */
 const DEFAULT_OPEN_DEPTH = 2;
+const ROW_BASE_INDENT_PX = 8;
+const INDENT_PER_DEPTH_PX = 12;
 
 const pathsUpToDepth = (node: JsonNode, depth: number): string[] => {
   if (!isBranch(node.kind) || depth <= 0) return [];
@@ -18,23 +20,38 @@ interface RowProps {
   onToggle: (path: string) => void;
 }
 
-const JsonRow = ({ node, depth, open, onToggle }: RowProps) => {
+interface CaretProps {
+  node: JsonNode;
+  expanded: boolean;
+  onToggle: (path: string) => void;
+}
+
+const JsonCaret = ({ node, expanded, onToggle }: CaretProps): ReactElement => {
+  const labelOrRoot = node.label || "raiz";
+  return (
+    <button
+      type="button"
+      className="json-caret"
+      aria-expanded={expanded}
+      aria-label={expanded ? `Plegar ${labelOrRoot}` : `Desplegar ${labelOrRoot}`}
+      onClick={() => {
+        onToggle(node.path);
+      }}
+    >
+      <Icon name={expanded ? "chevron-down" : "chevron-right"} size={12} />
+    </button>
+  );
+};
+
+const JsonRow = ({ node, depth, open, onToggle }: RowProps): ReactElement => {
   const branch = isBranch(node.kind);
   const expanded = branch && open.has(node.path);
 
   return (
     <>
-      <div className="json-row" style={{ paddingLeft: 8 + depth * 12 }}>
+      <div className="json-row" style={{ paddingLeft: ROW_BASE_INDENT_PX + depth * INDENT_PER_DEPTH_PX }}>
         {branch ? (
-          <button
-            type="button"
-            className="json-caret"
-            aria-expanded={expanded}
-            aria-label={expanded ? `Plegar ${node.label || "raiz"}` : `Desplegar ${node.label || "raiz"}`}
-            onClick={() => onToggle(node.path)}
-          >
-            <Icon name={expanded ? "chevron-down" : "chevron-right"} size={12} />
-          </button>
+          <JsonCaret node={node} expanded={expanded} onToggle={onToggle} />
         ) : (
           <span className="json-caret" />
         )}
@@ -54,12 +71,12 @@ const JsonRow = ({ node, depth, open, onToggle }: RowProps) => {
   );
 };
 
-export const JsonTree = ({ root }: { root: JsonNode }) => {
+export const JsonTree = ({ root }: { root: JsonNode }): ReactElement => {
   const [open, setOpen] = useState<Set<string>>(() => new Set(pathsUpToDepth(root, DEFAULT_OPEN_DEPTH)));
   const allBranches = useMemo(() => branchPaths(root), [root]);
   const allOpen = open.size >= allBranches.length;
 
-  const toggle = (path: string) => {
+  const toggle = (path: string): void => {
     setOpen((current) => {
       const next = new Set(current);
       if (next.has(path)) next.delete(path);
@@ -75,7 +92,9 @@ export const JsonTree = ({ root }: { root: JsonNode }) => {
           small
           variant="ghost"
           icon={allOpen ? "chevron-right" : "chevron-down"}
-          onClick={() => setOpen(allOpen ? new Set() : new Set(allBranches))}
+          onClick={() => {
+            setOpen(allOpen ? new Set() : new Set(allBranches));
+          }}
         >
           {allOpen ? "Plegar todo" : "Desplegar todo"}
         </Button>

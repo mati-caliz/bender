@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { DISABLED_STORAGE_KEY } from "@/lib/constants";
 import { errorMessage } from "@/lib/errors";
+import { isStoredItem } from "@/lib/sanitize";
 import { computeToggleRows, loadScopedMap, saveScopedMap, withoutKey } from "@/lib/toggleable";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
 import type { StorageArea, StoredItem, ToggleRow } from "@/types";
+
+const NOT_INJECTABLE_MESSAGE = "Esta pestaña no expone storage: abri una pagina http(s).";
+const NO_ITEMS: StoredItem[] = [];
+const NO_DISABLED_ITEMS: Record<string, StoredItem> = {};
 
 const pageReadAll = (area: StorageArea): StoredItem[] => {
   const store = area === "local" ? window.localStorage : window.sessionStorage;
@@ -30,8 +35,18 @@ const pageClear = (area: StorageArea): void => {
   store.clear();
 };
 
+const runInTab = async <TArgs extends unknown[], TResult>(
+  tabId: number | null,
+  func: (...args: TArgs) => TResult,
+  args: TArgs,
+): Promise<chrome.scripting.Awaited<TResult> | undefined> => {
+  if (tabId === null) throw new Error("No hay una pestaña activa.");
+  const results = await chrome.scripting.executeScript({ target: { tabId }, func, args });
+  return results[0]?.result;
+};
+
 export interface WebStorageController {
-  rows: Array<ToggleRow<StoredItem>>;
+  rows: ToggleRow<StoredItem>[];
   items: StoredItem[];
   error: string | null;
   reload: () => void;
@@ -43,40 +58,30 @@ export interface WebStorageController {
 }
 
 export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStorageController => {
-  const [items, setItems] = useState<StoredItem[]>([]);
-  const [disabled, setDisabled] = useState<Record<string, StoredItem>>({});
-  const [error, setError] = useState<string | null>(null);
+  const [loadedItems, setItems] = useState<StoredItem[]>(NO_ITEMS);
+  const [loadedDisabled, setDisabled] = useState<Record<string, StoredItem>>(NO_DISABLED_ITEMS);
+  const [loadError, setError] = useState<string | null>(null);
+  const injectable = activeTab.injectable;
+  const items = injectable ? loadedItems : NO_ITEMS;
+  const disabled = injectable ? loadedDisabled : NO_DISABLED_ITEMS;
+  const error = injectable ? loadError : NOT_INJECTABLE_MESSAGE;
   const scope = activeTab.origin ? `${area}:${activeTab.origin}` : "";
 
-  const runInPage = useCallback(
-    async <TArgs extends unknown[], TResult>(
-      func: (...args: TArgs) => TResult,
-      args: TArgs,
-    ): Promise<chrome.scripting.Awaited<TResult> | undefined> => {
-      if (activeTab.id === null) throw new Error("No hay una pestaña activa.");
-      const results = await chrome.scripting.executeScript({ target: { tabId: activeTab.id }, func, args });
-      return results[0]?.result;
-    },
-    [activeTab.id],
-  );
+  const tabId = activeTab.id;
 
   const reload = useCallback(() => {
-    if (!activeTab.injectable) {
-      setItems([]);
-      setDisabled({});
-      setError("Esta pestaña no expone storage: abri una pagina http(s).");
-      return;
-    }
-
-    setError(null);
-    void loadScopedMap<StoredItem>(DISABLED_STORAGE_KEY, scope).then(setDisabled);
-    void runInPage(pageReadAll, [area])
-      .then((result) => setItems(result ?? []))
+    if (!injectable) return;
+    void loadScopedMap(DISABLED_STORAGE_KEY, scope, isStoredItem).then(setDisabled);
+    void runInTab(tabId, pageReadAll, [area])
+      .then((result) => {
+        setError(null);
+        setItems(result ?? NO_ITEMS);
+      })
       .catch((readError: unknown) => {
-        setItems([]);
+        setItems(NO_ITEMS);
         setError(errorMessage(readError, "No se pudo leer el storage de la pagina."));
       });
-  }, [activeTab.injectable, area, runInPage, scope]);
+  }, [injectable, area, tabId, scope]);
 
   useEffect(reload, [reload]);
 
@@ -101,60 +106,61 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
   );
 
   const toggle = useCallback(
-    async (row: ToggleRow<StoredItem>, enabled: boolean) =>
-      runAndReload("No se pudo cambiar el item.", async () => {
+    async (row: ToggleRow<StoredItem>, enabled: boolean) => {
+      await runAndReload("No se pudo cambiar el item.", async () => {
         if (enabled) {
-          await runInPage(pageSet, [area, row.item.key, row.item.value]);
+          await runInTab(tabId, pageSet, [area, row.item.key, row.item.value]);
           await persistDisabled(withoutKey(disabled, row.key));
           return;
         }
         await persistDisabled({ ...disabled, [row.key]: row.item });
-        await runInPage(pageRemove, [area, row.item.key]);
-      }),
-    [area, disabled, persistDisabled, runAndReload, runInPage],
+        await runInTab(tabId, pageRemove, [area, row.item.key]);
+      });
+    },
+    [area, disabled, persistDisabled, runAndReload, tabId],
   );
 
   const save = useCallback(
-    async (originalKey: string | null, item: StoredItem, wasOff: boolean) =>
-      runAndReload("No se pudo guardar el item.", async () => {
+    async (originalKey: string | null, item: StoredItem, wasOff: boolean) => {
+      await runAndReload("No se pudo guardar el item.", async () => {
         if (wasOff && originalKey !== null) {
           await persistDisabled({ ...withoutKey(disabled, originalKey), [item.key]: item });
           return;
         }
         if (originalKey !== null && originalKey !== item.key)
-          await runInPage(pageRemove, [area, originalKey]);
-        await runInPage(pageSet, [area, item.key, item.value]);
-      }),
-    [area, disabled, persistDisabled, runAndReload, runInPage],
+          await runInTab(tabId, pageRemove, [area, originalKey]);
+        await runInTab(tabId, pageSet, [area, item.key, item.value]);
+      });
+    },
+    [area, disabled, persistDisabled, runAndReload, tabId],
   );
 
   const remove = useCallback(
-    async (item: StoredItem, wasOff: boolean) =>
-      runAndReload("No se pudo borrar el item.", async () => {
+    async (item: StoredItem, wasOff: boolean) => {
+      await runAndReload("No se pudo borrar el item.", async () => {
         if (wasOff) {
           await persistDisabled(withoutKey(disabled, item.key));
           return;
         }
-        await runInPage(pageRemove, [area, item.key]);
-      }),
-    [area, disabled, persistDisabled, runAndReload, runInPage],
+        await runInTab(tabId, pageRemove, [area, item.key]);
+      });
+    },
+    [area, disabled, persistDisabled, runAndReload, tabId],
   );
 
-  const clear = useCallback(
-    async () =>
-      runAndReload("No se pudo vaciar el storage.", async () => {
-        await runInPage(pageClear, [area]);
-        await persistDisabled({});
-      }),
-    [area, persistDisabled, runAndReload, runInPage],
-  );
+  const clear = useCallback(async () => {
+    await runAndReload("No se pudo vaciar el storage.", async () => {
+      await runInTab(tabId, pageClear, [area]);
+      await persistDisabled({});
+    });
+  }, [area, persistDisabled, runAndReload, tabId]);
 
   const importItems = useCallback(
     async (incoming: StoredItem[]) => {
       let failed = 0;
       for (const item of incoming) {
         try {
-          await runInPage(pageSet, [area, item.key, item.value]);
+          await runInTab(tabId, pageSet, [area, item.key, item.value]);
         } catch {
           failed += 1;
         }
@@ -162,7 +168,7 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
       reload();
       return incoming.length - failed;
     },
-    [area, reload, runInPage],
+    [area, reload, tabId],
   );
 
   return {

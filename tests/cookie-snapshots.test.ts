@@ -7,12 +7,12 @@ import {
 import { coerceCookieSnapshotSet } from "@/lib/sanitize";
 import type { CookieSnapshot } from "@/types";
 
-const store: Record<string, unknown> = {};
+const store = new Map<string, unknown>();
 
 const localStorageArea = {
-  get: (key: string) => Promise.resolve({ [key]: store[key] }),
+  get: (key: string) => Promise.resolve({ [key]: store.get(key) }),
   set: (items: Record<string, unknown>) => {
-    Object.assign(store, items);
+    for (const [key, value] of Object.entries(items)) store.set(key, value);
     return Promise.resolve();
   },
 };
@@ -33,7 +33,7 @@ const cookie = (name: string, value: string): CookieSnapshot => ({
 
 describe("snapshots de cookies", () => {
   beforeEach(() => {
-    for (const key of Object.keys(store)) delete store[key];
+    store.clear();
   });
 
   it("guarda un set y lo devuelve para el dominio", async () => {
@@ -72,13 +72,13 @@ describe("snapshots de cookies", () => {
   });
 
   it("descarta lo guardado que no tiene forma de snapshot", async () => {
-    store.benderCookieSnapshots = {
+    store.set("benderCookieSnapshots", {
       "app.local": {
         roto: "no soy un set",
         sinNombre: { id: "sinNombre", name: "   ", createdAt: 1, cookies: [] },
         valido: { id: "valido", name: "admin", createdAt: 1, cookies: [cookie("sid", "uno"), "basura"] },
       },
-    };
+    });
     const sets = await listCookieSnapshotSets("app.local");
 
     expect(sets).toHaveLength(1);

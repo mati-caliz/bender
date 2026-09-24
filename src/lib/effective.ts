@@ -15,7 +15,7 @@ const collect = (
   direction: EffectiveHeader["direction"],
 ): EffectiveHeader[] =>
   entries
-    .filter((entry) => entry.enabled && entry.name.trim())
+    .filter((entry) => entry.enabled && entry.name.trim() !== "")
     .map((entry) => ({
       name: entry.name.trim(),
       value: entry.value,
@@ -24,31 +24,40 @@ const collect = (
       direction,
     }));
 
-export const effectiveHeadersFor = (state: ToolkitState, url: string): EffectiveHeader[] => {
-  if (!state.globalEnabled || !url) return [];
+const mergeKey = (header: EffectiveHeader, mergedCount: number): string => {
+  const appendSuffix = header.operation === "append" ? String(mergedCount) : "";
+  return `${header.direction}:${header.name.toLowerCase()}:${appendSuffix}`;
+};
 
-  const merged = new Map<string, EffectiveHeader>();
-
+const mergeProfileHeaders = (
+  state: ToolkitState,
+  url: string,
+  merged: Map<string, EffectiveHeader>,
+): void => {
   for (const profile of state.profiles) {
-    if (!profile.enabled) continue;
-    if (!urlMatchesScope(profile.scope, url)) continue;
+    if (!profile.enabled || !urlMatchesScope(profile.scope, url)) continue;
     const headers = [
       ...collect(profile.requestHeaders, profile.name, "request"),
       ...collect(profile.responseHeaders, profile.name, "response"),
     ];
     for (const header of headers) {
-      merged.set(
-        `${header.direction}:${header.name.toLowerCase()}:${header.operation === "append" ? merged.size : ""}`,
-        header,
-      );
+      merged.set(mergeKey(header, merged.size), header);
     }
   }
+};
 
-  if (
-    state.userAgent.enabled &&
-    state.userAgent.value.trim() &&
-    urlMatchesScope(state.userAgent.scope, url)
-  ) {
+const userAgentApplies = (state: ToolkitState, url: string): boolean =>
+  state.userAgent.enabled &&
+  state.userAgent.value.trim() !== "" &&
+  urlMatchesScope(state.userAgent.scope, url);
+
+export const effectiveHeadersFor = (state: ToolkitState, url: string): EffectiveHeader[] => {
+  if (!state.globalEnabled || !url) return [];
+
+  const merged = new Map<string, EffectiveHeader>();
+  mergeProfileHeaders(state, url, merged);
+
+  if (userAgentApplies(state, url)) {
     merged.set("request:user-agent:", {
       name: "User-Agent",
       value: state.userAgent.value,

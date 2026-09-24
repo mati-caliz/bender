@@ -11,7 +11,7 @@ const EXTENSION_PATH = fileURLToPath(new URL("../dist", import.meta.url));
 export interface TestServer {
   origin: string;
   /** Lo que el servidor recibio, para comprobar que la extension toco la request. */
-  requests: Array<{ url: string; headers: Record<string, string> }>;
+  requests: { url: string; headers: Record<string, string> }[];
 }
 
 /**
@@ -56,10 +56,18 @@ const startServer = async (): Promise<{ server: Server; test: TestServer }> => {
 
 /** `updatedAt` del ultimo status publicado por el motor, o 0 si todavia no hubo. */
 export const readAppliedAt = async (serviceWorker: Worker): Promise<number> =>
-  serviceWorker.evaluate(async () => {
+  await serviceWorker.evaluate(async () => {
     const stored = await chrome.storage.session.get("benderEngineStatus");
-    const status = stored.benderEngineStatus as { updatedAt?: number } | undefined;
-    return status?.updatedAt ?? 0;
+    const status: unknown = stored["benderEngineStatus"];
+    if (
+      typeof status === "object" &&
+      status !== null &&
+      "updatedAt" in status &&
+      typeof status.updatedAt === "number"
+    ) {
+      return status.updatedAt;
+    }
+    return 0;
   });
 
 const POLL_TIMEOUT_MS = 10000;
@@ -118,7 +126,11 @@ export const test = base.extend<ExtensionFixtures>({
     await use(state);
     // Chrome deja conexiones keep-alive abiertas: sin cerrarlas, close() nunca vuelve.
     server.closeAllConnections();
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await new Promise<void>((resolve) =>
+      server.close(() => {
+        resolve();
+      }),
+    );
   },
 
   applyState: async ({ serviceWorker }, use) => {

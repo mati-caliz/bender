@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { effectiveHeadersFor } from "@/lib/effective";
+import type { ReactElement } from "react";
+import { effectiveHeadersFor, type EffectiveHeader } from "@/lib/effective";
 import {
   applyEnvironment,
   captureEnvironment,
@@ -26,6 +27,8 @@ import type { ActiveTab } from "@/ui/hooks/useActiveTab";
 import type { UpdateState } from "@/ui/views/types";
 import type { EngineStatus, ToolkitState } from "@/types";
 
+const USER_AGENT_HINT_LENGTH = 46;
+
 interface QuickToggleProps {
   icon: IconName;
   title: string;
@@ -35,7 +38,7 @@ interface QuickToggleProps {
   onOpen: () => void;
 }
 
-const QuickToggle = ({ icon, title, hint, checked, onChange, onOpen }: QuickToggleProps) => (
+const QuickToggle = ({ icon, title, hint, checked, onChange, onOpen }: QuickToggleProps): ReactElement => (
   <div className="quick-toggle" data-on={checked}>
     <span className="quick-toggle-icon">
       <Icon name={icon} size={15} />
@@ -52,14 +55,14 @@ const QuickToggle = ({ icon, title, hint, checked, onChange, onOpen }: QuickTogg
   </div>
 );
 
-const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: UpdateState }) => {
+const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: UpdateState }): ReactElement => {
   const { notify } = useToasts();
   const [draftName, setDraftName] = useState("");
   const [naming, setNaming] = useState(false);
   const active = findActiveEnvironment(state);
   const hasSomethingToSave = state.profiles.length > 0 || state.trafficRules.length > 0;
 
-  const save = () => {
+  const save = (): void => {
     const name = draftName.trim();
     if (!name) return;
     update((current) => {
@@ -92,7 +95,9 @@ const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: Upda
               ? "Guardar lo que esta prendido ahora como un entorno"
               : "Crea al menos un perfil o una regla primero"
           }
-          onClick={() => setNaming((current) => !current)}
+          onClick={() => {
+            setNaming((current) => !current);
+          }}
         >
           Guardar actual
         </Button>
@@ -121,7 +126,7 @@ const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: Upda
         </div>
       ) : null}
 
-      {state.environments.length ? (
+      {state.environments.length > 0 ? (
         <div className="list">
           {state.environments.map((environment) => {
             const isActive = active?.id === environment.id;
@@ -146,14 +151,14 @@ const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: Upda
                   tone="danger"
                   small
                   title="Eliminar entorno"
-                  onClick={() =>
+                  onClick={() => {
                     update((current) => ({
                       ...current,
                       environments: current.environments.filter(
                         (candidate) => candidate.id !== environment.id,
                       ),
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </div>
             );
@@ -169,6 +174,137 @@ const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: Upda
   );
 };
 
+interface QuickToggleGridProps {
+  state: ToolkitState;
+  update: UpdateState;
+  onNavigate: (view: ViewId) => void;
+}
+
+const QuickToggleGrid = ({ state, update, onNavigate }: QuickToggleGridProps): ReactElement => (
+  <div className="grid-2 quick-grid">
+    <QuickToggle
+      icon="shield"
+      title="CORS abierto"
+      hint={state.cors.enabled ? "Respuestas con Access-Control-Allow-*" : "Sin tocar los headers de CORS"}
+      checked={state.cors.enabled}
+      onChange={(enabled) => {
+        update((current) => ({ ...current, cors: { ...current.cors, enabled } }));
+      }}
+      onOpen={() => {
+        onNavigate("cors");
+      }}
+    />
+    <QuickToggle
+      icon="smartphone"
+      title="User-Agent"
+      hint={
+        state.userAgent.enabled
+          ? state.userAgent.value.slice(0, USER_AGENT_HINT_LENGTH)
+          : "Usando el del navegador"
+      }
+      checked={state.userAgent.enabled}
+      onChange={(enabled) => {
+        update((current) => ({ ...current, userAgent: { ...current.userAgent, enabled } }));
+      }}
+      onOpen={() => {
+        onNavigate("useragent");
+      }}
+    />
+    <QuickToggle
+      icon="activity"
+      title="Logger de trafico"
+      hint={state.network.enabled ? "Grabando requests y reglas aplicadas" : "Apagado (cero overhead)"}
+      checked={state.network.enabled}
+      onChange={(enabled) => {
+        update((current) => ({ ...current, network: { ...current.network, enabled } }));
+      }}
+      onOpen={() => {
+        onNavigate("network");
+      }}
+    />
+    <QuickToggle
+      icon="code"
+      title="Userscripts"
+      hint={`${state.userScripts.filter((script) => script.enabled).length} activo(s) de ${state.userScripts.length}`}
+      checked={state.userScripts.some((script) => script.enabled)}
+      onChange={(enabled) => {
+        update((current) => ({
+          ...current,
+          userScripts: current.userScripts.map((script) => ({ ...script, enabled })),
+        }));
+      }}
+      onOpen={() => {
+        onNavigate("scripts");
+      }}
+    />
+  </div>
+);
+
+interface EffectiveHeadersCardProps {
+  effective: EffectiveHeader[];
+  activeTab: ActiveTab;
+  onNavigate: (view: ViewId) => void;
+}
+
+const EffectiveHeadersCard = ({
+  effective,
+  activeTab,
+  onNavigate,
+}: EffectiveHeadersCardProps): ReactElement => (
+  <Card
+    title="Headers que aplican a esta pestaña"
+    subtitle={activeTab.url ? activeTab.url : "sin URL"}
+    actions={
+      <Button
+        small
+        variant="ghost"
+        icon="layers"
+        onClick={() => {
+          onNavigate("headers");
+        }}
+      >
+        Editar
+      </Button>
+    }
+    flush
+  >
+    {effective.length > 0 ? (
+      <div className="list" style={{ gap: 0 }}>
+        {effective.map((header, index) => (
+          <div key={`${header.name}-${index}`} className="net-row effective-row">
+            <Badge tone={header.direction === "request" ? "accent" : "info"}>
+              {header.direction === "request" ? "request" : "response"}
+            </Badge>
+            <span className="net-url">
+              <strong style={{ color: "var(--text)" }}>{header.name}</strong>
+              {header.operation === "remove" ? " — eliminado" : `: ${header.value}`}
+            </span>
+            <Badge>{header.source}</Badge>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <EmptyState
+        icon="layers"
+        title="Ningun header aplica aca"
+        text="Creá un perfil o revisá que su alcance incluya este dominio."
+        action={
+          <Button
+            small
+            variant="primary"
+            icon="plus"
+            onClick={() => {
+              onNavigate("headers");
+            }}
+          >
+            Ir a Headers
+          </Button>
+        }
+      />
+    )}
+  </Card>
+);
+
 interface OverviewViewProps {
   state: ToolkitState;
   update: UpdateState;
@@ -177,7 +313,13 @@ interface OverviewViewProps {
   onNavigate: (view: ViewId) => void;
 }
 
-export const OverviewView = ({ state, update, status, activeTab, onNavigate }: OverviewViewProps) => {
+export const OverviewView = ({
+  state,
+  update,
+  status,
+  activeTab,
+  onNavigate,
+}: OverviewViewProps): ReactElement => {
   const effective = effectiveHeadersFor(state, activeTab.url);
   const enabledProfiles = state.profiles.filter((profile) => profile.enabled);
   const enabledRules = state.trafficRules.filter((rule) => rule.enabled);
@@ -230,90 +372,9 @@ export const OverviewView = ({ state, update, status, activeTab, onNavigate }: O
 
       <EnvironmentsCard state={state} update={update} />
 
-      <div className="grid-2 quick-grid">
-        <QuickToggle
-          icon="shield"
-          title="CORS abierto"
-          hint={
-            state.cors.enabled ? "Respuestas con Access-Control-Allow-*" : "Sin tocar los headers de CORS"
-          }
-          checked={state.cors.enabled}
-          onChange={(enabled) => update((current) => ({ ...current, cors: { ...current.cors, enabled } }))}
-          onOpen={() => onNavigate("cors")}
-        />
-        <QuickToggle
-          icon="smartphone"
-          title="User-Agent"
-          hint={state.userAgent.enabled ? state.userAgent.value.slice(0, 46) : "Usando el del navegador"}
-          checked={state.userAgent.enabled}
-          onChange={(enabled) =>
-            update((current) => ({ ...current, userAgent: { ...current.userAgent, enabled } }))
-          }
-          onOpen={() => onNavigate("useragent")}
-        />
-        <QuickToggle
-          icon="activity"
-          title="Logger de trafico"
-          hint={state.network.enabled ? "Grabando requests y reglas aplicadas" : "Apagado (cero overhead)"}
-          checked={state.network.enabled}
-          onChange={(enabled) =>
-            update((current) => ({ ...current, network: { ...current.network, enabled } }))
-          }
-          onOpen={() => onNavigate("network")}
-        />
-        <QuickToggle
-          icon="code"
-          title="Userscripts"
-          hint={`${state.userScripts.filter((script) => script.enabled).length} activo(s) de ${state.userScripts.length}`}
-          checked={state.userScripts.some((script) => script.enabled)}
-          onChange={(enabled) =>
-            update((current) => ({
-              ...current,
-              userScripts: current.userScripts.map((script) => ({ ...script, enabled })),
-            }))
-          }
-          onOpen={() => onNavigate("scripts")}
-        />
-      </div>
+      <QuickToggleGrid state={state} update={update} onNavigate={onNavigate} />
 
-      <Card
-        title="Headers que aplican a esta pestaña"
-        subtitle={activeTab.url ? activeTab.url : "sin URL"}
-        actions={
-          <Button small variant="ghost" icon="layers" onClick={() => onNavigate("headers")}>
-            Editar
-          </Button>
-        }
-        flush
-      >
-        {effective.length ? (
-          <div className="list" style={{ gap: 0 }}>
-            {effective.map((header, index) => (
-              <div key={`${header.name}-${index}`} className="net-row effective-row">
-                <Badge tone={header.direction === "request" ? "accent" : "info"}>
-                  {header.direction === "request" ? "request" : "response"}
-                </Badge>
-                <span className="net-url">
-                  <strong style={{ color: "var(--text)" }}>{header.name}</strong>
-                  {header.operation === "remove" ? " — eliminado" : `: ${header.value}`}
-                </span>
-                <Badge>{header.source}</Badge>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon="layers"
-            title="Ningun header aplica aca"
-            text="Creá un perfil o revisá que su alcance incluya este dominio."
-            action={
-              <Button small variant="primary" icon="plus" onClick={() => onNavigate("headers")}>
-                Ir a Headers
-              </Button>
-            }
-          />
-        )}
-      </Card>
+      <EffectiveHeadersCard effective={effective} activeTab={activeTab} onNavigate={onNavigate} />
     </ViewShell>
   );
 };
