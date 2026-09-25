@@ -12,11 +12,15 @@ export default defineConfig({
     alias: { "@": resolveFromRoot("src") },
   },
   test: {
-    environment: "node",
-    include: ["tests/**/*.test.ts"],
+    projects: [
+      { extends: true, test: { name: "node", environment: "node", include: ["tests/**/*.test.ts"] } },
+      { extends: true, test: { name: "dom", environment: "jsdom", include: ["tests/**/*.test.tsx"] } },
+    ],
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
+      // main.tsx sólo monta <App /> en #root: no tiene lógica propia que probar.
+      exclude: ["src/ui/main.tsx"],
       thresholds: { lines: LINE_COVERAGE_PERCENT, branches: BRANCH_COVERAGE_PERCENT },
     },
   },

@@ -24,7 +24,7 @@
     "format:check": "prettier --check .",
     "test:coverage": "vitest run --coverage",
     "quality:check": "bash ../dotfiles/quality/sync.sh . --check",
-    "verify": "pnpm quality:check && pnpm format:check && pnpm typecheck && pnpm lint && pnpm test"
+    "verify": "pnpm quality:check && pnpm format:check && pnpm typecheck && pnpm lint && pnpm test:coverage"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
@@ -41,6 +41,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/chrome": "^0.0.287",
     "@types/node": "^26.1.2",
     "@types/react": "^18.3.12",
