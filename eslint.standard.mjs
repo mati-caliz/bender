@@ -160,10 +160,14 @@ const testRelaxations = {
  *   frameworks?: import("eslint").Linter.Config[],
  *   ignores?: string[],
  *   allowDefaultProject?: string[],
+ *   defaultProject?: string,
  *   untypedFiles?: string[],
  *   trailingConfigs?: import("eslint").Linter.Config[],
  * }} options
  *
+ * `defaultProject`: el tsconfig con el que se tipan los archivos de `allowDefaultProject` (los
+ * de configuración, que corren en Node y no entran en el tsconfig de la app). Sin él se usan las
+ * opciones por defecto de TypeScript, que desde la 6 no cargan ningún paquete de `@types`.
  * `untypedFiles`: archivos que el linter no puede tipar (los `.astro`: de sus tipos se ocupa
  * `astro check`), que corren sin las reglas que necesitan el type checker.
  * `trailingConfigs`: presets que tienen que ir después del parser de TypeScript porque
@@ -174,6 +178,7 @@ export function standardConfig({
   frameworks = [],
   ignores = [],
   allowDefaultProject = [],
+  defaultProject,
   untypedFiles = [],
   trailingConfigs = [],
 }) {
@@ -197,7 +202,10 @@ export function standardConfig({
       plugins: { standard: standardPlugin },
       languageOptions: {
         parserOptions: {
-          projectService: { allowDefaultProject: ["*.mjs", "*.js", ...allowDefaultProject] },
+          projectService: {
+            allowDefaultProject: ["*.mjs", "*.js", ...allowDefaultProject],
+            ...(defaultProject === undefined ? {} : { defaultProject }),
+          },
           tsconfigRootDir,
         },
       },
