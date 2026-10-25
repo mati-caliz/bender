@@ -74,7 +74,7 @@ const prunePendingRuleMatches = (): void => {
   }
 };
 
-const createEntry = (details: chrome.webRequest.WebRequestBodyDetails): NetworkEntry => ({
+const createEntry = (details: chrome.webRequest.OnBeforeRequestDetails): NetworkEntry => ({
   id: details.requestId,
   tabId: details.tabId,
   url: details.url,
@@ -102,19 +102,19 @@ const toHeaderList = (
 ): { name: string; value: string }[] =>
   (headers ?? []).map((header) => ({ name: header.name, value: header.value ?? "" }));
 
-const handleBeforeRequest = (details: chrome.webRequest.WebRequestBodyDetails): void => {
+const handleBeforeRequest = (details: chrome.webRequest.OnBeforeRequestDetails): undefined => {
   pendingRuleMatches.delete(details.requestId);
   upsert(createEntry(details));
 };
 
-const handleSendHeaders = (details: chrome.webRequest.WebRequestHeadersDetails): void => {
+const handleSendHeaders = (details: chrome.webRequest.OnSendHeadersDetails): void => {
   const entry = findEntry(details.requestId);
   if (!entry) return;
   entry.requestHeaders = toHeaderList(details.requestHeaders);
   scheduleFlush();
 };
 
-const handleHeadersReceived = (details: chrome.webRequest.WebResponseHeadersDetails): void => {
+const handleHeadersReceived = (details: chrome.webRequest.OnHeadersReceivedDetails): undefined => {
   const entry = findEntry(details.requestId);
   if (!entry) return;
   entry.responseHeaders = toHeaderList(details.responseHeaders);
@@ -123,7 +123,7 @@ const handleHeadersReceived = (details: chrome.webRequest.WebResponseHeadersDeta
   scheduleFlush();
 };
 
-const handleBeforeRedirect = (details: chrome.webRequest.WebRedirectionResponseDetails): void => {
+const handleBeforeRedirect = (details: chrome.webRequest.OnBeforeRedirectDetails): void => {
   const entry = findEntry(details.requestId);
   if (!entry) return;
   entry.phase = "redirected";
@@ -131,7 +131,7 @@ const handleBeforeRedirect = (details: chrome.webRequest.WebRedirectionResponseD
   scheduleFlush();
 };
 
-const handleCompleted = (details: chrome.webRequest.WebResponseCacheDetails): void => {
+const handleCompleted = (details: chrome.webRequest.OnCompletedDetails): void => {
   const entry = findEntry(details.requestId);
   if (!entry) return;
   entry.phase = "complete";
@@ -141,7 +141,7 @@ const handleCompleted = (details: chrome.webRequest.WebResponseCacheDetails): vo
   scheduleFlush();
 };
 
-const handleErrorOccurred = (details: chrome.webRequest.WebResponseErrorDetails): void => {
+const handleErrorOccurred = (details: chrome.webRequest.OnErrorOccurredDetails): void => {
   const entry = findEntry(details.requestId);
   if (!entry) return;
   entry.phase = BLOCKED_ERROR_PATTERN.test(details.error) ? "blocked" : "error";

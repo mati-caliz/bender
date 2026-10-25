@@ -12,19 +12,14 @@ import {
 import { header, profileWith, stateWith } from "./support/dnr-fixtures";
 import type { FakeChrome } from "./support/fake-chrome";
 
-const INSTALLED_REASONS: ReadonlySet<string> = new Set([
-  "install",
-  "update",
-  "chrome_update",
-  "shared_module_update",
-]);
-
-const isInstalledReason = (reason: string): reason is chrome.runtime.OnInstalledReason =>
-  INSTALLED_REASONS.has(reason);
+const PREVIOUS_VERSION = "1.0.0";
+const SHARED_MODULE_ID = "modulo-compartido";
 
 const installedDetails = (reason: string): chrome.runtime.InstalledDetails => {
-  if (!isInstalledReason(reason)) throw new Error(`motivo de instalacion desconocido: ${reason}`);
-  return { reason };
+  if (reason === "update") return { reason, previousVersion: PREVIOUS_VERSION };
+  if (reason === "shared_module_update") return { reason, id: SHARED_MODULE_ID };
+  if (reason === "install" || reason === "chrome_update") return { reason };
+  throw new Error(`motivo de instalacion desconocido: ${reason}`);
 };
 const ACTIVE_TAB = browserTab({ id: 7, url: "https://app.local/home" });
 const STYLED_URL = "https://app.local/home";

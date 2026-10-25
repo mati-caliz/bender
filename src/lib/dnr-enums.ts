@@ -35,6 +35,8 @@ const dnrResourceTypes = createEnumNarrower<DnrResourceType>({
   csp_report: true,
   media: true,
   websocket: true,
+  webbundle: true,
+  webtransport: true,
   other: true,
 });
 
@@ -47,6 +49,7 @@ const dnrRequestMethods = createEnumNarrower<DnrRequestMethod>({
   patch: true,
   post: true,
   put: true,
+  other: true,
 });
 
 const dnrRuleActionTypes = createEnumNarrower<DnrRuleActionType>({

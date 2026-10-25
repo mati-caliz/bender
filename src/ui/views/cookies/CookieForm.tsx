@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { JwtPanel } from "@/ui/components/JwtPanel";
 import { Button, Field, Select, TextArea, TextInput } from "@/ui/components/primitives";
-import type { CookieSnapshot } from "@/types";
+import type { CookieSnapshot, SameSite } from "@/types";
 
 const SAME_SITE_OPTIONS = [
   { value: "lax", label: "SameSite: Lax" },
@@ -13,7 +13,7 @@ const SAME_SITE_OPTIONS = [
 const SECONDS_PER_YEAR = 365 * 24 * 3600;
 const MILLISECONDS_PER_SECOND = 1000;
 
-const isSameSite = (value: string): value is chrome.cookies.SameSiteStatus =>
+const isSameSite = (value: string): value is SameSite =>
   value === "lax" || value === "strict" || value === "no_restriction" || value === "unspecified";
 
 const toInputValue = (epochSeconds: number): string => {

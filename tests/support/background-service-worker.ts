@@ -82,5 +82,7 @@ export const browserTab = (overrides: Partial<chrome.tabs.Tab> = {}): chrome.tab
   discarded: false,
   autoDiscardable: true,
   groupId: -1,
+  frozen: false,
+  lastAccessed: 1_700_000_000_000,
   ...overrides,
 });

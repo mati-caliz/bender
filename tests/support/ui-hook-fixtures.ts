@@ -14,6 +14,8 @@ export const tabWith = (overrides: Partial<chrome.tabs.Tab> = {}): chrome.tabs.T
   discarded: false,
   autoDiscardable: true,
   groupId: -1,
+  frozen: false,
+  lastAccessed: 1_700_000_000_000,
   ...overrides,
 });
 

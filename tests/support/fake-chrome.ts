@@ -114,9 +114,9 @@ export const createFakeChrome = () => {
       sendMessage: vi.fn<(tabId: number, message: unknown) => Promise<unknown>>(() =>
         Promise.resolve(undefined),
       ),
-      onActivated: createFakeEvent<[chrome.tabs.TabActiveInfo]>(),
-      onUpdated: createFakeEvent<[number, chrome.tabs.TabChangeInfo, chrome.tabs.Tab]>(),
-      onRemoved: createFakeEvent<[number, chrome.tabs.TabRemoveInfo]>(),
+      onActivated: createFakeEvent<[chrome.tabs.OnActivatedInfo]>(),
+      onUpdated: createFakeEvent<[number, chrome.tabs.OnUpdatedInfo, chrome.tabs.Tab]>(),
+      onRemoved: createFakeEvent<[number, chrome.tabs.OnRemovedInfo]>(),
     },
     windows: {
       getCurrent: vi.fn(() => Promise.resolve({ id: 1 })),
@@ -165,12 +165,12 @@ export const createFakeChrome = () => {
       unregister: vi.fn<(filter?: unknown) => Promise<void>>(() => Promise.resolve()),
     },
     webRequest: {
-      onBeforeRequest: createFakeEvent<[chrome.webRequest.WebRequestBodyDetails]>(),
-      onSendHeaders: createFakeEvent<[chrome.webRequest.WebRequestHeadersDetails]>(),
-      onHeadersReceived: createFakeEvent<[chrome.webRequest.WebResponseHeadersDetails]>(),
-      onBeforeRedirect: createFakeEvent<[chrome.webRequest.WebRedirectionResponseDetails]>(),
-      onCompleted: createFakeEvent<[chrome.webRequest.WebResponseCacheDetails]>(),
-      onErrorOccurred: createFakeEvent<[chrome.webRequest.WebResponseErrorDetails]>(),
+      onBeforeRequest: createFakeEvent<[chrome.webRequest.OnBeforeRequestDetails]>(),
+      onSendHeaders: createFakeEvent<[chrome.webRequest.OnSendHeadersDetails]>(),
+      onHeadersReceived: createFakeEvent<[chrome.webRequest.OnHeadersReceivedDetails]>(),
+      onBeforeRedirect: createFakeEvent<[chrome.webRequest.OnBeforeRedirectDetails]>(),
+      onCompleted: createFakeEvent<[chrome.webRequest.OnCompletedDetails]>(),
+      onErrorOccurred: createFakeEvent<[chrome.webRequest.OnErrorOccurredDetails]>(),
     },
   };
 };

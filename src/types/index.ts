@@ -218,7 +218,7 @@ export interface CookieSnapshot {
   path: string;
   secure: boolean;
   httpOnly: boolean;
-  sameSite: chrome.cookies.SameSiteStatus;
+  sameSite: SameSite;
   hostOnly: boolean;
   expirationDate: number | null;
   partitionKey?: chrome.cookies.CookiePartitionKey | undefined;
@@ -343,3 +343,6 @@ export type BridgePortMessage =
   | { type: "page-config"; config: PageConfig }
   | { type: "mock-hit"; url: string; method: string; ruleName: string; status: number }
   | { type: "bodies"; bodies: CapturedBodies };
+
+/** Los valores de chrome.cookies.SameSiteStatus como texto: así los devuelve y los acepta la API. */
+export type SameSite = `${chrome.cookies.SameSiteStatus}`;

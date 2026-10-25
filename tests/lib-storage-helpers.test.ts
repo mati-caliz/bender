@@ -88,7 +88,7 @@ describe("toRuleCondition", () => {
       excludedRequestDomains: ["b.com"],
       initiatorDomains: ["c.com"],
       excludedInitiatorDomains: ["d.com"],
-      requestMethods: ["get"],
+      requestMethods: ["get", "other"],
       tabIds: [7],
     });
   });

@@ -3,7 +3,7 @@ import { createHeaderEntry } from "@/lib/factories";
 import { createId } from "@/lib/ids";
 import { isRecord } from "@/lib/records";
 import { sanitizeDomainList } from "@/lib/scope";
-import type { CookieSnapshot, HeaderEntry, HeaderOperation, Profile, StoredItem } from "@/types";
+import type { CookieSnapshot, HeaderEntry, HeaderOperation, Profile, SameSite, StoredItem } from "@/types";
 
 const asString = (value: unknown, fallback = ""): string => (typeof value === "string" ? value : fallback);
 
@@ -187,7 +187,7 @@ export const mergeProfiles = (current: Profile[], imported: Profile[]): Profile[
 
 export type ImportedCookie = Omit<CookieSnapshot, "partitionKey">;
 
-const readSameSite = (value: unknown): chrome.cookies.SameSiteStatus => {
+const readSameSite = (value: unknown): SameSite => {
   const raw = asString(value).toLowerCase();
   if (raw === "no_restriction" || raw === "none") return "no_restriction";
   if (raw === "strict") return "strict";

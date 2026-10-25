@@ -19,13 +19,14 @@ import type {
   UserScriptLanguage,
   UserScriptRunAt,
   UserScriptWorld,
+  SameSite,
 } from "@/types";
 
 const HEADER_OPERATIONS: HeaderOperation[] = ["set", "append", "remove"];
 const SCRIPT_LANGUAGES: UserScriptLanguage[] = ["javascript", "css"];
 const SCRIPT_RUN_AT_VALUES: UserScriptRunAt[] = ["document_start", "document_end", "document_idle"];
 const SCRIPT_WORLDS: UserScriptWorld[] = ["MAIN", "USER_SCRIPT"];
-const SAME_SITE_VALUES: chrome.cookies.SameSiteStatus[] = ["lax", "strict", "no_restriction", "unspecified"];
+const SAME_SITE_VALUES: SameSite[] = ["lax", "strict", "no_restriction", "unspecified"];
 const DEFAULT_MOCK_STATUS = 200;
 const DEFAULT_MOCK_CONTENT_TYPE = "application/json; charset=utf-8";
 

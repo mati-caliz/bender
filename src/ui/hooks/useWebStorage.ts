@@ -39,7 +39,7 @@ const runInTab = async <TArgs extends unknown[], TResult>(
   tabId: number | null,
   func: (...args: TArgs) => TResult,
   args: TArgs,
-): Promise<chrome.scripting.Awaited<TResult> | undefined> => {
+): Promise<Awaited<TResult> | undefined> => {
   if (tabId === null) throw new Error("No hay una pestaña activa.");
   const results = await chrome.scripting.executeScript({ target: { tabId }, func, args });
   return results[0]?.result;

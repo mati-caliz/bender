@@ -27,7 +27,9 @@ describe("cookieKeyOf", () => {
 
 describe("toSnapshot", () => {
   it("keeps the editable fields and turns a missing expiration into null", () => {
-    const snapshot = toSnapshot(liveCookieWith({ expirationDate: undefined }));
+    const sessionCookie = liveCookieWith({ session: true });
+    delete sessionCookie.expirationDate;
+    const snapshot = toSnapshot(sessionCookie);
 
     expect(snapshot).toEqual(snapshotWith());
     expect("partitionKey" in snapshot).toBe(false);
