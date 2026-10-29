@@ -18,7 +18,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
-    "typecheck": "node_modules/typescript7/bin/tsc --noEmit",
+    "typecheck": "tsrs --noEmit",
     "zip": "node scripts/zip.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -60,9 +60,9 @@
     "globals": "^17.13.0",
     "jsdom": "^30.1.3",
     "prettier": "^3.9.10",
+    "tsrs": "0.20.1-ts7.1.0-beta",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.0",
-    "typescript7": "npm:typescript@7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
   }
