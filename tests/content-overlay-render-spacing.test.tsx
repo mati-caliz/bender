@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { host, hud } from "@/content/overlay-dom";
 import { render } from "@/content/overlay-render";

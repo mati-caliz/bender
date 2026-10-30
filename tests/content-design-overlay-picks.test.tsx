@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DESIGN_PICKS_KEY } from "@/lib/constants";
 import type { DesignPick } from "@/types";

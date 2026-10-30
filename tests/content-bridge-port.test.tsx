@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { MOCKS_STORAGE_KEY } from "@/lib/mocks";
 import type { BridgePortMessage, PageConfig } from "@/types";

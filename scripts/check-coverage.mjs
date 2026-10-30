@@ -1,5 +1,5 @@
 // Estándar de calidad compartido: lo genera `quality/sync.sh` con los umbrales de
-// `quality/coverage.conf` y no se edita en el repo. Lee el resumen que dejan vitest y jest
+// `quality/coverage.conf` y no se edita en el repo. Lee el resumen que deja Vitest
 // (`json-summary`) y exige el total y un piso por archivo, para que un módulo sin tests no
 // quede escondido detrás del promedio. Con carpetas como argumento, cada una cumple por
 // separado y lo que queda afuera se mide sin exigirse.
