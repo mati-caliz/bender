@@ -59,8 +59,7 @@ function isModuleConstantInitializer(node) {
   return false;
 }
 
-// Mismo criterio que `ignoreFieldDeclaration` del MagicNumber de Checkstyle: el número que
-// inicializa una constante de módulo ya tiene nombre (el de la constante o el del campo del
+// El número que inicializa una constante de módulo ya tiene nombre (el de la constante o el del campo del
 // esquema). Dentro de una función sigue prohibido.
 const baseMagicNumbers = tseslint.plugin.rules["no-magic-numbers"];
 const magicNumbersOutsideModuleConstants = {
