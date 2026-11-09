@@ -25,7 +25,7 @@
     "test:coverage": "vitest run --coverage && node scripts/check-coverage.mjs",
     "quality:check": "bash ../infra/quality/sync.sh . --check",
     "verify": "pnpm quality:check && pnpm format:check && pnpm typecheck && pnpm lint && pnpm test:coverage",
-    "test:changed": "vitest run --changed --maxWorkers=1 --passWithNoTests"
+    "test:changed": "vitest run --changed --passWithNoTests"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",
