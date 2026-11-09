@@ -3,12 +3,8 @@ import { STORAGE_KEY, createDefaultState } from "@/lib/constants";
 import { createUserScript } from "@/lib/factories";
 import { readState } from "@/lib/state";
 import type { ToolkitState } from "@/types";
-import {
-  bootServiceWorker,
-  browserTab,
-  settle,
-  storedEngineStatus,
-} from "./support/background-service-worker";
+import { bootServiceWorker, settle, storedEngineStatus } from "./support/background-service-worker";
+import { tabWith } from "./support/chrome-tab";
 import { header, profileWith, stateWith } from "./support/dnr-fixtures";
 import type { FakeChrome } from "./support/fake-chrome";
 
@@ -21,7 +17,7 @@ const installedDetails = (reason: string): chrome.runtime.InstalledDetails => {
   if (reason === "install" || reason === "chrome_update") return { reason };
   throw new Error(`motivo de instalacion desconocido: ${reason}`);
 };
-const ACTIVE_TAB = browserTab({ id: 7, url: "https://app.local/home" });
+const ACTIVE_TAB = tabWith({ id: 7, url: "https://app.local/home" });
 const STYLED_URL = "https://app.local/home";
 
 const tabOriginState = (): ToolkitState =>
@@ -88,10 +84,10 @@ describe("service worker tab tracking", () => {
           [ACTIVE_TAB],
           [
             ACTIVE_TAB,
-            browserTab({ id: 8, url: "chrome://extensions" }),
-            browserTab({ id: 9, url: "https://" }),
-            browserTab({ id: undefined }),
-            browserTab({ id: 10, url: undefined }),
+            tabWith({ id: 8, url: "chrome://extensions" }),
+            tabWith({ id: 9, url: "https://" }),
+            tabWith({ id: undefined }),
+            tabWith({ id: 10, url: undefined }),
           ],
         );
       },
@@ -132,13 +128,13 @@ describe("service worker tab tracking", () => {
   it("injects matching stylesheets while an http tab loads", async () => {
     const { fakeChrome, insertCSS } = await bootServiceWorker({ storedState: styledState() });
 
-    fakeChrome.tabs.onUpdated.emit(7, { status: "loading" }, browserTab({ url: "chrome://newtab" }));
-    fakeChrome.tabs.onUpdated.emit(7, { status: "loading" }, browserTab({ url: undefined }));
-    fakeChrome.tabs.onUpdated.emit(7, { status: "complete" }, browserTab({ url: STYLED_URL }));
+    fakeChrome.tabs.onUpdated.emit(7, { status: "loading" }, tabWith({ url: "chrome://newtab" }));
+    fakeChrome.tabs.onUpdated.emit(7, { status: "loading" }, tabWith({ url: undefined }));
+    fakeChrome.tabs.onUpdated.emit(7, { status: "complete" }, tabWith({ url: STYLED_URL }));
     await settle();
     expect(insertCSS).not.toHaveBeenCalled();
 
-    fakeChrome.tabs.onUpdated.emit(7, { status: "loading" }, browserTab({ url: STYLED_URL }));
+    fakeChrome.tabs.onUpdated.emit(7, { status: "loading" }, tabWith({ url: STYLED_URL }));
     await settle();
     expect(insertCSS).toHaveBeenCalledWith({ target: { tabId: 7, allFrames: false }, css: "body{}" });
   });
@@ -146,7 +142,7 @@ describe("service worker tab tracking", () => {
   it("forgets injected styles of closed tabs and after a browser restart", async () => {
     const { fakeChrome, removeCSS } = await bootServiceWorker({ storedState: styledState() });
     const loadTab = async (tabId: number, url: string): Promise<void> => {
-      fakeChrome.tabs.onUpdated.emit(tabId, { status: "loading" }, browserTab({ id: tabId, url }));
+      fakeChrome.tabs.onUpdated.emit(tabId, { status: "loading" }, tabWith({ id: tabId, url }));
       await settle();
     };
     await loadTab(7, STYLED_URL);

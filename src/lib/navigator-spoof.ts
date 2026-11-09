@@ -15,12 +15,12 @@ export interface NavigatorSpoofRegistration {
 
 const domainToMatch = (domain: string): string => `*://*.${domain}/*`;
 
-export const navigatorSpoofMatches = (scope: UserAgentConfig["scope"]): string[] => {
+const navigatorSpoofMatches = (scope: UserAgentConfig["scope"]): string[] => {
   const includeDomains = sanitizeDomainList(scope.includeDomains);
   return includeDomains.length > 0 ? includeDomains.map(domainToMatch) : [ALL_URLS_MATCH];
 };
 
-export const navigatorSpoofExcludeMatches = (scope: UserAgentConfig["scope"]): string[] =>
+const navigatorSpoofExcludeMatches = (scope: UserAgentConfig["scope"]): string[] =>
   sanitizeDomainList(scope.excludeDomains).map(domainToMatch);
 
 export const buildNavigatorSpoofCode = (userAgentValue: string): string => {

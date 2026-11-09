@@ -1,4 +1,4 @@
-export type UserAgentPlatform = "Android" | "iOS" | "macOS" | "Windows" | "Linux";
+type UserAgentPlatform = "Android" | "iOS" | "macOS" | "Windows" | "Linux";
 
 export interface UserAgentTraits {
   mobile: boolean;

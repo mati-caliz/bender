@@ -8,7 +8,7 @@ export const closestElement = (element: Element, selector: string): HTMLElement 
   return match;
 };
 
-export const itemCardOf = (name: string): HTMLElement => closestElement(screen.getByText(name), ".item-card");
+const itemCardOf = (name: string): HTMLElement => closestElement(screen.getByText(name), ".item-card");
 
 export const withinItemCard = (name: string): ScopedQueries => within(itemCardOf(name));
 

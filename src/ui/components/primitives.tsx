@@ -164,7 +164,7 @@ export const TextArea = ({ value, onChange, placeholder, mono, rows = 4 }: TextA
   />
 );
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: string;
 }

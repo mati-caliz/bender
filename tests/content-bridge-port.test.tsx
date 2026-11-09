@@ -17,7 +17,7 @@ const channel = new MessageChannel();
 const spareChannel = new MessageChannel();
 
 const sendHandshake = (data: unknown, ports: MessagePort[], source: Window | null = window): void => {
-  window.dispatchEvent(new MessageEvent("message", { data, source, ports }));
+  window.dispatchEvent(new MessageEvent("message", { data, source, ports, origin: window.location.origin }));
 };
 
 const HANDSHAKE = { channel: "bender", type: "connect" };

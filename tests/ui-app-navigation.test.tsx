@@ -5,12 +5,8 @@ import { App } from "@/ui/App";
 import { ToastProvider } from "@/ui/hooks/useToasts";
 import type { EngineStatus } from "@/types";
 import { installFakeChrome, type FakeChrome } from "./support/fake-chrome";
-import {
-  engineStatusWith,
-  installFakeMatchMedia,
-  runInjectedFunction,
-  tabWith,
-} from "./support/ui-hook-fixtures";
+import { engineStatusWith, installFakeMatchMedia, runInjectedFunction } from "./support/ui-hook-fixtures";
+import { tabWith } from "./support/chrome-tab";
 
 let fake: FakeChrome;
 

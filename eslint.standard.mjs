@@ -31,6 +31,22 @@ const TEST_FILES = [
 
 const JAVASCRIPT_FILES = ["**/*.{js,mjs,cjs}"];
 
+// Los scripts de línea de comandos de cada paquete: hablan por consola y leen o escriben las rutas
+// que reciben. Sólo los de la raíz del paquete: un src/scripts/ puede ser código que corre en el
+// navegador.
+const COMMAND_LINE_SCRIPTS = ["scripts/**"];
+
+const JSON_SHAPE_HELPER = ["src/lib/assume-json-shape.ts"];
+
+// El logger de cada paquete: el único módulo que escribe en la consola. Lo demás lo importa.
+const LOG_MODULE = ["**/src/lib/log.ts"];
+
+// Los namespaces XML son URIs que identifican un esquema, no direcciones a las que se conecte:
+// los `http://` de un servicio SOAP van todos en este módulo.
+const XML_NAMESPACES = ["**/xml-namespaces.ts"];
+
+const NEXT_PLUGIN = "@next/next";
+
 const DEFAULT_IGNORES = [
   "**/node_modules/**",
   "**/dist/**",
@@ -124,6 +140,12 @@ const styleRules = {
   "object-shorthand": "error",
   "no-param-reassign": ["error", { props: true }],
   "no-console": "error",
+  // La regla sólo acepta rutas literales: no distingue una ruta validada (resolveInside, mkdtemp,
+  // una carpeta elegida en un diálogo) de una que llega cruda, así que cada uso real de fs
+  // terminaba en una excepción por archivo. Lo que protege es validar la ruta, y eso se revisa.
+  "security/detect-non-literal-fs-filename": "off",
+  // Los módulos de Nest son clases vacías que existen para llevar @Module().
+  "@typescript-eslint/no-extraneous-class": ["error", { allowWithDecorator: true }],
   "no-nested-ternary": "error",
   "id-length": ["error", { min: 2, exceptions: ["i", "j", "_"], properties: "never" }],
   "sonarjs/todo-tag": "off",
@@ -147,11 +169,24 @@ const sizeRules = {
 };
 
 const testRelaxations = {
+  // Las IP privadas y las URL http son el dato de los tests de validación de URLs.
+  "sonarjs/no-hardcoded-ip": "off",
+  "sonarjs/no-clear-text-protocols": "off",
+  // Playwright exige desestructurar el primer argumento de un fixture aunque no use ninguno: `({}, use)`.
+  "no-empty-pattern": "off",
   "max-lines-per-function": "off",
   "standard/no-magic-numbers": "off",
   "sonarjs/no-duplicate-string": "off",
   "@typescript-eslint/explicit-function-return-type": "off",
 };
+
+// next/image necesita que su optimizador pueda pedir la imagen: no sirve para un data: o blob: del
+// propio navegador ni para lo que sólo sirve el BFF con el token. Esos casos aparecían en todas las
+// apps de Next, y el LCP de las imágenes se mide con Web Vitals.
+function nextImageDecision(frameworks) {
+  const usesNext = frameworks.some((config) => config.plugins?.[NEXT_PLUGIN] !== undefined);
+  return usesNext ? [{ rules: { [`${NEXT_PLUGIN}/no-img-element`]: "off" } }] : [];
+}
 
 /**
  * @param {{
@@ -212,11 +247,27 @@ export function standardConfig({
     },
     { files: TEST_FILES, rules: testRelaxations },
     {
+      files: COMMAND_LINE_SCRIPTS,
+      rules: { "no-console": "off" },
+    },
+    { files: LOG_MODULE, rules: { "no-console": "off" } },
+    { files: XML_NAMESPACES, rules: { "sonarjs/no-clear-text-protocols": "off" } },
+    ...nextImageDecision(frameworks),
+    {
+      files: JSON_SHAPE_HELPER,
+      rules: {
+        "@typescript-eslint/no-unsafe-type-assertion": "off",
+        "@typescript-eslint/no-unnecessary-type-parameters": "off",
+      },
+    },
+    {
       files: [...JAVASCRIPT_FILES, ...untypedFiles],
       ...tseslint.configs.disableTypeChecked,
       rules: {
         ...tseslint.configs.disableTypeChecked.rules,
         "@typescript-eslint/explicit-function-return-type": "off",
+        // Sin tipos la regla no ve exactOptionalPropertyTypes: ahí `?: T | undefined` no sobra.
+        "sonarjs/no-redundant-optional": "off",
       },
     },
     ...trailingConfigs,

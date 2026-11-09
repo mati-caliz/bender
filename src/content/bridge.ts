@@ -42,7 +42,13 @@ const isHandshake = (data: unknown): data is BridgeHandshake =>
   data.type === "connect";
 
 window.addEventListener("message", (event) => {
-  if (pagePort || event.source !== window || !isHandshake(event.data)) return;
+  if (
+    pagePort ||
+    event.source !== window ||
+    event.origin !== window.location.origin ||
+    !isHandshake(event.data)
+  )
+    return;
   const [port] = event.ports;
   if (!port) return;
 

@@ -2,7 +2,7 @@ import { vi } from "vitest";
 
 type Listener<TArgs extends unknown[]> = (...args: TArgs) => unknown;
 
-export interface FakeEvent<TArgs extends unknown[]> {
+interface FakeEvent<TArgs extends unknown[]> {
   addListener: (listener: Listener<TArgs>) => void;
   removeListener: (listener: Listener<TArgs>) => void;
   hasListener: (listener: Listener<TArgs>) => boolean;
@@ -10,7 +10,7 @@ export interface FakeEvent<TArgs extends unknown[]> {
   emit: (...args: TArgs) => unknown[];
 }
 
-export const createFakeEvent = <TArgs extends unknown[]>(): FakeEvent<TArgs> => {
+const createFakeEvent = <TArgs extends unknown[]>(): FakeEvent<TArgs> => {
   const listeners = new Set<Listener<TArgs>>();
   return {
     addListener: (listener) => {
@@ -29,7 +29,7 @@ type AreaName = "local" | "session" | "sync";
 type StorageChanges = Record<string, chrome.storage.StorageChange>;
 type StorageKeys = string | string[] | Record<string, unknown> | null | undefined;
 
-export interface FakeStorageArea {
+interface FakeStorageArea {
   data: Map<string, unknown>;
   get: (keys?: StorageKeys) => Promise<Record<string, unknown>>;
   set: (items: Record<string, unknown>) => Promise<void>;
@@ -87,7 +87,7 @@ const createStorageArea = (
   };
 };
 
-export const createFakeChrome = () => {
+const createFakeChrome = () => {
   const storageChanged = createFakeEvent<[StorageChanges, string]>();
   return {
     storage: {

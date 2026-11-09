@@ -24,8 +24,10 @@
     "format:check": "prettier --check .",
     "test:coverage": "vitest run --coverage && node scripts/check-coverage.mjs",
     "quality:check": "bash ../infra/quality/sync.sh . --check",
-    "verify": "pnpm quality:check && pnpm format:check && pnpm typecheck && pnpm lint && pnpm test:coverage",
-    "test:changed": "vitest run --changed --passWithNoTests"
+    "verify": "pnpm run quality:check && pnpm run format:check && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run audit && pnpm run test:coverage",
+    "test:changed": "vitest run --changed --passWithNoTests",
+    "knip": "knip --no-progress",
+    "audit": "pnpm audit --audit-level high --prod"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",
@@ -60,6 +62,7 @@
     "eslint-plugin-sonarjs": "^4.2.2",
     "globals": "^17.13.0",
     "jsdom": "^30.1.3",
+    "knip": "^6.44.2",
     "prettier": "^3.9.10",
     "tsrs": "0.20.1-ts7.1.0-beta",
     "typescript": "~6.0.3",

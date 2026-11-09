@@ -5,17 +5,13 @@ import { createUserScript } from "@/lib/factories";
 import { createDefaultState } from "@/lib/constants";
 import type { CapturedBodies, NetworkEntry } from "@/types";
 import { REQUEST_URL, requestDetails } from "./support/background-requests";
-import {
-  bootServiceWorker,
-  browserTab,
-  sendToWorker,
-  storedEngineStatus,
-} from "./support/background-service-worker";
+import { bootServiceWorker, sendToWorker, storedEngineStatus } from "./support/background-service-worker";
+import { tabWith } from "./support/chrome-tab";
 import { stateWith } from "./support/dnr-fixtures";
 import type { FakeChrome } from "./support/fake-chrome";
 
 const MAX_SCRIPT_ERRORS = 50;
-const SENDER: chrome.runtime.MessageSender = { tab: browserTab({ id: 7 }) };
+const SENDER: chrome.runtime.MessageSender = { tab: tabWith({ id: 7 }) };
 
 const MOCK_HIT: MockHitPayload = {
   url: "https://api.local/mocked",

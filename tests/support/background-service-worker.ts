@@ -68,21 +68,3 @@ export const sendToWorker = async (
     responded: sendResponse.mock.calls.length > 0,
   };
 };
-
-export const browserTab = (overrides: Partial<chrome.tabs.Tab> = {}): chrome.tabs.Tab => ({
-  id: 7,
-  index: 0,
-  url: "https://app.local/home",
-  pinned: false,
-  highlighted: true,
-  windowId: 1,
-  active: true,
-  incognito: false,
-  selected: true,
-  discarded: false,
-  autoDiscardable: true,
-  groupId: -1,
-  frozen: false,
-  lastAccessed: 1_700_000_000_000,
-  ...overrides,
-});

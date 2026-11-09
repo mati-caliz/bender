@@ -128,7 +128,7 @@ const linearizeChannel = (channel: number): number => {
     : ((normalized + SRGB_OFFSET) / SRGB_SCALE) ** SRGB_EXPONENT;
 };
 
-export const relativeLuminance = (color: RgbColor): number =>
+const relativeLuminance = (color: RgbColor): number =>
   LUMINANCE_RED * linearizeChannel(color.red) +
   LUMINANCE_GREEN * linearizeChannel(color.green) +
   LUMINANCE_BLUE * linearizeChannel(color.blue);

@@ -93,7 +93,7 @@ export interface ExtensionFixtures {
 }
 
 export const test = base.extend<ExtensionFixtures>({
-  context: async ({}, use) => {
+  context: async ({}, provide) => {
     const userDataDir = await mkdtemp(join(tmpdir(), "bender-e2e-"));
     // chrome.userScripts solo existe con el modo desarrollador prendido, y no hay
     // flag de linea de comandos: se siembra la preferencia en el perfil.
@@ -107,23 +107,23 @@ export const test = base.extend<ExtensionFixtures>({
       channel: "chromium",
       args: [`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`],
     });
-    await use(context);
+    await provide(context);
     await context.close();
     await rm(userDataDir, { recursive: true, force: true });
   },
 
-  serviceWorker: async ({ context }, use) => {
+  serviceWorker: async ({ context }, provide) => {
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
-    await use(worker);
+    await provide(worker);
   },
 
-  extensionId: async ({ serviceWorker }, use) => {
-    await use(new URL(serviceWorker.url()).host);
+  extensionId: async ({ serviceWorker }, provide) => {
+    await provide(new URL(serviceWorker.url()).host);
   },
 
-  server: async ({}, use) => {
+  server: async ({}, provide) => {
     const { server, test: state } = await startServer();
-    await use(state);
+    await provide(state);
     // Chrome deja conexiones keep-alive abiertas: sin cerrarlas, close() nunca vuelve.
     server.closeAllConnections();
     await new Promise<void>((resolve) =>
@@ -133,8 +133,8 @@ export const test = base.extend<ExtensionFixtures>({
     );
   },
 
-  applyState: async ({ serviceWorker }, use) => {
-    await use(async (partial) => {
+  applyState: async ({ serviceWorker }, provide) => {
+    await provide(async (partial) => {
       // Escribir el estado ya dispara scheduleApply por el listener de
       // storage.onChanged; mandarle un mensaje al propio service worker no
       // funciona, porque no se entrega a si mismo.

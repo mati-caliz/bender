@@ -1,6 +1,6 @@
 import type { TrafficRule, TrafficRuleAction } from "@/types";
 
-export type ActionOfKind<Kind extends TrafficRuleAction["kind"]> = Extract<TrafficRuleAction, { kind: Kind }>;
+type ActionOfKind<Kind extends TrafficRuleAction["kind"]> = Extract<TrafficRuleAction, { kind: Kind }>;
 export type RedirectAction = ActionOfKind<"redirect">;
 export type ChaosAction = ActionOfKind<"chaos">;
 export type MockAction = ActionOfKind<"mock">;

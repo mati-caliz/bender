@@ -26,14 +26,29 @@ const STORE_WIDTH = 1280;
 const STORE_HEIGHT = 800;
 const VIEWPORT = { width: STORE_WIDTH, height: STORE_HEIGHT };
 
+/** Espera a que la página termine de pedir y de dibujar: la red quieta, las fuentes y dos cuadros. */
+const settle = async (page: Page): Promise<void> => {
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+  });
+};
+
 const shoot = async (page: Page, name: string, dir: string = OUT_DIR): Promise<void> => {
-  await page.waitForTimeout(500);
+  await settle(page);
   await page.screenshot({ path: `${dir}/${name}.png`, animations: "disabled" });
 };
 
 const goToView = async (page: Page, label: RegExp): Promise<void> => {
   await page.locator(".nav-item", { hasText: label }).first().click();
-  await page.waitForTimeout(400);
+  await settle(page);
 };
 
 const openBender = async (context: BrowserContext, extensionId: string): Promise<Page> => {
@@ -73,7 +88,7 @@ test("capturas para la ficha de la Store", async ({ context, extensionId, applyS
       window.sessionStorage.setItem("acme.wizardStep", "3");
     });
     await site.bringToFront();
-    await site.waitForTimeout(1500);
+    await settle(site);
 
     await goToView(bender, /^Headers/);
     await shoot(bender, "01-headers");
@@ -83,7 +98,7 @@ test("capturas para la ficha de la Store", async ({ context, extensionId, applyS
     await goToView(bender, /^Trafico/);
     await bender.getByRole("button", { name: "Limpiar" }).click();
     await site.reload();
-    await site.waitForTimeout(2000);
+    await settle(site);
     await shoot(bender, "02-trafico");
 
     await goToView(bender, /^Reglas/);
@@ -98,10 +113,10 @@ test("capturas para la ficha de la Store", async ({ context, extensionId, applyS
     await goToView(bender, /^Diseño/);
     await bender.getByRole("button", { name: "Activar" }).click();
     await site.bringToFront();
-    await site.waitForTimeout(800);
+    await settle(site);
     // Sobre una tarjeta y no sobre <main>: una caja chica muestra mejor el box model.
     await site.mouse.move(200, 240);
-    await site.waitForTimeout(600);
+    await settle(site);
     await shoot(site, "05-diseno");
 
     await goToView(bender, /^Storage/);

@@ -1,6 +1,7 @@
 import { ENGINE_STATUS_KEY, STORAGE_KEY } from "@/lib/constants";
 import { compileRules, dependsOnTabs, type TabOrigin } from "@/lib/dnr";
 import { errorMessage } from "@/lib/errors";
+import { logError } from "@/lib/log";
 import { createProfile } from "@/lib/factories";
 import type { ExtensionMessage } from "@/lib/messages";
 import { publishPageConfig } from "@/lib/mocks";
@@ -142,7 +143,7 @@ const scheduleApply = (): Promise<EngineStatus> => {
     .catch(() => lastStatus)
     .then(() => applyEngine())
     .catch((error: unknown) => {
-      console.error("Bender: fallo al aplicar reglas", error);
+      logError("Bender: fallo al aplicar reglas", error);
       return lastStatus;
     });
   return applyQueue;

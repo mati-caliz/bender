@@ -32,7 +32,7 @@ const pristinePostMessage = window.postMessage.bind(window);
 
 export const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
-export interface NetworkXhr {
+interface NetworkXhr {
   sentBodies: unknown[];
   respondWith: (getter: () => unknown) => void;
 }

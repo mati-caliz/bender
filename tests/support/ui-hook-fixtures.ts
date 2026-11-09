@@ -1,24 +1,6 @@
 import { vi } from "vitest";
 import type { CookieSnapshot, DesignAudit, EngineStatus } from "@/types";
 
-export const tabWith = (overrides: Partial<chrome.tabs.Tab> = {}): chrome.tabs.Tab => ({
-  id: 7,
-  index: 0,
-  url: "https://app.local/home",
-  pinned: false,
-  highlighted: true,
-  windowId: 1,
-  active: true,
-  incognito: false,
-  selected: true,
-  discarded: false,
-  autoDiscardable: true,
-  groupId: -1,
-  frozen: false,
-  lastAccessed: 1_700_000_000_000,
-  ...overrides,
-});
-
 export const liveCookieWith = (overrides: Partial<chrome.cookies.Cookie> = {}): chrome.cookies.Cookie => ({
   name: "sid",
   value: "abc",
@@ -86,7 +68,7 @@ export const runInjectedFunction = (injection: unknown): Promise<{ result?: unkn
   return Promise.resolve([{ result }]);
 };
 
-export class FakeMediaQueryList extends EventTarget implements MediaQueryList {
+class FakeMediaQueryList extends EventTarget implements MediaQueryList {
   matches: boolean;
   readonly media: string;
   onchange = null;

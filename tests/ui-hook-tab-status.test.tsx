@@ -6,7 +6,8 @@ import { useEngineStatus } from "@/ui/hooks/useEngineStatus";
 import { readPendingImportView, usePendingImport } from "@/ui/hooks/usePendingImport";
 import { flushPromises, installFakeChrome, type FakeChrome } from "./support/fake-chrome";
 import { EMPTY_ACTIVE_TAB } from "./support/render-ui";
-import { deferred, engineStatusWith, tabWith } from "./support/ui-hook-fixtures";
+import { tabWith } from "./support/chrome-tab";
+import { deferred, engineStatusWith } from "./support/ui-hook-fixtures";
 
 let fake: FakeChrome;
 
