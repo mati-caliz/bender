@@ -4,7 +4,14 @@
 // Todo test corre en node, salvo los que usan el DOM: esos son *.tsx aunque no tengan JSX y corren
 // en jsdom, en todos los repos. La config de cada repo lo arma con standardTestConfig() y le suma con
 // mergeConfig sólo lo propio (alias, cobertura, setup), nunca un `environment` ni los workers.
-import { defineConfig, type ViteUserConfig } from "vitest/config";
+import path from "node:path";
+
+import {
+  configDefaults,
+  defineConfig,
+  type TestProjectInlineConfiguration,
+  type ViteUserConfig,
+} from "vitest/config";
 
 export interface StandardTestOptions {
   /** Las carpetas donde viven los tests: `src` (al lado del código), `tests` o varias. */
@@ -17,6 +24,16 @@ export interface StandardTestOptions {
   readonly sharedSetupFiles?: readonly string[];
   /** `describe`/`it` globales, para los repos que los usan sin importarlos. */
   readonly globals?: boolean;
+  /**
+   * La base descartable de los tests `*.db.test.ts`: la imagen de Postgres de la app, el comando que
+   * la migra con `DATABASE_URL` del dueño y, si la app lo usa en producción, el script de
+   * `docker-entrypoint-initdb.d` (extensiones). Ver test-database.mts.
+   */
+  readonly database?: {
+    readonly image: string;
+    readonly migrate: string;
+    readonly initScript?: string;
+  };
 }
 
 // Medido el 2026-11-09 en la web de gastronova (6.004 tests): con 2 workers la suite tarda la mitad
@@ -30,15 +47,46 @@ const TEST_POOL = "threads";
 const NODE_PROJECT = "node";
 const DOM_PROJECT = "dom";
 const DOM_ENVIRONMENT = "jsdom";
+const DATABASE_PROJECT = "database";
+const DATABASE_SETUP = "./test-database.mts";
 
 function testFiles(roots: readonly string[], pattern: string): string[] {
   return roots.map((root) => `${root}/**/${pattern}`);
+}
+
+function databaseProjects(
+  options: StandardTestOptions,
+  roots: readonly string[],
+  suffix: string,
+): TestProjectInlineConfiguration[] {
+  if (options.database === undefined) {
+    return [];
+  }
+  return [
+    {
+      extends: true,
+      test: {
+        name: DATABASE_PROJECT,
+        environment: "node",
+        include: testFiles(roots, `*.db.${suffix}.ts`),
+        setupFiles: [...(options.sharedSetupFiles ?? [])],
+        globalSetup: [DATABASE_SETUP],
+        provide: {
+          testDatabaseImage: options.database.image,
+          testDatabaseMigrate: options.database.migrate,
+          testDatabaseInit:
+            options.database.initScript === undefined ? "" : path.resolve(options.database.initScript),
+        },
+      },
+    },
+  ];
 }
 
 export function standardTestConfig(options: StandardTestOptions = {}): ViteUserConfig {
   const testRoots = options.testRoots ?? ["src"];
   const testSuffix = options.testSuffix ?? "test";
   const sharedSetupFiles = [...(options.sharedSetupFiles ?? [])];
+  const databaseTests = testFiles(testRoots, `*.db.${testSuffix}.ts`);
   return defineConfig({
     test: {
       globals: options.globals ?? false,
@@ -53,6 +101,7 @@ export function standardTestConfig(options: StandardTestOptions = {}): ViteUserC
             name: NODE_PROJECT,
             environment: "node",
             include: testFiles(testRoots, `*.${testSuffix}.{ts,mjs}`),
+            exclude: [...configDefaults.exclude, ...databaseTests],
             setupFiles: sharedSetupFiles,
           },
         },
@@ -65,6 +114,7 @@ export function standardTestConfig(options: StandardTestOptions = {}): ViteUserC
             setupFiles: [...sharedSetupFiles, ...(options.domSetupFiles ?? [])],
           },
         },
+        ...databaseProjects(options, testRoots, testSuffix),
       ],
     },
   });

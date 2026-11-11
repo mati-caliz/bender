@@ -18,6 +18,9 @@ export const LIMITS = Object.freeze({
   parameters: 4,
 });
 
+// La base descartable de los tests (test-database.mts): corre en Node y no entra en el tsconfig.
+const TEST_DATABASE_SETUP = "test-database.mts";
+
 const ALLOWED_BARE_NUMBERS = [-1, 0, 1, 2];
 
 const TEST_FILES = [
@@ -237,7 +240,7 @@ export function standardConfig({
       languageOptions: {
         parserOptions: {
           projectService: {
-            allowDefaultProject: ["*.mjs", "*.js", ...allowDefaultProject],
+            allowDefaultProject: ["*.mjs", "*.js", TEST_DATABASE_SETUP, ...allowDefaultProject],
             ...(defaultProject === undefined ? {} : { defaultProject }),
           },
           tsconfigRootDir,
