@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ViewId } from "@/ui/App";
+import type { ViewId } from "@/ui/components/app-navigation";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
 import { OverviewView } from "@/ui/views/OverviewView";
 import type { EngineStatus, ToolkitState } from "@/types";

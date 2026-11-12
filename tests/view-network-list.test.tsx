@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { downloadJson } from "@/lib/download";
-import type { ViewId } from "@/ui/App";
+import type { ViewId } from "@/ui/components/app-navigation";
 import { NetworkView } from "@/ui/views/NetworkView";
 import { installFakeChrome, type FakeChrome } from "./support/fake-chrome";
 import { renderStateful } from "./support/render-ui";

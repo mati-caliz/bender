@@ -7,7 +7,7 @@ import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, placeholder as placeholderExt } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { useEffect, useRef, type ReactElement } from "react";
-import type { CodeLanguage } from "@/ui/components/CodeEditor";
+import type { CodeLanguage } from "@/ui/components/code-language";
 import { hasText, minHeightStyle } from "@/ui/components/render-guards";
 
 /**

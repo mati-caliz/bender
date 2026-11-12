@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shortUrl } from "@/lib/format";
-import type { ViewId } from "@/ui/App";
+import type { ViewId } from "@/ui/components/app-navigation";
 import { NetworkView } from "@/ui/views/NetworkView";
 import type { NetworkEntry } from "@/types";
 import { installFakeChrome, type FakeChrome } from "./support/fake-chrome";

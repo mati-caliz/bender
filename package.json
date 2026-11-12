@@ -24,9 +24,10 @@
     "format:check": "prettier --check .",
     "test:coverage": "vitest run --coverage && node scripts/check-coverage.mjs",
     "quality:check": "bash ../infra/quality/sync.sh . --check",
-    "verify": "pnpm run quality:check && pnpm run format:check && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run audit && pnpm run test:coverage",
+    "verify": "pnpm run quality:check && pnpm run format:check && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run deps && pnpm run audit && pnpm run test:coverage",
     "test:changed": "vitest run --changed --passWithNoTests",
     "knip": "knip --no-progress",
+    "deps": "depcruise --config dependency-cruiser.standard.mjs src tests e2e scripts",
     "audit": "pnpm audit --audit-level high --prod"
   },
   "dependencies": {
@@ -53,6 +54,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "@vitest/coverage-v8": "^5.0.5",
     "concurrently": "^10.0.6",
+    "dependency-cruiser": "^18.7.2",
     "esbuild": "^0.28.2",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",

@@ -10,7 +10,7 @@ import { Icon } from "@/ui/components/Icon";
 import { ViewShell } from "@/ui/components/ViewShell";
 import { Badge, Button, Card, EmptyState, Notice, SearchInput, Switch } from "@/ui/components/primitives";
 import { useToasts } from "@/ui/hooks/useToasts";
-import type { ViewId } from "@/ui/App";
+import type { ViewId } from "@/ui/components/app-navigation";
 import { NetworkEntryDetail } from "@/ui/views/network/NetworkEntryDetail";
 import type { UpdateState } from "@/ui/views/types";
 import type { NetworkEntry, ToolkitState } from "@/types";

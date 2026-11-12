@@ -1,9 +1,8 @@
 import { Suspense, lazy, useRef, type KeyboardEvent, type ReactElement, type ReactNode } from "react";
+import type { CodeLanguage } from "@/ui/components/code-language";
 import { hasRenderableNode, minHeightStyle } from "@/ui/components/render-guards";
 
 const INDENT = "  ";
-
-export type CodeLanguage = "javascript" | "css";
 
 /**
  * CodeMirror pesa mas que todo el resto de la UI junta, y el popup tiene que abrir

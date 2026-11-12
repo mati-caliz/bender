@@ -20,8 +20,6 @@ import { UserAgentView } from "@/ui/views/UserAgentView";
 import type { UpdateState } from "@/ui/views/types";
 import type { EngineStatus, ToolkitState } from "@/types";
 
-export type { ViewId } from "@/ui/components/app-navigation";
-
 interface ViewContext {
   state: ToolkitState;
   update: UpdateState;
