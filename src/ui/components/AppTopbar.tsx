@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import { SURFACE_PARAM } from "@/lib/constants";
 import type { Surface } from "@/ui/components/app-navigation";
 import { Icon } from "@/ui/components/Icon";
-import { Badge, IconButton, Switch } from "@/ui/components/primitives";
+import { Badge, IconButton } from "@/ui/components/primitives";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
 import type { ToolkitStore } from "@/ui/hooks/useToolkitState";
 
@@ -46,12 +46,14 @@ const MasterToggle = ({ store }: Pick<AppTopbarProps, "store">): ReactElement =>
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={state.globalEnabled}
       className="master-toggle"
       data-on={state.globalEnabled}
       onClick={toggleGlobal}
       title="Prender o apagar todas las reglas (Alt+Shift+T)"
     >
-      <Switch checked={state.globalEnabled} onChange={toggleGlobal} small />
+      <span className="switch small" data-on={state.globalEnabled} aria-hidden="true" />
       <span className="master-toggle-label">{state.globalEnabled ? "Activo" : "Apagado"}</span>
     </button>
   );
