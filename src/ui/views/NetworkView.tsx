@@ -176,6 +176,46 @@ const NetworkEntryItem = ({ entry, selected, captureBodies, notify, onSelect, on
   </div>
 );
 
+const CaptureOffNotice = (): ReactElement => (
+  <Notice tone="warning">
+    La captura esta apagada. Prendela con el switch de arriba: mientras esta apagada Bender no escucha ningun
+    evento de red, asi que no agrega overhead.
+  </Notice>
+);
+
+const exportHar = (visible: NetworkEntry[], notify: Notify): void => {
+  if (visible.length === 0) {
+    notify("No hay requests para exportar");
+    return;
+  }
+  const fileName = `bender-${new Date().toISOString().slice(0, ISO_DATE_LENGTH)}.har`;
+  downloadJson(fileName, toHar(visible, chrome.runtime.getManifest().version));
+  notify("HAR exportado", "success");
+};
+
+interface NetworkToolbarProps {
+  filter: string;
+  onFilter: (filter: string) => void;
+  onlyModified: boolean;
+  onOnlyModified: (onlyModified: boolean) => void;
+}
+
+const NetworkToolbar = ({ filter, onFilter, onlyModified, onOnlyModified }: NetworkToolbarProps): ReactElement => (
+  <div className="toolbar">
+    <SearchInput value={filter} onChange={onFilter} placeholder="Filtrar por URL o regla…" />
+    <label className="checkbox">
+      <input
+        type="checkbox"
+        checked={onlyModified}
+        onChange={(event) => {
+          onOnlyModified(event.target.checked);
+        }}
+      />
+      Solo modificadas
+    </label>
+  </div>
+);
+
 export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps): ReactElement => {
   const { notify } = useToasts();
   const [entries, setEntries] = useNetworkEntries();
@@ -184,16 +224,6 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps): Re
 
   const visible = filterEntries(entries, filter);
   const selected = visible.find((entry) => entry.id === selectedId) ?? null;
-
-  const exportHar = (): void => {
-    if (visible.length === 0) {
-      notify("No hay requests para exportar");
-      return;
-    }
-    const fileName = `bender-${new Date().toISOString().slice(0, ISO_DATE_LENGTH)}.har`;
-    downloadJson(fileName, toHar(visible, chrome.runtime.getManifest().version));
-    notify("HAR exportado", "success");
-  };
 
   const createMockFrom = (entry: NetworkEntry): void => {
     update((current) => ({
@@ -211,7 +241,9 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps): Re
       actions={
         <NetworkActions
           enabled={state.network.enabled}
-          onExport={exportHar}
+          onExport={() => {
+            exportHar(visible, notify);
+          }}
           onClear={() => {
             void sendMessage({ type: "network/clear" });
             setEntries([]);
@@ -222,27 +254,16 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps): Re
         />
       }
     >
-      {!state.network.enabled ? (
-        <Notice tone="warning">
-          La captura esta apagada. Prendela con el switch de arriba: mientras esta apagada Bender no escucha
-          ningun evento de red, asi que no agrega overhead.
-        </Notice>
-      ) : null}
+      {state.network.enabled ? null : <CaptureOffNotice />}
 
-      <div className="toolbar">
-        <SearchInput value={filter} onChange={setFilter} placeholder="Filtrar por URL o regla…" />
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={state.network.onlyModified}
-            onChange={(event) => {
-              const onlyModified = event.target.checked;
-              update((current) => ({ ...current, network: { ...current.network, onlyModified } }));
-            }}
-          />
-          Solo modificadas
-        </label>
-      </div>
+      <NetworkToolbar
+        filter={filter}
+        onFilter={setFilter}
+        onlyModified={state.network.onlyModified}
+        onOnlyModified={(onlyModified) => {
+          update((current) => ({ ...current, network: { ...current.network, onlyModified } }));
+        }}
+      />
 
       <Card flush>
         {visible.length > 0 ? (

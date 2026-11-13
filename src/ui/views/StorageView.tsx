@@ -340,6 +340,32 @@ const StorageList = ({ rows, area, anyItem, expandedKey, ...rowProps }: StorageL
     />
   );
 
+/** El origen y cuánto ocupa lo guardado, contando claves y valores. */
+const storageSubtitle = (origin: string, items: StoredItem[]): string => {
+  if (!origin) return "Abri una pagina http(s)";
+  const totalBytes = items.reduce((total, item) => total + item.key.length + item.value.length, 0);
+  return `${origin} · ${formatBytes(totalBytes)}`;
+};
+
+interface StorageToolbarProps {
+  area: StorageArea;
+  onArea: (area: StorageArea) => void;
+  filter: string;
+  onFilter: (filter: string) => void;
+  canAdd: boolean;
+  onAdd: () => void;
+}
+
+const StorageToolbar = ({ area, onArea, filter, onFilter, canAdd, onAdd }: StorageToolbarProps): ReactElement => (
+  <div className="toolbar">
+    <Segmented value={area} options={AREA_OPTIONS} onChange={onArea} />
+    <SearchInput value={filter} onChange={onFilter} placeholder="Filtrar por key o valor…" />
+    <Button small icon="plus" disabled={!canAdd} onClick={onAdd}>
+      Nuevo item
+    </Button>
+  </div>
+);
+
 export const StorageView = ({ activeTab }: { activeTab: ActiveTab }): ReactElement => {
   const { notify } = useToasts();
   const [area, setArea] = useState<StorageArea>("local");
@@ -352,14 +378,11 @@ export const StorageView = ({ activeTab }: { activeTab: ActiveTab }): ReactEleme
   const [importing, setImporting] = usePendingImport("storage");
 
   const visible = filterRows(storage.rows, filter);
-  const totalBytes = storage.items.reduce((total, item) => total + item.key.length + item.value.length, 0);
 
   return (
     <ViewShell
       title="Storage"
-      subtitle={
-        activeTab.origin ? `${activeTab.origin} · ${formatBytes(totalBytes)}` : "Abri una pagina http(s)"
-      }
+      subtitle={storageSubtitle(activeTab.origin, storage.items)}
       actions={
         <StorageHeaderActions
           storage={storage}
@@ -375,20 +398,16 @@ export const StorageView = ({ activeTab }: { activeTab: ActiveTab }): ReactEleme
         />
       }
     >
-      <div className="toolbar">
-        <Segmented value={area} options={AREA_OPTIONS} onChange={setArea} />
-        <SearchInput value={filter} onChange={setFilter} placeholder="Filtrar por key o valor…" />
-        <Button
-          small
-          icon="plus"
-          disabled={!activeTab.injectable}
-          onClick={() => {
-            setNewItem({ key: "", value: "" });
-          }}
-        >
-          Nuevo item
-        </Button>
-      </div>
+      <StorageToolbar
+        area={area}
+        onArea={setArea}
+        filter={filter}
+        onFilter={setFilter}
+        canAdd={activeTab.injectable}
+        onAdd={() => {
+          setNewItem({ key: "", value: "" });
+        }}
+      />
 
       {hasText(storage.error) ? <Notice tone="danger">{storage.error}</Notice> : null}
 

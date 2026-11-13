@@ -22,6 +22,20 @@ export interface DesignInspectorController {
   runAudit: () => void;
 }
 
+/** Pregunta a la página en qué quedó el overlay, cada vez que cambia la pestaña o su URL. */
+const useOverlayPing = (tabId: number | null, url: string, setOverlay: (state: DesignOverlayState) => void): void => {
+  useEffect(() => {
+    if (tabId === null) return;
+    void sendCommand(tabId, { channel: "bender-design", type: "ping" })
+      .then((state) => {
+        setOverlay(state ?? INACTIVE_OVERLAY);
+      })
+      .catch(() => {
+        setOverlay(INACTIVE_OVERLAY);
+      });
+  }, [tabId, url, setOverlay]);
+};
+
 export const useDesignInspector = (activeTab: ActiveTab): DesignInspectorController => {
   const [overlay, setOverlay] = useState<DesignOverlayState>(INACTIVE_OVERLAY);
   const [audit, setAudit] = useState<DesignAudit | null>(null);
@@ -51,16 +65,7 @@ export const useDesignInspector = (activeTab: ActiveTab): DesignInspectorControl
     }
   }
 
-  useEffect(() => {
-    if (!canInspect) return;
-    void sendCommand(tabId, { channel: "bender-design", type: "ping" })
-      .then((state) => {
-        setOverlay(state ?? INACTIVE_OVERLAY);
-      })
-      .catch(() => {
-        setOverlay(INACTIVE_OVERLAY);
-      });
-  }, [tabId, canInspect, activeTab.url]);
+  useOverlayPing(canInspect ? tabId : null, activeTab.url, setOverlay);
 
   const activate = useCallback(
     async (tool: DesignTool) => {

@@ -176,6 +176,25 @@ const ScriptCard = ({ script, expanded, hostname, runtimeError, patternDraft, no
   </div>
 );
 
+const NoScripts = (): ReactElement => (
+  <EmptyState
+    icon="code"
+    title="Todavia no hay scripts"
+    text="Los scripts corren en las paginas que matcheen su patron. El CSS se inyecta al cargar cada pagina."
+  />
+);
+
+/** Un script nuevo desde la plantilla, ya apuntado al sitio abierto si hay uno. */
+const scriptFromTemplate = (template: ScriptTemplate, index: number, hostname: string): UserScript =>
+  createUserScript(template.language, index, {
+    name: template.label,
+    description: template.description,
+    code: template.code,
+    runAt: template.runAt,
+    world: template.world,
+    matches: hostname ? [patternForHostname(hostname)] : [],
+  });
+
 export const ScriptsView = ({ state, update, activeTab }: ViewProps): ReactElement => {
   const { notify } = useToasts();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -203,14 +222,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps): ReactEleme
 
   const addFromTemplate = (template: ScriptTemplate): void => {
     update((current) => {
-      const script = createUserScript(template.language, current.userScripts.length, {
-        name: template.label,
-        description: template.description,
-        code: template.code,
-        runAt: template.runAt,
-        world: template.world,
-        matches: activeTab.hostname ? [patternForHostname(activeTab.hostname)] : [],
-      });
+      const script = scriptFromTemplate(template, current.userScripts.length, activeTab.hostname);
       setExpandedId(script.id);
       return { ...current, userScripts: [...current.userScripts, script] };
     });
@@ -226,13 +238,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps): ReactEleme
 
       <TemplatesCard onPick={addFromTemplate} />
 
-      {state.userScripts.length === 0 ? (
-        <EmptyState
-          icon="code"
-          title="Todavia no hay scripts"
-          text="Los scripts corren en las paginas que matcheen su patron. El CSS se inyecta al cargar cada pagina."
-        />
-      ) : null}
+      {state.userScripts.length === 0 ? <NoScripts /> : null}
 
       <div className="list">
         {state.userScripts.map((script) => (
