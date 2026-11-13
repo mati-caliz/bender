@@ -121,7 +121,20 @@ const importAll = async (cookies: ImportedCookie[], domain: string): Promise<num
   return cookies.length - failed;
 };
 
-export const useCookies = (activeTab: ActiveTab): CookiesController => {
+interface CookieState {
+  domain: string;
+  liveCookies: CookieSnapshot[];
+  disabled: Record<string, CookieSnapshot>;
+  snapshotSets: CookieSnapshotSet[];
+  error: string | null;
+  setDisabled: (map: Record<string, CookieSnapshot>) => void;
+  setSnapshotSets: (sets: CookieSnapshotSet[]) => void;
+  setError: (message: string | null) => void;
+  reload: () => void;
+}
+
+/** Las cookies de la pestaña, las apagadas y los snapshots, recargados al cambiar de sitio. */
+const useCookieState = (activeTab: ActiveTab): CookieState => {
   const [loadedLiveCookies, setLiveCookies] = useState<CookieSnapshot[]>(NO_COOKIES);
   const [loadedDisabled, setDisabled] = useState<Record<string, CookieSnapshot>>(NO_DISABLED_COOKIES);
   const [loadedSnapshotSets, setSnapshotSets] = useState<CookieSnapshotSet[]>(NO_SNAPSHOT_SETS);
@@ -149,6 +162,13 @@ export const useCookies = (activeTab: ActiveTab): CookiesController => {
   }, [injectable, activeTab.url, domain]);
 
   useEffect(reload, [reload]);
+
+  return { domain, liveCookies, disabled, snapshotSets, error, setDisabled, setSnapshotSets, setError, reload };
+};
+
+export const useCookies = (activeTab: ActiveTab): CookiesController => {
+  const { domain, liveCookies, disabled, snapshotSets, error, setDisabled, setSnapshotSets, setError, reload } =
+    useCookieState(activeTab);
 
   const persistDisabled = useCallback(
     async (map: Record<string, CookieSnapshot>) => {

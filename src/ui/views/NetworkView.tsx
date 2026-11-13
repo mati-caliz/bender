@@ -9,7 +9,7 @@ import { toCurl, toFetchSnippet } from "@/lib/request-snippets";
 import { Icon } from "@/ui/components/Icon";
 import { ViewShell } from "@/ui/components/ViewShell";
 import { Badge, Button, Card, EmptyState, Notice, SearchInput, Switch } from "@/ui/components/primitives";
-import { useToasts } from "@/ui/hooks/useToasts";
+import { useToasts, type Notify } from "@/ui/hooks/useToasts";
 import type { ViewId } from "@/ui/components/app-navigation";
 import { NetworkEntryDetail } from "@/ui/views/network/NetworkEntryDetail";
 import type { UpdateState } from "@/ui/views/types";
@@ -82,7 +82,6 @@ const copyToClipboard = (value: string, message: string, notify: Notify): void =
     });
 };
 
-type Notify = ReturnType<typeof useToasts>["notify"];
 
 interface NetworkEntryRowProps {
   entry: NetworkEntry;
@@ -130,6 +129,53 @@ interface NetworkViewProps {
   onNavigate: (view: ViewId) => void;
 }
 
+interface NetworkActionsProps {
+  enabled: boolean;
+  onExport: () => void;
+  onClear: () => void;
+  onToggle: (enabled: boolean) => void;
+}
+
+const NetworkActions = ({ enabled, onExport, onClear, onToggle }: NetworkActionsProps): ReactElement => (
+  <>
+    <Button small icon="download" variant="ghost" onClick={onExport}>
+      HAR
+    </Button>
+    <Button small icon="trash" variant="ghost" onClick={onClear}>
+      Limpiar
+    </Button>
+    <Switch checked={enabled} onChange={onToggle} title="Prender o apagar la captura" />
+  </>
+);
+
+interface NetworkEntryItemProps {
+  entry: NetworkEntry;
+  selected: boolean;
+  captureBodies: boolean;
+  notify: Notify;
+  onSelect: () => void;
+  onCreateMock: () => void;
+}
+
+const NetworkEntryItem = ({ entry, selected, captureBodies, notify, onSelect, onCreateMock }: NetworkEntryItemProps): ReactElement => (
+  <div>
+    <NetworkEntryRow entry={entry} selected={selected} onSelect={onSelect} />
+    {selected ? (
+      <NetworkEntryDetail
+        entry={entry}
+        captureBodies={captureBodies}
+        onCopyCurl={() => {
+          copyToClipboard(toCurl(entry), "cURL copiado", notify);
+        }}
+        onCopyFetch={() => {
+          copyToClipboard(toFetchSnippet(entry), "fetch copiado", notify);
+        }}
+        onCreateMock={onCreateMock}
+      />
+    ) : null}
+  </div>
+);
+
 export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps): ReactElement => {
   const { notify } = useToasts();
   const [entries, setEntries] = useNetworkEntries();
@@ -163,29 +209,17 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps): Re
       title="Trafico"
       subtitle="Que request salio, con que headers finales y que regla de Bender la toco."
       actions={
-        <>
-          <Button small icon="download" variant="ghost" onClick={exportHar}>
-            HAR
-          </Button>
-          <Button
-            small
-            icon="trash"
-            variant="ghost"
-            onClick={() => {
-              void sendMessage({ type: "network/clear" });
-              setEntries([]);
-            }}
-          >
-            Limpiar
-          </Button>
-          <Switch
-            checked={state.network.enabled}
-            onChange={(enabled) => {
-              update((current) => ({ ...current, network: { ...current.network, enabled } }));
-            }}
-            title="Prender o apagar la captura"
-          />
-        </>
+        <NetworkActions
+          enabled={state.network.enabled}
+          onExport={exportHar}
+          onClear={() => {
+            void sendMessage({ type: "network/clear" });
+            setEntries([]);
+          }}
+          onToggle={(enabled) => {
+            update((current) => ({ ...current, network: { ...current.network, enabled } }));
+          }}
+        />
       }
     >
       {!state.network.enabled ? (
@@ -214,31 +248,19 @@ export const NetworkView = ({ state, update, onNavigate }: NetworkViewProps): Re
         {visible.length > 0 ? (
           <div>
             {visible.map((entry) => (
-              <div key={entry.id}>
-                <NetworkEntryRow
-                  entry={entry}
-                  selected={entry.id === selectedId}
-                  onSelect={() => {
-                    setSelectedId(entry.id === selectedId ? null : entry.id);
-                  }}
-                />
-
-                {entry.id === selectedId ? (
-                  <NetworkEntryDetail
-                    entry={entry}
-                    captureBodies={state.network.captureBodies}
-                    onCopyCurl={() => {
-                      copyToClipboard(toCurl(entry), "cURL copiado", notify);
-                    }}
-                    onCopyFetch={() => {
-                      copyToClipboard(toFetchSnippet(entry), "fetch copiado", notify);
-                    }}
-                    onCreateMock={() => {
-                      createMockFrom(entry);
-                    }}
-                  />
-                ) : null}
-              </div>
+              <NetworkEntryItem
+                key={entry.id}
+                entry={entry}
+                selected={entry.id === selectedId}
+                captureBodies={state.network.captureBodies}
+                notify={notify}
+                onSelect={() => {
+                  setSelectedId(entry.id === selectedId ? null : entry.id);
+                }}
+                onCreateMock={() => {
+                  createMockFrom(entry);
+                }}
+              />
             ))}
           </div>
         ) : (

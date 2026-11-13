@@ -55,6 +55,60 @@ const QuickToggle = ({ icon, title, hint, checked, onChange, onOpen }: QuickTogg
   </div>
 );
 
+/** Guardar con un nombre que ya existe lo pisa, igual que los snapshots de cookies. */
+const withSavedEnvironment = (current: ToolkitState, name: string): ToolkitState => {
+  const captured = captureEnvironment(current, name);
+  const existing = current.environments.find((environment) => environment.name === name);
+  const environments = existing
+    ? current.environments.map((environment) =>
+        environment.id === existing.id ? { ...captured, id: existing.id } : environment,
+      )
+    : [...current.environments, captured];
+  return { ...current, environments };
+};
+
+interface NameEnvironmentRowProps {
+  name: string;
+  onName: (name: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+const NameEnvironmentRow = ({ name, onName, onSave, onCancel }: NameEnvironmentRowProps): ReactElement => (
+  <div className="row wrap domain-input">
+    <TextInput value={name} onChange={onName} placeholder="dev, staging, prod…" title="Nombre del entorno" />
+    <Button small variant="primary" disabled={!name.trim()} onClick={onSave}>
+      Guardar
+    </Button>
+    <IconButton icon="x" small title="Cancelar" onClick={onCancel} />
+  </div>
+);
+
+interface EnvironmentRowProps {
+  environment: ToolkitState["environments"][number];
+  state: ToolkitState;
+  isActive: boolean;
+  onApply: () => void;
+  onRemove: () => void;
+}
+
+const EnvironmentRow = ({ environment, state, isActive, onApply, onRemove }: EnvironmentRowProps): ReactElement => (
+  <div className="env-row" data-active={isActive}>
+    <button
+      type="button"
+      className="env-apply"
+      title={isActive ? "Ya es el estado actual" : `Aplicar "${environment.name}"`}
+      onClick={onApply}
+    >
+      <Icon name={isActive ? "check" : "layers"} size={14} />
+      <span className="env-name truncate">{environment.name}</span>
+      <span className="env-detail truncate">{describeEnvironment(environment, state)}</span>
+    </button>
+    {isActive ? <Badge tone="success">activo</Badge> : null}
+    <IconButton icon="trash" tone="danger" small title="Eliminar entorno" onClick={onRemove} />
+  </div>
+);
+
 const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: UpdateState }): ReactElement => {
   const { notify } = useToasts();
   const [draftName, setDraftName] = useState("");
@@ -65,17 +119,7 @@ const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: Upda
   const save = (): void => {
     const name = draftName.trim();
     if (!name) return;
-    update((current) => {
-      const captured = captureEnvironment(current, name);
-      // Guardar con un nombre que ya existe lo pisa, igual que los snapshots de cookies.
-      const existing = current.environments.find((environment) => environment.name === name);
-      const environments = existing
-        ? current.environments.map((environment) =>
-            environment.id === existing.id ? { ...captured, id: existing.id } : environment,
-          )
-        : [...current.environments, captured];
-      return { ...current, environments };
-    });
+    update((current) => withSavedEnvironment(current, name));
     setDraftName("");
     setNaming(false);
     notify(`Entorno "${name}" guardado`, "success");
@@ -104,65 +148,37 @@ const EnvironmentsCard = ({ state, update }: { state: ToolkitState; update: Upda
       }
     >
       {naming ? (
-        <div className="row wrap domain-input">
-          <TextInput
-            value={draftName}
-            onChange={setDraftName}
-            placeholder="dev, staging, prod…"
-            title="Nombre del entorno"
-          />
-          <Button small variant="primary" disabled={!draftName.trim()} onClick={save}>
-            Guardar
-          </Button>
-          <IconButton
-            icon="x"
-            small
-            title="Cancelar"
-            onClick={() => {
-              setNaming(false);
-              setDraftName("");
-            }}
-          />
-        </div>
+        <NameEnvironmentRow
+          name={draftName}
+          onName={setDraftName}
+          onSave={save}
+          onCancel={() => {
+            setNaming(false);
+            setDraftName("");
+          }}
+        />
       ) : null}
 
       {state.environments.length > 0 ? (
         <div className="list">
-          {state.environments.map((environment) => {
-            const isActive = active?.id === environment.id;
-            return (
-              <div key={environment.id} className="env-row" data-active={isActive}>
-                <button
-                  type="button"
-                  className="env-apply"
-                  title={isActive ? "Ya es el estado actual" : `Aplicar "${environment.name}"`}
-                  onClick={() => {
-                    update((current) => applyEnvironment(current, environment.id));
-                    notify(`Entorno "${environment.name}" aplicado`, "success");
-                  }}
-                >
-                  <Icon name={isActive ? "check" : "layers"} size={14} />
-                  <span className="env-name truncate">{environment.name}</span>
-                  <span className="env-detail truncate">{describeEnvironment(environment, state)}</span>
-                </button>
-                {isActive ? <Badge tone="success">activo</Badge> : null}
-                <IconButton
-                  icon="trash"
-                  tone="danger"
-                  small
-                  title="Eliminar entorno"
-                  onClick={() => {
-                    update((current) => ({
-                      ...current,
-                      environments: current.environments.filter(
-                        (candidate) => candidate.id !== environment.id,
-                      ),
-                    }));
-                  }}
-                />
-              </div>
-            );
-          })}
+          {state.environments.map((environment) => (
+            <EnvironmentRow
+              key={environment.id}
+              environment={environment}
+              state={state}
+              isActive={active?.id === environment.id}
+              onApply={() => {
+                update((current) => applyEnvironment(current, environment.id));
+                notify(`Entorno "${environment.name}" aplicado`, "success");
+              }}
+              onRemove={() => {
+                update((current) => ({
+                  ...current,
+                  environments: current.environments.filter((candidate) => candidate.id !== environment.id),
+                }));
+              }}
+            />
+          ))}
         </div>
       ) : (
         <p className="text-small text-muted" style={{ margin: 0 }}>

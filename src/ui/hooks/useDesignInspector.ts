@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { MAX_AUDITED_ELEMENTS, MAX_AUDIT_RESULTS, auditPageDesign } from "@/lib/design-audit";
+import { fetchDesignAudit } from "@/lib/design-audit";
 import { errorMessage } from "@/lib/errors";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
 import type { DesignAudit, DesignCommand, DesignOverlayState, DesignTool } from "@/types";
@@ -90,15 +90,8 @@ export const useDesignInspector = (activeTab: ActiveTab): DesignInspectorControl
 
   const fetchAudit = useCallback(() => {
     if (!canInspect) return;
-    void chrome.scripting
-      .executeScript({
-        target: { tabId },
-        func: auditPageDesign,
-        args: [MAX_AUDITED_ELEMENTS, MAX_AUDIT_RESULTS],
-      })
-      .then((results) => {
-        setAudit(results[0]?.result ?? null);
-      })
+    void fetchDesignAudit(tabId)
+      .then(setAudit)
       .catch((auditError: unknown) => {
         setAudit(null);
         setError(errorMessage(auditError, "No se pudo analizar la pagina."));

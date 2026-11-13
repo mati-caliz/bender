@@ -9,7 +9,7 @@ import { Button, Card, ConfirmBar, EmptyState, Notice, SearchInput } from "@/ui/
 import { hasText } from "@/ui/components/render-guards";
 import { cookieKeyOf, useCookies, type CookiesController } from "@/ui/hooks/useCookies";
 import { usePendingImport } from "@/ui/hooks/usePendingImport";
-import { useToasts } from "@/ui/hooks/useToasts";
+import { useToasts, type Notify } from "@/ui/hooks/useToasts";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
 import type { CookieSnapshot, ToggleRow } from "@/types";
 import { CookieForm } from "@/ui/views/cookies/CookieForm";
@@ -27,7 +27,6 @@ const blankCookie = (hostname: string, secure: boolean): CookieSnapshot => ({
   expirationDate: null,
 });
 
-type Notify = ReturnType<typeof useToasts>["notify"];
 
 interface CookiesHeaderActionsProps {
   cookies: CookiesController;
@@ -199,6 +198,52 @@ const CookiesImportDialog = ({
   />
 );
 
+interface ClearAllBarProps {
+  cookies: CookiesController;
+  hostname: string;
+  notify: Notify;
+  onDone: () => void;
+}
+
+const ClearAllBar = ({ cookies, hostname, notify, onDone }: ClearAllBarProps): ReactElement => (
+  <ConfirmBar
+    message={`Borrar las ${cookies.rows.length} cookies de ${hostname} (incluidas las apagadas)?`}
+    confirmLabel="Borrar todas"
+    onCancel={onDone}
+    onConfirm={() => {
+      void cookies.removeAll().then(() => {
+        notify("Cookies borradas");
+      });
+      onDone();
+    }}
+  />
+);
+
+interface CookieListProps {
+  rows: CookiesController["rows"];
+  anyCookie: boolean;
+  expandedKey: string | null;
+  draft: CookieSnapshot | null;
+  cookies: CookiesController;
+  notify: Notify;
+  onDraftChange: (draft: CookieSnapshot | null) => void;
+  onExpandedKeyChange: (key: string | null) => void;
+}
+
+const CookieList = ({ rows, anyCookie, expandedKey, ...rowProps }: CookieListProps): ReactElement =>
+  rows.length > 0 ? (
+    <div className="list">
+      {rows.map((row) => (
+        <CookieRowCard key={row.key} row={row} expanded={expandedKey === row.key} {...rowProps} />
+      ))}
+    </div>
+  ) : (
+    <EmptyState
+      icon="cookie"
+      title={anyCookie ? "Ninguna cookie coincide con el filtro" : "No hay cookies para este dominio"}
+    />
+  );
+
 export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }): ReactElement => {
   const { notify } = useToasts();
   const cookies = useCookies(activeTab);
@@ -232,16 +277,11 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }): ReactEleme
       {hasText(cookies.error) ? <Notice tone="danger">{cookies.error}</Notice> : null}
 
       {confirmClear ? (
-        <ConfirmBar
-          message={`Borrar las ${cookies.rows.length} cookies de ${activeTab.hostname} (incluidas las apagadas)?`}
-          confirmLabel="Borrar todas"
-          onCancel={() => {
-            setConfirmClear(false);
-          }}
-          onConfirm={() => {
-            void cookies.removeAll().then(() => {
-              notify("Cookies borradas");
-            });
+        <ClearAllBar
+          cookies={cookies}
+          hostname={activeTab.hostname}
+          notify={notify}
+          onDone={() => {
             setConfirmClear(false);
           }}
         />
@@ -267,31 +307,16 @@ export const CookiesView = ({ activeTab }: { activeTab: ActiveTab }): ReactEleme
         <NewCookieCard newCookie={newCookie} cookies={cookies} notify={notify} onChange={setNewCookie} />
       ) : null}
 
-      {visible.length > 0 ? (
-        <div className="list">
-          {visible.map((row) => (
-            <CookieRowCard
-              key={row.key}
-              row={row}
-              expanded={expandedKey === row.key}
-              draft={draft}
-              cookies={cookies}
-              notify={notify}
-              onDraftChange={setDraft}
-              onExpandedKeyChange={setExpandedKey}
-            />
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon="cookie"
-          title={
-            cookies.rows.length > 0
-              ? "Ninguna cookie coincide con el filtro"
-              : "No hay cookies para este dominio"
-          }
-        />
-      )}
+      <CookieList
+        rows={visible}
+        anyCookie={cookies.rows.length > 0}
+        expandedKey={expandedKey}
+        draft={draft}
+        cookies={cookies}
+        notify={notify}
+        onDraftChange={setDraft}
+        onExpandedKeyChange={setExpandedKey}
+      />
 
       {importing ? (
         <CookiesImportDialog

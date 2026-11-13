@@ -12,7 +12,7 @@ import { ScopeEditor } from "@/ui/components/ScopeEditor";
 import { ViewShell } from "@/ui/components/ViewShell";
 import { Badge, Button, ConfirmBar, EmptyState } from "@/ui/components/primitives";
 import { usePendingImport } from "@/ui/hooks/usePendingImport";
-import { useToasts } from "@/ui/hooks/useToasts";
+import { useToasts, type Notify } from "@/ui/hooks/useToasts";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
 import { HeaderHints } from "@/ui/views/headers/HeaderHints";
 import { HeaderTable, type HeaderDirection, type MutateHeaders } from "@/ui/views/headers/HeaderTable";
@@ -21,7 +21,6 @@ import { ProfileRail } from "@/ui/views/headers/ProfileRail";
 import type { UpdateState, ViewProps } from "@/ui/views/types";
 import type { Profile, ToolkitState } from "@/types";
 
-type Notify = ReturnType<typeof useToasts>["notify"];
 
 const duplicateProfile = (current: ToolkitState, profile: Profile): ToolkitState => {
   const clone: Profile = { ...profile, id: createId(), name: `${profile.name} (copia)` };
@@ -192,6 +191,44 @@ const HeadersImportDialog = ({ update, notify, onClose }: HeadersImportDialogPro
   />
 );
 
+interface ProfilesActionsProps {
+  profiles: Profile[];
+  notify: Notify;
+  onImport: () => void;
+}
+
+const ProfilesActions = ({ profiles, notify, onImport }: ProfilesActionsProps): ReactElement => (
+  <>
+    <Button small icon="upload" onClick={onImport}>
+      Importar
+    </Button>
+    <Button
+      small
+      icon="download"
+      disabled={profiles.length === 0}
+      onClick={() => {
+        downloadJson("bender-perfiles.json", profiles);
+        notify("Perfiles exportados", "success");
+      }}
+    >
+      Exportar todos
+    </Button>
+  </>
+);
+
+const NoProfiles = ({ onAdd }: { onAdd: () => void }): ReactElement => (
+  <EmptyState
+    icon="layers"
+    title="Todavia no hay perfiles"
+    text="Un perfil agrupa headers que se prenden y apagan juntos, con su propio alcance."
+    action={
+      <Button variant="primary" icon="plus" onClick={onAdd}>
+        Crear el primero
+      </Button>
+    }
+  />
+);
+
 export const HeadersView = ({ state, update, activeTab }: ViewProps): ReactElement => {
   const { notify } = useToasts();
   const [importing, setImporting] = usePendingImport("headers");
@@ -219,42 +256,16 @@ export const HeadersView = ({ state, update, activeTab }: ViewProps): ReactEleme
       title="Headers"
       subtitle="Perfiles de headers de request y response, con alcance por dominio o pestaña."
       actions={
-        <>
-          <Button
-            small
-            icon="upload"
-            onClick={() => {
-              setImporting(true);
-            }}
-          >
-            Importar
-          </Button>
-          <Button
-            small
-            icon="download"
-            disabled={state.profiles.length === 0}
-            onClick={() => {
-              downloadJson("bender-perfiles.json", state.profiles);
-              notify("Perfiles exportados", "success");
-            }}
-          >
-            Exportar todos
-          </Button>
-        </>
+        <ProfilesActions
+          profiles={state.profiles}
+          notify={notify}
+          onImport={() => {
+            setImporting(true);
+          }}
+        />
       }
     >
-      {state.profiles.length === 0 ? (
-        <EmptyState
-          icon="layers"
-          title="Todavia no hay perfiles"
-          text="Un perfil agrupa headers que se prenden y apagan juntos, con su propio alcance."
-          action={
-            <Button variant="primary" icon="plus" onClick={addProfile}>
-              Crear el primero
-            </Button>
-          }
-        />
-      ) : null}
+      {state.profiles.length === 0 ? <NoProfiles onAdd={addProfile} /> : null}
 
       {selected ? (
         <div

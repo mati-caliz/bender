@@ -8,7 +8,7 @@ import { Icon } from "@/ui/components/Icon";
 import { ViewShell } from "@/ui/components/ViewShell";
 import { Badge, Button, Card, EmptyState, IconButton, Notice, Switch } from "@/ui/components/primitives";
 import { hasText } from "@/ui/components/render-guards";
-import { useToasts } from "@/ui/hooks/useToasts";
+import { useToasts, type Notify } from "@/ui/hooks/useToasts";
 import { ScriptForm, type MutateBoundScript } from "@/ui/views/scripts/ScriptForm";
 import { patternForHostname } from "@/ui/views/scripts/script-patterns";
 import type { ViewProps } from "@/ui/views/types";
@@ -114,6 +114,68 @@ const ScriptHead = ({
   </div>
 );
 
+interface ResyncButtonProps {
+  notify: Notify;
+  onStatus: (status: UserScriptsStatus) => void;
+}
+
+const ResyncButton = ({ notify, onStatus }: ResyncButtonProps): ReactElement => (
+  <Button
+    small
+    icon="refresh"
+    variant="ghost"
+    onClick={() => {
+      void sendMessage({ type: "userscripts/sync" }).then((next) => {
+        onStatus(next);
+        notify(`${next.registeredCount} script(s) registrados`, hasText(next.error) ? "error" : "success");
+      });
+    }}
+  >
+    Re-registrar
+  </Button>
+);
+
+interface ScriptCardProps {
+  script: UserScript;
+  expanded: boolean;
+  hostname: string;
+  runtimeError: ScriptError | undefined;
+  patternDraft: string;
+  notify: Notify;
+  onPatternDraftChange: (draft: string) => void;
+  onToggleExpanded: () => void;
+  mutateScript: MutateBoundScript;
+  onDelete: () => void;
+  onDismissErrors: () => void;
+}
+
+const ScriptCard = ({ script, expanded, hostname, runtimeError, patternDraft, notify, ...handlers }: ScriptCardProps): ReactElement => (
+  <div className="item-card" data-expanded={expanded} data-off={!script.enabled}>
+    <ScriptHead
+      script={script}
+      expanded={expanded}
+      hasRuntimeError={runtimeError !== undefined}
+      mutateScript={handlers.mutateScript}
+      onToggleExpanded={handlers.onToggleExpanded}
+      onDelete={handlers.onDelete}
+    />
+    {expanded ? (
+      <ScriptForm
+        script={script}
+        hostname={hostname}
+        runtimeError={runtimeError}
+        patternDraft={patternDraft}
+        onPatternDraftChange={handlers.onPatternDraftChange}
+        mutateScript={handlers.mutateScript}
+        onInvalidPattern={() => {
+          notify("Patron invalido: usa https://dominio.com/*", "error");
+        }}
+        onDismissErrors={handlers.onDismissErrors}
+      />
+    ) : null}
+  </div>
+);
+
 export const ScriptsView = ({ state, update, activeTab }: ViewProps): ReactElement => {
   const { notify } = useToasts();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -158,24 +220,7 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps): ReactEleme
     <ViewShell
       title="Scripts"
       subtitle="JavaScript y CSS propios por sitio, como Tampermonkey pero adentro de Bender."
-      actions={
-        <Button
-          small
-          icon="refresh"
-          variant="ghost"
-          onClick={() => {
-            void sendMessage({ type: "userscripts/sync" }).then((next) => {
-              setStatus(next);
-              notify(
-                `${next.registeredCount} script(s) registrados`,
-                hasText(next.error) ? "error" : "success",
-              );
-            });
-          }}
-        >
-          Re-registrar
-        </Button>
-      }
+      actions={<ResyncButton notify={notify} onStatus={setStatus} />}
     >
       <StatusNotices status={status} />
 
@@ -190,49 +235,34 @@ export const ScriptsView = ({ state, update, activeTab }: ViewProps): ReactEleme
       ) : null}
 
       <div className="list">
-        {state.userScripts.map((script) => {
-          const expanded = expandedId === script.id;
-          const bindMutate: MutateBoundScript = (mutate) => {
-            mutateScript(script.id, mutate);
-          };
-          return (
-            <div key={script.id} className="item-card" data-expanded={expanded} data-off={!script.enabled}>
-              <ScriptHead
-                script={script}
-                expanded={expanded}
-                hasRuntimeError={errorFor(script.id) !== undefined}
-                mutateScript={bindMutate}
-                onToggleExpanded={() => {
-                  setExpandedId(expanded ? null : script.id);
-                }}
-                onDelete={() => {
-                  update((current) => ({
-                    ...current,
-                    userScripts: current.userScripts.filter((candidate) => candidate.id !== script.id),
-                  }));
-                }}
-              />
-
-              {expanded ? (
-                <ScriptForm
-                  script={script}
-                  hostname={activeTab.hostname}
-                  runtimeError={errorFor(script.id)}
-                  patternDraft={patternDraft}
-                  onPatternDraftChange={setPatternDraft}
-                  mutateScript={bindMutate}
-                  onInvalidPattern={() => {
-                    notify("Patron invalido: usa https://dominio.com/*", "error");
-                  }}
-                  onDismissErrors={() => {
-                    void sendMessage({ type: "scripts/errors-clear" });
-                    setErrors([]);
-                  }}
-                />
-              ) : null}
-            </div>
-          );
-        })}
+        {state.userScripts.map((script) => (
+          <ScriptCard
+            key={script.id}
+            script={script}
+            expanded={expandedId === script.id}
+            hostname={activeTab.hostname}
+            runtimeError={errorFor(script.id)}
+            patternDraft={patternDraft}
+            notify={notify}
+            onPatternDraftChange={setPatternDraft}
+            onToggleExpanded={() => {
+              setExpandedId(expandedId === script.id ? null : script.id);
+            }}
+            mutateScript={(mutate) => {
+              mutateScript(script.id, mutate);
+            }}
+            onDelete={() => {
+              update((current) => ({
+                ...current,
+                userScripts: current.userScripts.filter((candidate) => candidate.id !== script.id),
+              }));
+            }}
+            onDismissErrors={() => {
+              void sendMessage({ type: "scripts/errors-clear" });
+              setErrors([]);
+            }}
+          />
+        ))}
       </div>
 
       {state.userScripts.length > 0 ? (

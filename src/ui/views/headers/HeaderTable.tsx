@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ReactElement } from "react";
+import type { HTMLAttributes, ReactElement } from "react";
 import { createHeaderEntry } from "@/lib/factories";
 import { HeaderValueField } from "@/ui/components/HeaderValueField";
 import { Icon } from "@/ui/components/Icon";
@@ -57,6 +57,42 @@ interface HeaderRowProps {
   mutateHeaders: MutateHeaders;
 }
 
+type DragProps = HTMLAttributes<HTMLDivElement> & { "data-dragging": boolean; "data-drop": boolean };
+
+/** Arrastrar una fila sobre otra la mueve ahí: `onMove` recibe de dónde venía. */
+const dragProps = (drag: DragState, index: number, onMove: (from: number) => void): DragProps => {
+  const endDrag = (): void => {
+    drag.setDragIndex(null);
+    drag.setDropIndex(null);
+  };
+  return {
+    "data-dragging": drag.dragIndex === index,
+    "data-drop": drag.dropIndex === index && drag.dragIndex !== index,
+    draggable: true,
+    onDragStart: () => {
+      drag.setDragIndex(index);
+    },
+    onDragEnd: endDrag,
+    onDragOver: (event) => {
+      event.preventDefault();
+      drag.setDropIndex(index);
+    },
+    onDrop: (event) => {
+      event.preventDefault();
+      const from = drag.dragIndex;
+      if (from !== null && from !== index) onMove(from);
+      endDrag();
+    },
+  };
+};
+
+const RowActions = ({ onDuplicate, onRemove }: { onDuplicate: () => void; onRemove: () => void }): ReactElement => (
+  <div className="row" style={{ gap: 2 }}>
+    <IconButton icon="copy" title="Duplicar (la copia queda apagada)" small onClick={onDuplicate} />
+    <IconButton icon="trash" title="Eliminar header" tone="danger" small onClick={onRemove} />
+  </div>
+);
+
 const HeaderRow = ({ header, index, drag, mutateHeaders }: HeaderRowProps): ReactElement => {
   const replaceHeader = (updated: HeaderEntry): void => {
     mutateHeaders((current) => current.map((entry) => (entry.id === header.id ? updated : entry)));
@@ -66,33 +102,13 @@ const HeaderRow = ({ header, index, drag, mutateHeaders }: HeaderRowProps): Reac
       current.map((entry) => (entry.id === header.id ? { ...entry, ...patch } : entry)),
     );
   };
-  const endDrag = (): void => {
-    drag.setDragIndex(null);
-    drag.setDropIndex(null);
-  };
   return (
     <div
       className="header-row"
       data-enabled={header.enabled}
-      data-dragging={drag.dragIndex === index}
-      data-drop={drag.dropIndex === index && drag.dragIndex !== index}
-      draggable
-      onDragStart={() => {
-        drag.setDragIndex(index);
-      }}
-      onDragEnd={endDrag}
-      onDragOver={(event) => {
-        event.preventDefault();
-        drag.setDropIndex(index);
-      }}
-      onDrop={(event) => {
-        event.preventDefault();
-        const from = drag.dragIndex;
-        if (from !== null && from !== index) {
-          mutateHeaders((current) => moveHeader(current, from, index));
-        }
-        endDrag();
-      }}
+      {...dragProps(drag, index, (from) => {
+        mutateHeaders((current) => moveHeader(current, from, index));
+      })}
     >
       <span className="drag-handle" title="Arrastrar para reordenar">
         <Icon name="grip" size={13} />
@@ -123,25 +139,14 @@ const HeaderRow = ({ header, index, drag, mutateHeaders }: HeaderRowProps): Reac
           patchHeader({ operation });
         }}
       />
-      <div className="row" style={{ gap: 2 }}>
-        <IconButton
-          icon="copy"
-          title="Duplicar (la copia queda apagada)"
-          small
-          onClick={() => {
-            mutateHeaders((current) => insertDisabledCopy(current, index, header));
-          }}
-        />
-        <IconButton
-          icon="trash"
-          title="Eliminar header"
-          tone="danger"
-          small
-          onClick={() => {
-            mutateHeaders((current) => current.filter((entry) => entry.id !== header.id));
-          }}
-        />
-      </div>
+      <RowActions
+        onDuplicate={() => {
+          mutateHeaders((current) => insertDisabledCopy(current, index, header));
+        }}
+        onRemove={() => {
+          mutateHeaders((current) => current.filter((entry) => entry.id !== header.id));
+        }}
+      />
     </div>
   );
 };

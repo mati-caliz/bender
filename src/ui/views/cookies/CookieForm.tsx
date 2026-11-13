@@ -89,6 +89,56 @@ const CookieFlags = ({ draft, onChange }: CookieFlagsProps): ReactElement => (
   </div>
 );
 
+interface DraftFieldsProps {
+  draft: CookieFormProps["draft"];
+  onChange: CookieFormProps["onChange"];
+}
+
+const CookieIdentityFields = ({ draft, onChange }: DraftFieldsProps): ReactElement => (
+  <div className="grid-2">
+    <Field label="Nombre">
+      <TextInput
+        value={draft.name}
+        mono
+        onChange={(name) => {
+          onChange({ ...draft, name });
+        }}
+      />
+    </Field>
+    <Field label="Dominio">
+      <TextInput
+        value={draft.domain}
+        mono
+        onChange={(domain) => {
+          onChange({ ...draft, domain });
+        }}
+      />
+    </Field>
+  </div>
+);
+
+interface FormButtonsProps {
+  canSave: boolean;
+  isNew: boolean;
+  onSave: () => void;
+  onDelete: () => void;
+  onCancel: () => void;
+}
+
+const FormButtons = ({ canSave, isNew, onSave, onDelete, onCancel }: FormButtonsProps): ReactElement => (
+  <div className="row">
+    <Button variant="primary" icon="check" onClick={onSave} disabled={!canSave}>
+      Guardar
+    </Button>
+    <Button variant="danger" icon="trash" onClick={onDelete}>
+      {isNew ? "Descartar" : "Borrar"}
+    </Button>
+    <Button variant="ghost" onClick={onCancel}>
+      Cerrar
+    </Button>
+  </div>
+);
+
 export const CookieForm = ({
   draft,
   onChange,
@@ -98,26 +148,7 @@ export const CookieForm = ({
   isNew,
 }: CookieFormProps): ReactElement => (
   <>
-    <div className="grid-2">
-      <Field label="Nombre">
-        <TextInput
-          value={draft.name}
-          mono
-          onChange={(name) => {
-            onChange({ ...draft, name });
-          }}
-        />
-      </Field>
-      <Field label="Dominio">
-        <TextInput
-          value={draft.domain}
-          mono
-          onChange={(domain) => {
-            onChange({ ...draft, domain });
-          }}
-        />
-      </Field>
-    </div>
+    <CookieIdentityFields draft={draft} onChange={onChange} />
 
     <Field label="Valor">
       <TextArea
@@ -167,16 +198,6 @@ export const CookieForm = ({
       </Field>
     ) : null}
 
-    <div className="row">
-      <Button variant="primary" icon="check" onClick={onSave} disabled={!draft.name.trim()}>
-        Guardar
-      </Button>
-      <Button variant="danger" icon="trash" onClick={onDelete}>
-        {isNew ? "Descartar" : "Borrar"}
-      </Button>
-      <Button variant="ghost" onClick={onCancel}>
-        Cerrar
-      </Button>
-    </div>
+    <FormButtons canSave={draft.name.trim() !== ""} isNew={isNew} onSave={onSave} onDelete={onDelete} onCancel={onCancel} />
   </>
 );

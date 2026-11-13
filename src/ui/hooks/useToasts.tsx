@@ -27,6 +27,8 @@ const ToastContext = createContext<ToastApi>({ notify: () => undefined });
 
 export const useToasts = (): ToastApi => useContext(ToastContext);
 
+export type Notify = ToastApi["notify"];
+
 export const ToastProvider = ({ children }: { children: ReactNode }): ReactElement => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 

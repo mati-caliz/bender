@@ -23,7 +23,7 @@ import {
 } from "@/ui/components/primitives";
 import { hasText } from "@/ui/components/render-guards";
 import { usePendingImport } from "@/ui/hooks/usePendingImport";
-import { useToasts } from "@/ui/hooks/useToasts";
+import { useToasts, type Notify } from "@/ui/hooks/useToasts";
 import { useWebStorage, type WebStorageController } from "@/ui/hooks/useWebStorage";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
 import type { StorageArea, StoredItem, ToggleRow } from "@/types";
@@ -124,7 +124,6 @@ const ItemForm = ({ draft, onChange, onSave, onDelete, onCancel, isNew }: ItemFo
   );
 };
 
-type Notify = ReturnType<typeof useToasts>["notify"];
 
 interface StorageHeaderActionsProps {
   storage: WebStorageController;
@@ -293,6 +292,54 @@ const StorageImportDialog = ({ area, storage, notify, onClose }: StorageImportDi
   />
 );
 
+interface ClearStorageBarProps {
+  storage: WebStorageController;
+  label: string;
+  notify: Notify;
+  onDone: () => void;
+}
+
+const ClearStorageBar = ({ storage, label, notify, onDone }: ClearStorageBarProps): ReactElement => (
+  <ConfirmBar
+    message={`Vaciar el ${label} (incluidos los apagados)?`}
+    confirmLabel="Vaciar"
+    onCancel={onDone}
+    onConfirm={() => {
+      void storage.clear().then(() => {
+        notify("Storage vaciado");
+      });
+      onDone();
+    }}
+  />
+);
+
+interface StorageListProps {
+  rows: WebStorageController["rows"];
+  area: StorageArea;
+  anyItem: boolean;
+  expandedKey: string | null;
+  draft: StoredItem | null;
+  storage: WebStorageController;
+  notify: Notify;
+  onDraftChange: (draft: StoredItem | null) => void;
+  onExpandedKeyChange: (key: string | null) => void;
+}
+
+const StorageList = ({ rows, area, anyItem, expandedKey, ...rowProps }: StorageListProps): ReactElement =>
+  rows.length > 0 ? (
+    <div className="list">
+      {rows.map((row) => (
+        <StorageRowCard key={row.key} row={row} expanded={expandedKey === row.key} {...rowProps} />
+      ))}
+    </div>
+  ) : (
+    <EmptyState
+      icon="database"
+      title={anyItem ? "Ningun item coincide con el filtro" : `Sin items en ${area}Storage`}
+      text="El switch de cada item lo saca de la pagina pero guarda una copia para restaurarlo."
+    />
+  );
+
 export const StorageView = ({ activeTab }: { activeTab: ActiveTab }): ReactElement => {
   const { notify } = useToasts();
   const [area, setArea] = useState<StorageArea>("local");
@@ -346,16 +393,11 @@ export const StorageView = ({ activeTab }: { activeTab: ActiveTab }): ReactEleme
       {hasText(storage.error) ? <Notice tone="danger">{storage.error}</Notice> : null}
 
       {confirmClear ? (
-        <ConfirmBar
-          message={`Vaciar el ${area}Storage de ${activeTab.origin} (incluidos los apagados)?`}
-          confirmLabel="Vaciar"
-          onCancel={() => {
-            setConfirmClear(false);
-          }}
-          onConfirm={() => {
-            void storage.clear().then(() => {
-              notify("Storage vaciado");
-            });
+        <ClearStorageBar
+          storage={storage}
+          label={`${area}Storage de ${activeTab.origin}`}
+          notify={notify}
+          onDone={() => {
             setConfirmClear(false);
           }}
         />
@@ -365,30 +407,17 @@ export const StorageView = ({ activeTab }: { activeTab: ActiveTab }): ReactEleme
         <NewItemCard newItem={newItem} storage={storage} notify={notify} onChange={setNewItem} />
       ) : null}
 
-      {visible.length > 0 ? (
-        <div className="list">
-          {visible.map((row) => (
-            <StorageRowCard
-              key={row.key}
-              row={row}
-              expanded={expandedKey === row.key}
-              draft={draft}
-              storage={storage}
-              notify={notify}
-              onDraftChange={setDraft}
-              onExpandedKeyChange={setExpandedKey}
-            />
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon="database"
-          title={
-            storage.rows.length > 0 ? "Ningun item coincide con el filtro" : `Sin items en ${area}Storage`
-          }
-          text="El switch de cada item lo saca de la pagina pero guarda una copia para restaurarlo."
-        />
-      )}
+      <StorageList
+        rows={visible}
+        area={area}
+        anyItem={storage.rows.length > 0}
+        expandedKey={expandedKey}
+        draft={draft}
+        storage={storage}
+        notify={notify}
+        onDraftChange={setDraft}
+        onExpandedKeyChange={setExpandedKey}
+      />
 
       {importing ? (
         <StorageImportDialog

@@ -1,8 +1,15 @@
-import { beforeEach, describe, expect, it } from "vitest";
-import { auditPageDesign } from "@/lib/design-audit";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { auditPageColors, auditPageSheets, auditPageShapes, fetchDesignAudit } from "@/lib/design-audit";
+import type { DesignAudit } from "@/types";
 
 const MAX_ELEMENTS = 100;
 const MAX_RESULTS = 10;
+
+const auditPageDesign = (maxElements: number, maxResults: number): DesignAudit => ({
+  ...auditPageColors(maxElements, maxResults),
+  ...auditPageShapes(maxElements, maxResults),
+  ...auditPageSheets(maxResults),
+});
 
 const render = (markup: string): void => {
   document.head.innerHTML =
@@ -109,5 +116,34 @@ describe("auditPageDesign", () => {
   it("falls back to the default root font size when none is computed", () => {
     render("<div></div>");
     expect(auditPageDesign(MAX_ELEMENTS, MAX_RESULTS).rootFontSize).toBeGreaterThan(0);
+  });
+});
+
+describe("fetchDesignAudit", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("runs the three audits in the tab and joins them", async () => {
+    render('<p style="color: rgb(255, 0, 0)">hola</p>');
+    const executeScript = vi.fn(async ({ func, args }: { func: (...values: number[]) => unknown; args: number[] }) => [
+      { result: func(...args) },
+    ]);
+    vi.stubGlobal("chrome", { scripting: { executeScript } });
+
+    const audit = await fetchDesignAudit(7);
+
+    expect(executeScript).toHaveBeenCalledTimes(3);
+    expect(audit?.colors).toContainEqual({ hex: "#ff0000", count: 1, roles: ["text"] });
+    expect(audit?.variables).toEqual([
+      { name: "--brand", value: "#ff0000" },
+      { name: "--gap", value: "8px" },
+    ]);
+  });
+
+  it("gives up when an audit returns nothing", async () => {
+    vi.stubGlobal("chrome", { scripting: { executeScript: vi.fn(async () => []) } });
+
+    expect(await fetchDesignAudit(7)).toBeNull();
   });
 });

@@ -16,6 +16,69 @@ interface ImportDialogProps {
   onImport: (text: string, mode: ImportMode) => void;
 }
 
+interface ImportFooterProps {
+  allowAppend: boolean;
+  onClose: () => void;
+  onSubmit: (mode: ImportMode) => void;
+}
+
+const ImportFooter = ({ allowAppend, onClose, onSubmit }: ImportFooterProps): ReactElement => (
+  <>
+    <Button variant="ghost" onClick={onClose}>
+      Cancelar
+    </Button>
+    {allowAppend ? (
+      <Button
+        onClick={() => {
+          onSubmit("append");
+        }}
+        icon="plus"
+        title="No toca lo que no venga en el archivo"
+      >
+        Agregar a lo actual
+      </Button>
+    ) : null}
+    <Button
+      variant="primary"
+      icon="download"
+      onClick={() => {
+        onSubmit("replace");
+      }}
+    >
+      {allowAppend ? "Reemplazar todo" : "Importar"}
+    </Button>
+  </>
+);
+
+interface FilePickerProps {
+  isPopup: boolean;
+  onOpenInTab: () => void;
+  onText: (text: string) => void;
+}
+
+/** En el popup el selector de archivos lo cierra: ahí se sigue en una pestaña. */
+const FilePicker = ({ isPopup, onOpenInTab, onText }: FilePickerProps): ReactElement => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="row">
+      <Button icon="upload" onClick={isPopup ? onOpenInTab : () => fileInputRef.current?.click()}>
+        {isPopup ? "Elegir archivo en una pestaña" : "Elegir archivo"}
+      </Button>
+      <span className="field-hint">Tambien podes arrastrar el archivo sobre el cuadro.</span>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json,.json"
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void readFileAsText(file).then(onText);
+        }}
+      />
+    </div>
+  );
+};
+
 export const ImportDialog = ({
   title,
   description,
@@ -26,7 +89,6 @@ export const ImportDialog = ({
 }: ImportDialogProps): ReactElement => {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const isPopup = document.body.dataset["surface"] === "popup";
 
   const submit = (mode: ImportMode): void => {
@@ -58,33 +120,7 @@ export const ImportDialog = ({
     <Dialog
       title={title}
       onClose={onClose}
-      footer={
-        <>
-          <Button variant="ghost" onClick={onClose}>
-            Cancelar
-          </Button>
-          {allowAppend ? (
-            <Button
-              onClick={() => {
-                submit("append");
-              }}
-              icon="plus"
-              title="No toca lo que no venga en el archivo"
-            >
-              Agregar a lo actual
-            </Button>
-          ) : null}
-          <Button
-            variant="primary"
-            icon="download"
-            onClick={() => {
-              submit("replace");
-            }}
-          >
-            {allowAppend ? "Reemplazar todo" : "Importar"}
-          </Button>
-        </>
-      }
+      footer={<ImportFooter allowAppend={allowAppend} onClose={onClose} onSubmit={submit} />}
     >
       <p className="text-secondary text-small" style={{ margin: 0 }}>
         {description}
@@ -106,22 +142,7 @@ export const ImportDialog = ({
         onDrop={handleDrop}
       />
 
-      <div className="row">
-        <Button icon="upload" onClick={isPopup ? openInTab : () => fileInputRef.current?.click()}>
-          {isPopup ? "Elegir archivo en una pestaña" : "Elegir archivo"}
-        </Button>
-        <span className="field-hint">Tambien podes arrastrar el archivo sobre el cuadro.</span>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/json,.json"
-          hidden
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) void readFileAsText(file).then(setText);
-          }}
-        />
-      </div>
+      <FilePicker isPopup={isPopup} onOpenInTab={openInTab} onText={setText} />
 
       {isPopup ? (
         <Notice>

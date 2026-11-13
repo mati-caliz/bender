@@ -57,7 +57,19 @@ export interface WebStorageController {
   importItems: (items: StoredItem[]) => Promise<number>;
 }
 
-export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStorageController => {
+interface StorageState {
+  tabId: ActiveTab["id"];
+  scope: string;
+  items: StoredItem[];
+  disabled: Record<string, StoredItem>;
+  error: string | null;
+  setDisabled: (map: Record<string, StoredItem>) => void;
+  setError: (message: string | null) => void;
+  reload: () => void;
+}
+
+/** Lo guardado en la página y lo apagado, recargados al cambiar de pestaña o de área. */
+const useStorageState = (activeTab: ActiveTab, area: StorageArea): StorageState => {
   const [loadedItems, setItems] = useState<StoredItem[]>(NO_ITEMS);
   const [loadedDisabled, setDisabled] = useState<Record<string, StoredItem>>(NO_DISABLED_ITEMS);
   const [loadError, setError] = useState<string | null>(null);
@@ -85,6 +97,58 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
 
   useEffect(reload, [reload]);
 
+  return { tabId, scope, items, disabled, error, setDisabled, setError, reload };
+};
+
+interface StorageContext {
+  tabId: ActiveTab["id"];
+  area: StorageArea;
+  disabled: Record<string, StoredItem>;
+  persistDisabled: (map: Record<string, StoredItem>) => Promise<void>;
+}
+
+/** Apagar un item lo guarda aparte y lo saca de la página; prenderlo lo vuelve a escribir. */
+const applyToggle = async (context: StorageContext, row: ToggleRow<StoredItem>, enabled: boolean): Promise<void> => {
+  const { tabId, area, disabled, persistDisabled } = context;
+  if (enabled) {
+    await runInTab(tabId, pageSet, [area, row.item.key, row.item.value]);
+    await persistDisabled(withoutKey(disabled, row.key));
+    return;
+  }
+  await persistDisabled({ ...disabled, [row.key]: row.item });
+  await runInTab(tabId, pageRemove, [area, row.item.key]);
+};
+
+const applySave = async (
+  context: StorageContext,
+  originalKey: string | null,
+  item: StoredItem,
+  wasOff: boolean,
+): Promise<void> => {
+  const { tabId, area, disabled, persistDisabled } = context;
+  if (wasOff && originalKey !== null) {
+    await persistDisabled({ ...withoutKey(disabled, originalKey), [item.key]: item });
+    return;
+  }
+  if (originalKey !== null && originalKey !== item.key) await runInTab(tabId, pageRemove, [area, originalKey]);
+  await runInTab(tabId, pageSet, [area, item.key, item.value]);
+};
+
+const importAll = async (tabId: ActiveTab["id"], area: StorageArea, incoming: StoredItem[]): Promise<number> => {
+  let failed = 0;
+  for (const item of incoming) {
+    try {
+      await runInTab(tabId, pageSet, [area, item.key, item.value]);
+    } catch {
+      failed += 1;
+    }
+  }
+  return incoming.length - failed;
+};
+
+export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStorageController => {
+  const { tabId, scope, items, disabled, error, setDisabled, setError, reload } = useStorageState(activeTab, area);
+
   const persistDisabled = useCallback(
     async (map: Record<string, StoredItem>) => {
       setDisabled(map);
@@ -108,13 +172,7 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
   const toggle = useCallback(
     async (row: ToggleRow<StoredItem>, enabled: boolean) => {
       await runAndReload("No se pudo cambiar el item.", async () => {
-        if (enabled) {
-          await runInTab(tabId, pageSet, [area, row.item.key, row.item.value]);
-          await persistDisabled(withoutKey(disabled, row.key));
-          return;
-        }
-        await persistDisabled({ ...disabled, [row.key]: row.item });
-        await runInTab(tabId, pageRemove, [area, row.item.key]);
+        await applyToggle({ tabId, area, disabled, persistDisabled }, row, enabled);
       });
     },
     [area, disabled, persistDisabled, runAndReload, tabId],
@@ -123,13 +181,7 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
   const save = useCallback(
     async (originalKey: string | null, item: StoredItem, wasOff: boolean) => {
       await runAndReload("No se pudo guardar el item.", async () => {
-        if (wasOff && originalKey !== null) {
-          await persistDisabled({ ...withoutKey(disabled, originalKey), [item.key]: item });
-          return;
-        }
-        if (originalKey !== null && originalKey !== item.key)
-          await runInTab(tabId, pageRemove, [area, originalKey]);
-        await runInTab(tabId, pageSet, [area, item.key, item.value]);
+        await applySave({ tabId, area, disabled, persistDisabled }, originalKey, item, wasOff);
       });
     },
     [area, disabled, persistDisabled, runAndReload, tabId],
@@ -157,16 +209,9 @@ export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStora
 
   const importItems = useCallback(
     async (incoming: StoredItem[]) => {
-      let failed = 0;
-      for (const item of incoming) {
-        try {
-          await runInTab(tabId, pageSet, [area, item.key, item.value]);
-        } catch {
-          failed += 1;
-        }
-      }
+      const imported = await importAll(tabId, area, incoming);
       reload();
-      return incoming.length - failed;
+      return imported;
     },
     [area, reload, tabId],
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement, type RefObject } from "react";
 import { Icon } from "@/ui/components/Icon";
 import { IconButton } from "@/ui/components/primitives";
 import type { HeaderEntry } from "@/types";
@@ -24,6 +24,67 @@ const VariantRow = ({ variant, onActivate, onRemove }: VariantRowProps): ReactEl
   </div>
 );
 
+/** Cierra con un clic fuera del contenedor o con Escape, mientras está abierto. */
+const useDismiss = (open: boolean, containerRef: RefObject<HTMLDivElement | null>, close: () => void): void => {
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOutside = (event: MouseEvent): void => {
+      const target = event.target;
+      const clickedInside = target instanceof Node && containerRef.current?.contains(target) === true;
+      if (!clickedInside) close();
+    };
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open, containerRef, close]);
+};
+
+interface VariantMenuProps {
+  entry: HeaderEntry;
+  canStoreValue: boolean;
+  onKeep: () => void;
+  onActivate: (index: number) => void;
+  onRemove: (index: number) => void;
+  onStore: () => void;
+}
+
+const VariantMenu = ({ entry, canStoreValue, onKeep, onActivate, onRemove, onStore }: VariantMenuProps): ReactElement => (
+  <div className="header-value-menu">
+    <button type="button" className="header-value-option" data-active="true" onClick={onKeep}>
+      <Icon name="check" size={12} />
+      <span className="mono">{entry.value.trim() || "(vacio)"}</span>
+    </button>
+    {entry.variants.map((variant, index) => (
+      <VariantRow
+        key={`${variant}-${index}`}
+        variant={variant}
+        onActivate={() => {
+          onActivate(index);
+        }}
+        onRemove={() => {
+          onRemove(index);
+        }}
+      />
+    ))}
+    <button
+      type="button"
+      className="header-value-add"
+      disabled={!canStoreValue}
+      title={canStoreValue ? "Deja el valor actual guardado para volver a usarlo" : "Escribi un valor nuevo primero"}
+      onClick={onStore}
+    >
+      <Icon name="plus" size={12} />
+      Guardar el valor actual
+    </button>
+  </div>
+);
+
 export const HeaderValueField = ({ entry, onChange }: HeaderValueFieldProps): ReactElement => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -31,23 +92,9 @@ export const HeaderValueField = ({ entry, onChange }: HeaderValueFieldProps): Re
   const trimmedValue = entry.value.trim();
   const canStoreValue = trimmedValue.length > 0 && !entry.variants.includes(entry.value);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const close = (event: MouseEvent): void => {
-      const target = event.target;
-      const clickedInside = target instanceof Node && containerRef.current?.contains(target) === true;
-      if (!clickedInside) setOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
+  useDismiss(open, containerRef, () => {
+    setOpen(false);
+  });
 
   const activate = (index: number): void => {
     const chosen = entry.variants[index];
@@ -98,47 +145,18 @@ export const HeaderValueField = ({ entry, onChange }: HeaderValueFieldProps): Re
       </button>
 
       {open ? (
-        <div className="header-value-menu">
-          <button
-            type="button"
-            className="header-value-option"
-            data-active="true"
-            onClick={() => {
-              setOpen(false);
-            }}
-          >
-            <Icon name="check" size={12} />
-            <span className="mono">{trimmedValue || "(vacio)"}</span>
-          </button>
-          {entry.variants.map((variant, index) => (
-            <VariantRow
-              key={`${variant}-${index}`}
-              variant={variant}
-              onActivate={() => {
-                activate(index);
-              }}
-              onRemove={() => {
-                removeVariant(index);
-              }}
-            />
-          ))}
-          <button
-            type="button"
-            className="header-value-add"
-            disabled={!canStoreValue}
-            title={
-              canStoreValue
-                ? "Deja el valor actual guardado para volver a usarlo"
-                : "Escribi un valor nuevo primero"
-            }
-            onClick={() => {
-              onChange({ ...entry, variants: [...entry.variants, entry.value] });
-            }}
-          >
-            <Icon name="plus" size={12} />
-            Guardar el valor actual
-          </button>
-        </div>
+        <VariantMenu
+          entry={entry}
+          canStoreValue={canStoreValue}
+          onKeep={() => {
+            setOpen(false);
+          }}
+          onActivate={activate}
+          onRemove={removeVariant}
+          onStore={() => {
+            onChange({ ...entry, variants: [...entry.variants, entry.value] });
+          }}
+        />
       ) : null}
     </div>
   );
