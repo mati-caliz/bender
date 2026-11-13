@@ -15,7 +15,7 @@ export const LIMITS = Object.freeze({
   linesPerFile: 400,
   linesPerFunction: 120,
   complexity: 10,
-  cognitiveComplexity: 15,
+  cognitiveComplexity: 12,
   nestingDepth: 4,
   parameters: 4,
 });

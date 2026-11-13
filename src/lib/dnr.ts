@@ -59,6 +59,23 @@ const compileHeaderValue = (
   return value;
 };
 
+const usableHeaderName = (
+  entry: HeaderEntry,
+  ownerName: string,
+  diagnostics: EngineDiagnostic[],
+): string | null => {
+  const name = entry.name.trim();
+  if (!entry.enabled || !name) return null;
+  if (!HTTP_TOKEN_PATTERN.test(name)) {
+    diagnostics.push({
+      level: "error",
+      message: `"${name}" no es un nombre de header valido (${ownerName}), se ignora.`,
+    });
+    return null;
+  }
+  return name;
+};
+
 const compileHeaderEntries = (
   entries: HeaderEntry[],
   ownerName: string,
@@ -68,17 +85,8 @@ const compileHeaderEntries = (
   const byName = new Map<string, ModifyHeaderSpec>();
 
   for (const entry of entries) {
-    if (!entry.enabled) continue;
-    const name = entry.name.trim();
-    if (!name) continue;
-
-    if (!HTTP_TOKEN_PATTERN.test(name)) {
-      diagnostics.push({
-        level: "error",
-        message: `"${name}" no es un nombre de header valido (${ownerName}), se ignora.`,
-      });
-      continue;
-    }
+    const name = usableHeaderName(entry, ownerName, diagnostics);
+    if (name === null) continue;
 
     const key = `${name.toLowerCase()}:${entry.operation}`;
     if (byName.has(key) && entry.operation !== "append") {
