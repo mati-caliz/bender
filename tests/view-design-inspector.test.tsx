@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AUDITED_PROPERTIES } from "@/lib/design-summary";
 import { downloadJson } from "@/lib/download";
 import { DesignView } from "@/ui/views/DesignView";
 import { installFakeChrome, type FakeChrome } from "./support/fake-chrome";
@@ -43,7 +44,7 @@ describe("DesignView audit", () => {
 
     expect(screen.getByText("3 colores detectados")).toBeTruthy();
     expect(fake.scripting.executeScript).toHaveBeenCalledWith(
-      expect.objectContaining({ target: { tabId: TAB_ID }, args: [4000, 60] }),
+      expect.objectContaining({ target: { tabId: TAB_ID }, args: [4000, AUDITED_PROPERTIES] }),
     );
     expect(page.commands).toEqual([{ channel: "bender-design", type: "ping" }]);
   });

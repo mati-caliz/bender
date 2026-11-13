@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { auditPageColors, auditPageSheets, auditPageShapes, fetchDesignAudit } from "@/lib/design-audit";
+import { auditPageSheets, fetchDesignAudit, readVisibleElementStyles } from "@/lib/design-audit";
+import { AUDITED_PROPERTIES, summarizeElementStyles } from "@/lib/design-summary";
 import type { DesignAudit } from "@/types";
 
 const MAX_ELEMENTS = 100;
 const MAX_RESULTS = 10;
 
 const auditPageDesign = (maxElements: number, maxResults: number): DesignAudit => ({
-  ...auditPageColors(maxElements, maxResults),
-  ...auditPageShapes(maxElements, maxResults),
+  ...summarizeElementStyles(readVisibleElementStyles(maxElements, AUDITED_PROPERTIES), maxResults),
   ...auditPageSheets(maxResults),
 });
 
@@ -124,16 +124,18 @@ describe("fetchDesignAudit", () => {
     vi.unstubAllGlobals();
   });
 
-  it("runs the three audits in the tab and joins them", async () => {
+  it("runs the audits in the tab and joins them", async () => {
     render('<p style="color: rgb(255, 0, 0)">hola</p>');
-    const executeScript = vi.fn(async ({ func, args }: { func: (...values: number[]) => unknown; args: number[] }) => [
-      { result: func(...args) },
-    ]);
+    const executeScript = vi.fn(
+      async ({ func, args }: { func: (...values: (number | string[])[]) => unknown; args: (number | string[])[] }) => [
+        { result: func(...args) },
+      ],
+    );
     vi.stubGlobal("chrome", { scripting: { executeScript } });
 
     const audit = await fetchDesignAudit(7);
 
-    expect(executeScript).toHaveBeenCalledTimes(3);
+    expect(executeScript).toHaveBeenCalledTimes(2);
     expect(audit?.colors).toContainEqual({ hex: "#ff0000", count: 1, roles: ["text"] });
     expect(audit?.variables).toEqual([
       { name: "--brand", value: "#ff0000" },

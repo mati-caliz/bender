@@ -89,10 +89,7 @@ const walk = (dir, base = "") =>
     return entry.isDirectory() ? walk(path.join(dir, entry.name), name) : [name];
   });
 
-const buildLocalHeader = ({ method, crc, body, raw, nameBuffer }) => {
-  const { offsets } = LOCAL_HEADER;
-  const header = Buffer.alloc(LOCAL_HEADER.size);
-  header.writeUInt32LE(LOCAL_HEADER.signature, offsets.signature);
+const writeSharedFields = (header, offsets, { method, crc, body, raw, nameBuffer }) => {
   header.writeUInt16LE(ZIP_VERSION, offsets.versionNeeded);
   header.writeUInt16LE(UTF8_NAMES_FLAG, offsets.flags);
   header.writeUInt16LE(method, offsets.method);
@@ -101,22 +98,22 @@ const buildLocalHeader = ({ method, crc, body, raw, nameBuffer }) => {
   header.writeUInt32LE(body.length, offsets.compressedSize);
   header.writeUInt32LE(raw.length, offsets.uncompressedSize);
   header.writeUInt16LE(nameBuffer.length, offsets.nameLength);
+};
+
+const buildLocalHeader = (entry) => {
+  const { offsets } = LOCAL_HEADER;
+  const header = Buffer.alloc(LOCAL_HEADER.size);
+  header.writeUInt32LE(LOCAL_HEADER.signature, offsets.signature);
+  writeSharedFields(header, offsets, entry);
   return header;
 };
 
-const buildCentralHeader = ({ method, crc, body, raw, nameBuffer }, localHeaderOffset) => {
+const buildCentralHeader = (entry, localHeaderOffset) => {
   const { offsets } = CENTRAL_HEADER;
   const header = Buffer.alloc(CENTRAL_HEADER.size);
   header.writeUInt32LE(CENTRAL_HEADER.signature, offsets.signature);
   header.writeUInt16LE(ZIP_VERSION, offsets.versionMadeBy);
-  header.writeUInt16LE(ZIP_VERSION, offsets.versionNeeded);
-  header.writeUInt16LE(UTF8_NAMES_FLAG, offsets.flags);
-  header.writeUInt16LE(method, offsets.method);
-  header.writeUInt32LE(DETERMINISTIC_TIMESTAMP, offsets.timestamp);
-  header.writeUInt32LE(crc, offsets.crc);
-  header.writeUInt32LE(body.length, offsets.compressedSize);
-  header.writeUInt32LE(raw.length, offsets.uncompressedSize);
-  header.writeUInt16LE(nameBuffer.length, offsets.nameLength);
+  writeSharedFields(header, offsets, entry);
   header.writeUInt32LE(localHeaderOffset, offsets.localHeaderOffset);
   return header;
 };

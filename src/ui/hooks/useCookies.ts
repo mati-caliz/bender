@@ -8,7 +8,7 @@ import {
 import { errorMessage } from "@/lib/errors";
 import type { ImportedCookie } from "@/lib/import";
 import { isCookieSnapshot } from "@/lib/sanitize";
-import { computeToggleRows, loadScopedMap, saveScopedMap, withoutKey } from "@/lib/toggleable";
+import { computeToggleRows, loadScopedMap, withoutKey } from "@/lib/toggleable";
 import {
   cookieKeyOf,
   fetchLiveCookies,
@@ -17,6 +17,7 @@ import {
   toSetDetails,
 } from "@/ui/hooks/cookie-details";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
+import { useDisabledItemActions } from "@/ui/hooks/useDisabledItemActions";
 import type { CookieSnapshot, CookieSnapshotSet, ToggleRow } from "@/types";
 
 export { cookieKeyOf } from "@/ui/hooks/cookie-details";
@@ -170,25 +171,13 @@ export const useCookies = (activeTab: ActiveTab): CookiesController => {
   const { domain, liveCookies, disabled, snapshotSets, error, setDisabled, setSnapshotSets, setError, reload } =
     useCookieState(activeTab);
 
-  const persistDisabled = useCallback(
-    async (map: Record<string, CookieSnapshot>) => {
-      setDisabled(map);
-      await saveScopedMap(DISABLED_COOKIES_KEY, domain, map);
-    },
-    [domain],
-  );
-
-  const runAndReload = useCallback(
-    async (fallbackMessage: string, action: () => Promise<void>) => {
-      try {
-        await action();
-        reload();
-      } catch (actionError) {
-        setError(errorMessage(actionError, fallbackMessage));
-      }
-    },
-    [reload],
-  );
+  const { persistDisabled, runAndReload } = useDisabledItemActions<CookieSnapshot>({
+    storageKey: DISABLED_COOKIES_KEY,
+    scope: domain,
+    setDisabled,
+    setError,
+    reload,
+  });
 
   const context: MutationContext = { domain, disabled, liveCookies, persistDisabled };
 

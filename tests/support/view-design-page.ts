@@ -1,4 +1,5 @@
 import type { DesignAudit, DesignOverlayState, DesignPick } from "@/types";
+import { auditInjectionResult } from "./design-audit-page";
 import type { FakeChrome } from "./fake-chrome";
 
 export const sampleAudit = (overrides: Partial<DesignAudit> = {}): DesignAudit => ({
@@ -12,8 +13,8 @@ export const sampleAudit = (overrides: Partial<DesignAudit> = {}): DesignAudit =
   fonts: [{ family: '"Inter", system-ui, sans-serif', count: 90, sizes: [14, 16], weights: [400, 700] }],
   spacings: [
     { value: "16px", count: 30 },
-    { value: "4px", count: 12 },
     { value: "8px", count: 20 },
+    { value: "4px", count: 12 },
   ],
   radii: [
     { value: "8px", count: 6 },
@@ -51,7 +52,11 @@ export const installDesignPage = (
 ): DesignPage => {
   const page: DesignPage = { ...initial, commands: [] };
   fake.scripting.executeScript.mockImplementation((injection) =>
-    Promise.resolve(isFileInjection(injection) ? [] : [{ result: page.audit }]),
+    Promise.resolve(
+      isFileInjection(injection) || page.audit === null
+        ? []
+        : [{ result: auditInjectionResult(injection, page.audit) }],
+    ),
   );
   fake.tabs.sendMessage.mockImplementation((_tabId, message) => {
     page.commands.push(message);

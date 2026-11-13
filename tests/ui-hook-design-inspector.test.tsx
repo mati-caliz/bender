@@ -2,6 +2,7 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useDesignInspector } from "@/ui/hooks/useDesignInspector";
 import type { DesignOverlayState } from "@/types";
+import { auditInjectionResult } from "./support/design-audit-page";
 import { flushPromises, installFakeChrome, type FakeChrome } from "./support/fake-chrome";
 import { EMPTY_ACTIVE_TAB, activeTabFor } from "./support/render-ui";
 import { EMPTY_DESIGN_AUDIT, injectsFiles } from "./support/ui-hook-fixtures";
@@ -15,7 +16,7 @@ let fake: FakeChrome;
 beforeEach(() => {
   fake = installFakeChrome();
   fake.scripting.executeScript.mockImplementation((injection) =>
-    Promise.resolve(injectsFiles(injection) ? [] : [{ result: EMPTY_DESIGN_AUDIT }]),
+    Promise.resolve(injectsFiles(injection) ? [] : [{ result: auditInjectionResult(injection, EMPTY_DESIGN_AUDIT) }]),
   );
 });
 

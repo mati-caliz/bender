@@ -8,6 +8,7 @@ import {
   findActiveEnvironment,
 } from "@/lib/environments";
 import { sendMessage } from "@/lib/messages";
+import { DiagnosticNotices } from "@/ui/components/DiagnosticNotices";
 import { Icon, type IconName } from "@/ui/components/Icon";
 import {
   Badge,
@@ -362,14 +363,7 @@ export const OverviewView = ({
         </Notice>
       ) : null}
 
-      {status.diagnostics.map((diagnostic, index) => (
-        <Notice
-          key={`${diagnostic.message}-${index}`}
-          tone={diagnostic.level === "error" ? "danger" : "warning"}
-        >
-          {diagnostic.message}
-        </Notice>
-      ))}
+      <DiagnosticNotices diagnostics={status.diagnostics} />
 
       <div className="stat-grid">
         <Stat

@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { DISABLED_STORAGE_KEY } from "@/lib/constants";
 import { errorMessage } from "@/lib/errors";
 import { isStoredItem } from "@/lib/sanitize";
-import { computeToggleRows, loadScopedMap, saveScopedMap, withoutKey } from "@/lib/toggleable";
+import { computeToggleRows, loadScopedMap, withoutKey } from "@/lib/toggleable";
 import type { ActiveTab } from "@/ui/hooks/useActiveTab";
+import { useDisabledItemActions } from "@/ui/hooks/useDisabledItemActions";
 import type { StorageArea, StoredItem, ToggleRow } from "@/types";
 
 const NOT_INJECTABLE_MESSAGE = "Esta pestaña no expone storage: abri una pagina http(s).";
@@ -149,25 +150,13 @@ const importAll = async (tabId: ActiveTab["id"], area: StorageArea, incoming: St
 export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStorageController => {
   const { tabId, scope, items, disabled, error, setDisabled, setError, reload } = useStorageState(activeTab, area);
 
-  const persistDisabled = useCallback(
-    async (map: Record<string, StoredItem>) => {
-      setDisabled(map);
-      await saveScopedMap(DISABLED_STORAGE_KEY, scope, map);
-    },
-    [scope],
-  );
-
-  const runAndReload = useCallback(
-    async (fallbackMessage: string, action: () => Promise<void>) => {
-      try {
-        await action();
-        reload();
-      } catch (actionError) {
-        setError(errorMessage(actionError, fallbackMessage));
-      }
-    },
-    [reload],
-  );
+  const { persistDisabled, runAndReload } = useDisabledItemActions<StoredItem>({
+    storageKey: DISABLED_STORAGE_KEY,
+    scope: scope,
+    setDisabled,
+    setError,
+    reload,
+  });
 
   const toggle = useCallback(
     async (row: ToggleRow<StoredItem>, enabled: boolean) => {

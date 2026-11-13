@@ -173,16 +173,28 @@ export const coerceUserScript = (value: unknown): UserScript | null => {
   };
 };
 
-export const coerceEnvironment = (value: unknown): Environment | null => {
+interface NamedRecord {
+  record: Record<string, unknown>;
+  id: string;
+  name: string;
+}
+
+const asNamedRecord = (value: unknown): NamedRecord | null => {
   if (!isRecord(value)) return null;
   const name = asString(value["name"]).trim();
   if (!name) return null;
+  return { record: value, id: asIdentifier(value["id"]), name };
+};
+
+export const coerceEnvironment = (value: unknown): Environment | null => {
+  const named = asNamedRecord(value);
+  if (!named) return null;
 
   return {
-    id: asIdentifier(value["id"]),
-    name,
-    profileIds: asStringList(value["profileIds"]),
-    ruleIds: asStringList(value["ruleIds"]),
+    id: named.id,
+    name: named.name,
+    profileIds: asStringList(named.record["profileIds"]),
+    ruleIds: asStringList(named.record["ruleIds"]),
   };
 };
 
@@ -205,16 +217,16 @@ export const coerceCookieSnapshot = (value: unknown): CookieSnapshot | null => {
 };
 
 export const coerceCookieSnapshotSet = (value: unknown): CookieSnapshotSet | null => {
-  if (!isRecord(value)) return null;
-  const name = asString(value["name"]).trim();
-  if (!name) return null;
+  const named = asNamedRecord(value);
+  if (!named) return null;
+  const record = named.record;
 
   return {
-    id: asIdentifier(value["id"]),
-    name,
-    createdAt: asNumber(value["createdAt"], 0),
-    cookies: Array.isArray(value["cookies"])
-      ? value["cookies"]
+    id: named.id,
+    name: named.name,
+    createdAt: asNumber(record["createdAt"], 0),
+    cookies: Array.isArray(record["cookies"])
+      ? record["cookies"]
           .map(coerceCookieSnapshot)
           .filter((cookie): cookie is CookieSnapshot => cookie !== null)
       : [],

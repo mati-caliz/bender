@@ -4,6 +4,7 @@ import { ACCENT_COLORS, createDefaultState } from "@/lib/constants";
 import { downloadJson } from "@/lib/download";
 import { sendMessage } from "@/lib/messages";
 import { normalizeState } from "@/lib/state";
+import { DiagnosticNotices } from "@/ui/components/DiagnosticNotices";
 import { ImportDialog } from "@/ui/components/ImportDialog";
 import { ViewShell } from "@/ui/components/ViewShell";
 import {
@@ -242,14 +243,7 @@ const EngineCard = ({ status, notify }: { status: EngineStatus; notify: Notify }
       <span className="kv-value">{status.activeHeaderCount}</span>
     </div>
     {status.diagnostics.length > 0 ? (
-      status.diagnostics.map((diagnostic, index) => (
-        <Notice
-          key={`${diagnostic.message}-${index}`}
-          tone={diagnostic.level === "error" ? "danger" : "warning"}
-        >
-          {diagnostic.message}
-        </Notice>
-      ))
+      <DiagnosticNotices diagnostics={status.diagnostics} />
     ) : (
       <Notice>Sin advertencias: todo lo configurado se esta aplicando.</Notice>
     )}
