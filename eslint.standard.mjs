@@ -128,7 +128,8 @@ function isProcessEnvironment(node) {
 
 function environmentVariableName(member) {
   if (!member.computed && member.property.type === "Identifier") return member.property.name;
-  if (member.property.type === "Literal" && typeof member.property.value === "string") return member.property.value;
+  if (member.property.type === "Literal" && typeof member.property.value === "string")
+    return member.property.value;
   return undefined;
 }
 
