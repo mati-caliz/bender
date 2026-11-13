@@ -9,6 +9,7 @@ import path from "node:path";
 import {
   configDefaults,
   defineConfig,
+  type Plugin,
   type TestProjectInlineConfiguration,
   type ViteUserConfig,
 } from "vitest/config";
@@ -50,6 +51,20 @@ const DOM_ENVIRONMENT = "jsdom";
 const DATABASE_PROJECT = "database";
 const DATABASE_SETUP = "./test-database.mts";
 
+// "server-only" sólo deja importarse con la condición react-server, la del bundle de servidor de Next.
+// Los tests corren en Node y prueban justamente esos módulos: ahí es un módulo vacío.
+const SERVER_ONLY_MODULE = "server-only";
+const EMPTY_SERVER_ONLY = "\0server-only";
+
+function serverOnlyInTests(): Plugin {
+  return {
+    name: "standard:server-only-in-tests",
+    enforce: "pre",
+    resolveId: (source) => (source === SERVER_ONLY_MODULE ? EMPTY_SERVER_ONLY : null),
+    load: (id) => (id === EMPTY_SERVER_ONLY ? "export {};" : null),
+  };
+}
+
 function testFiles(roots: readonly string[], pattern: string): string[] {
   return roots.map((root) => `${root}/**/${pattern}`);
 }
@@ -88,6 +103,7 @@ export function standardTestConfig(options: StandardTestOptions = {}): ViteUserC
   const sharedSetupFiles = [...(options.sharedSetupFiles ?? [])];
   const databaseTests = testFiles(testRoots, `*.db.${testSuffix}.ts`);
   return defineConfig({
+    plugins: [serverOnlyInTests()],
     test: {
       globals: options.globals ?? false,
       pool: TEST_POOL,

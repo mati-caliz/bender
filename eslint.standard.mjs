@@ -1,6 +1,8 @@
 // Estándar de calidad compartido. Se copia tal cual con `quality/sync.sh`: no se edita en
 // el repo. Lo propio de cada repo (preset del framework, excepciones por archivo con su
 // motivo) va en su eslint.config.mjs, que llama a `standardConfig`.
+import { builtinModules } from "node:module";
+
 import js from "@eslint/js";
 import { globalIgnores } from "eslint/config";
 import prettier from "eslint-config-prettier";
@@ -96,7 +98,89 @@ const magicNumbersOutsideModuleConstants = {
   },
 };
 
-const standardPlugin = { rules: { "no-magic-numbers": magicNumbersOutsideModuleConstants } };
+// Un módulo que lee cookies o headers, usa un módulo de Node o lee una variable de entorno privada
+// sólo puede correr en el servidor: importa "server-only", y el build de Next frena al componente
+// cliente que lo alcance en vez de mandar el secreto al navegador o romper en él. Un "use server"
+// queda afuera: el cliente lo importa a propósito, como referencia a la acción.
+const SERVER_ONLY_MODULE = "server-only";
+const REQUEST_SCOPED_MODULE = "next/headers";
+const PUBLIC_ENVIRONMENT_PREFIX = "NEXT_PUBLIC_";
+const INLINED_ENVIRONMENT_VARIABLES = new Set(["NODE_ENV"]);
+const NODE_MODULES = new Set(builtinModules);
+
+function isNodeModule(source) {
+  return source.startsWith("node:") || NODE_MODULES.has(source) || NODE_MODULES.has(source.split("/")[0]);
+}
+
+function isPrivateEnvironmentVariable(name) {
+  return !name.startsWith(PUBLIC_ENVIRONMENT_PREFIX) && !INLINED_ENVIRONMENT_VARIABLES.has(name);
+}
+
+function isProcessEnvironment(node) {
+  return (
+    node.type === "MemberExpression" &&
+    node.object.type === "Identifier" &&
+    node.object.name === "process" &&
+    node.property.type === "Identifier" &&
+    node.property.name === "env"
+  );
+}
+
+function environmentVariableName(member) {
+  if (!member.computed && member.property.type === "Identifier") return member.property.name;
+  if (member.property.type === "Literal" && typeof member.property.value === "string") return member.property.value;
+  return undefined;
+}
+
+function hasDirective(program, directive) {
+  return program.body.some((statement) => statement.directive === directive);
+}
+
+const serverOnlyMarker = {
+  meta: {
+    type: "problem",
+    schema: [],
+    messages: {
+      missing: 'Este módulo {{why}}: sólo corre en el servidor y tiene que importar "server-only".',
+    },
+  },
+  create(context) {
+    let marked = false;
+    let firstReason;
+    const remember = (node, why) => {
+      firstReason ??= { node, why };
+    };
+    return {
+      ImportDeclaration(node) {
+        const source = node.source.value;
+        if (source === SERVER_ONLY_MODULE) marked = true;
+        if (node.importKind === "type") return;
+        if (source === REQUEST_SCOPED_MODULE) remember(node, "lee cookies o headers del pedido");
+        else if (isNodeModule(source)) remember(node, `usa el módulo de Node «${source}»`);
+      },
+      MemberExpression(node) {
+        if (!isProcessEnvironment(node.object)) return;
+        const name = environmentVariableName(node);
+        if (name === undefined || isPrivateEnvironmentVariable(name)) {
+          remember(node, `lee la variable de entorno privada ${name ?? "process.env[…]"}`);
+        }
+      },
+      VariableDeclarator(node) {
+        if (node.init !== null && isProcessEnvironment(node.init)) {
+          remember(node, "lee las variables de entorno privadas");
+        }
+      },
+      "Program:exit"(program) {
+        if (marked || firstReason === undefined || hasDirective(program, "use server")) return;
+        context.report({ node: firstReason.node, messageId: "missing", data: { why: firstReason.why } });
+      },
+    };
+  },
+};
+
+const standardPlugin = {
+  rules: { "no-magic-numbers": magicNumbersOutsideModuleConstants, "server-only": serverOnlyMarker },
+};
 
 const typeRules = {
   "@typescript-eslint/explicit-function-return-type": [
@@ -183,12 +267,34 @@ const testRelaxations = {
   "@typescript-eslint/explicit-function-return-type": "off",
 };
 
+// Lo que Next ya corre sólo en el servidor (las rutas del App Router, el proxy, la instrumentación),
+// la config de las herramientas y lo que corre en Node fuera del bundle (scripts, tests).
+const SERVER_BY_CONSTRUCTION = [
+  "**/app/**/{page,layout,template,default,route,loading,error,global-error,not-found,forbidden,unauthorized}.{ts,tsx}",
+  "**/app/**/{opengraph-image,twitter-image,icon,apple-icon,sitemap,robots,manifest}.{ts,tsx}",
+  "**/{middleware,proxy,instrumentation}.ts",
+  "**/*.config.{ts,mts}",
+  "**/*.{mts,cts}",
+  ...JAVASCRIPT_FILES,
+  ...COMMAND_LINE_SCRIPTS,
+  ...TEST_FILES,
+];
+
+function serverOnlyDecision(frameworks) {
+  return usesNext(frameworks)
+    ? [{ ignores: SERVER_BY_CONSTRUCTION, rules: { "standard/server-only": "error" } }]
+    : [];
+}
+
 // next/image necesita que su optimizador pueda pedir la imagen: no sirve para un data: o blob: del
 // propio navegador ni para lo que sólo sirve el BFF con el token. Esos casos aparecían en todas las
 // apps de Next, y el LCP de las imágenes se mide con Web Vitals.
+function usesNext(frameworks) {
+  return frameworks.some((config) => config.plugins?.[NEXT_PLUGIN] !== undefined);
+}
+
 function nextImageDecision(frameworks) {
-  const usesNext = frameworks.some((config) => config.plugins?.[NEXT_PLUGIN] !== undefined);
-  return usesNext ? [{ rules: { [`${NEXT_PLUGIN}/no-img-element`]: "off" } }] : [];
+  return usesNext(frameworks) ? [{ rules: { [`${NEXT_PLUGIN}/no-img-element`]: "off" } }] : [];
 }
 
 /**
@@ -256,6 +362,7 @@ export function standardConfig({
     { files: LOG_MODULE, rules: { "no-console": "off" } },
     { files: XML_NAMESPACES, rules: { "sonarjs/no-clear-text-protocols": "off" } },
     ...nextImageDecision(frameworks),
+    ...serverOnlyDecision(frameworks),
     {
       files: JSON_SHAPE_HELPER,
       rules: {
