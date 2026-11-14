@@ -28,11 +28,7 @@ const GENERATED = existsSync(OPENAPI_GENERATED) ? [`${OPENAPI_GENERATED}/**`] : 
 /**
  * @param {{ entry?: string[], ignore?: string[], ignoreDependencies?: string[] }} options
  */
-export function standardKnipConfig({
-  entry = [],
-  ignore = [],
-  ignoreDependencies = [],
-} = {}) {
+export function standardKnipConfig({ entry = [], ignore = [], ignoreDependencies = [] } = {}) {
   return {
     entry: [...BROWSER_ENTRIES, ...entry],
     ignore: [...STANDARD_COPIES, ...GENERATED, ...ignore],
