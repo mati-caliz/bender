@@ -26,11 +26,6 @@ export interface StandardTestOptions {
   readonly sharedSetupFiles?: readonly string[];
   /** `describe`/`it` globales, para los repos que los usan sin importarlos. */
   readonly globals?: boolean;
-  /**
-   * La base descartable de los tests `*.db.test.ts`: la imagen de Postgres de la app, el comando que
-   * la migra con `DATABASE_URL` del dueño y, si la app lo usa en producción, el script de
-   * `docker-entrypoint-initdb.d` (extensiones). Ver test-database.mts.
-   */
   /** Lo que mide la cobertura, si no es el TypeScript de src (paquetes con scripts o varias fuentes). */
   readonly coverageInclude?: readonly string[];
   /**
@@ -38,6 +33,11 @@ export interface StandardTestOptions {
    * generados: fixtures o un punto de entrada que sólo monta la app.
    */
   readonly coverageExclude?: readonly string[];
+  /**
+   * La base descartable de los tests `*.db.test.ts`: la imagen de Postgres de la app, el comando que
+   * la migra con `DATABASE_URL` del dueño y, si la app lo usa en producción, el script de
+   * `docker-entrypoint-initdb.d` (extensiones). Ver test-database.mts.
+   */
   readonly database?: {
     readonly image: string;
     readonly migrate: string;
@@ -84,6 +84,35 @@ function serverOnlyInTests(): Plugin {
   };
 }
 
+// oxc emite la metadata de los decoradores (la que usa la inyección de NestJS) como
+// `typeof X === "undefined" ? Object : X`, y uno de los dos brazos nunca corre: no es código del repo
+// pero contaba como rama sin cubrir. Cada guarda pasa a una función al final del módulo, fuera del
+// mapa de fuentes, y en su lugar queda la llamada rellena con espacios hasta el mismo largo: el mapa
+// sigue exacto, el código que corre es el mismo y la cobertura la ignora como al resto de lo generado.
+// @vitest/coverage-v8 sólo reconoce los decoradores de SWC (`_ts_decorate`).
+const DESIGN_TYPE_GUARD = /typeof (\w+) === "undefined" \? Object : \1/gu;
+const DECORATOR_METADATA_CALL = "_decorateMetadata(";
+const DESIGN_TYPE_HELPER = "__standardDesignType";
+
+function unmappedDecoratorMetadata(): Plugin {
+  return {
+    name: "standard:unmapped-decorator-metadata",
+    enforce: "post",
+    transform: (code) => {
+      if (!code.includes(DECORATOR_METADATA_CALL)) {
+        return null;
+      }
+      const helpers: string[] = [];
+      const rewritten = code.replace(DESIGN_TYPE_GUARD, (guard) => {
+        const helper = `${DESIGN_TYPE_HELPER}${String(helpers.length)}`;
+        helpers.push(`function ${helper}() { return ${guard}; }`);
+        return `${helper}()`.padEnd(guard.length);
+      });
+      return { code: `${rewritten}\n${helpers.join("\n")}\n`, map: null };
+    },
+  };
+}
+
 function testFiles(roots: readonly string[], pattern: string): string[] {
   return roots.map((root) => `${root}/**/${pattern}`);
 }
@@ -122,7 +151,7 @@ export function standardTestConfig(options: StandardTestOptions = {}): ViteUserC
   const sharedSetupFiles = [...(options.sharedSetupFiles ?? [])];
   const databaseTests = testFiles(testRoots, `*.db.${testSuffix}.ts`);
   return defineConfig({
-    plugins: [serverOnlyInTests()],
+    plugins: [serverOnlyInTests(), unmappedDecoratorMetadata()],
     test: {
       globals: options.globals ?? false,
       pool: TEST_POOL,
