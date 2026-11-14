@@ -67,6 +67,7 @@ const COVERAGE_ALWAYS_EXCLUDED = [
   "**/*.d.ts",
   "src/test/**",
   "**/lib/api/generated/**",
+  "**/scripts/check-coverage.mjs",
 ];
 
 // "server-only" sólo deja importarse con la condición react-server, la del bundle de servidor de Next.
