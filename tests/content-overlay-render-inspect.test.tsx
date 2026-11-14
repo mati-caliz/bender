@@ -95,19 +95,21 @@ describe("overlay-render: inspect", () => {
     expect(nodeWithClass("tag accent")?.style.top).toBe("28px");
 
     expect(panelTitle(root)).toBe("body > div.card");
-    expect(panelRows(root)).toMatchObject({
-      Tamaño: "200 × 100",
-      Display: "flex · absolute",
-      Texto: "#ff0000",
-      Fondo: "#0000ff",
-      Fuente: "Inter 600",
-      "Tamaño fuente": "14px / 20px",
-      Padding: "4px 8px",
-      Margin: "10px",
-      Radio: "6px",
-      Borde: "2px solid",
-      Sombra: "rgb(0, 0, 0) 0px 1px 2px",
-    });
+    expect(panelRows(root)).toMatchObject(
+      Object.fromEntries([
+        ["Tamaño", "200 × 100"],
+        ["Display", "flex · absolute"],
+        ["Texto", "#ff0000"],
+        ["Fondo", "#0000ff"],
+        ["Fuente", "Inter 600"],
+        ["Tamaño fuente", "14px / 20px"],
+        ["Padding", "4px 8px"],
+        ["Margin", "10px"],
+        ["Radio", "6px"],
+        ["Borde", "2px solid"],
+        ["Sombra", "rgb(0, 0, 0) 0px 1px 2px"],
+      ]),
+    );
     expect(Object.keys(panelRows(root))).toContain("Gap");
   });
 
@@ -171,13 +173,15 @@ describe("overlay-render: ruler", () => {
     expect(nodeBox(nodeWithClass("measure-rect"))).toEqual(["10px", "20px", "30px", "40px"]);
     expect(tagTexts(root)).toEqual(["30px", "40px"]);
     expect(panelTitle(root)).toBe("Medición");
-    expect(panelRows(root)).toEqual({
-      Ancho: "30px · 1.9rem",
-      Alto: "40px · 2.5rem",
-      Diagonal: "50px",
-      Origen: "10 , 20",
-      Relación: "0.8 : 1",
-    });
+    expect(panelRows(root)).toEqual(
+      Object.fromEntries([
+        ["Ancho", "30px · 1.9rem"],
+        ["Alto", "40px · 2.5rem"],
+        ["Diagonal", "50px"],
+        ["Origen", "10 , 20"],
+        ["Relación", "0.8 : 1"],
+      ]),
+    );
   });
 
   it("shows no ratio for a flat measurement", () => {
