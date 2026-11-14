@@ -102,14 +102,16 @@ export interface UserAgentPreset {
   value: string;
 }
 
+const IPHONE_SAFARI_PRESET: UserAgentPreset = {
+  id: "iphone-safari",
+  label: "iPhone · Safari iOS 17",
+  group: "Mobile",
+  value:
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+};
+
 export const USER_AGENT_PRESETS: UserAgentPreset[] = [
-  {
-    id: "iphone-safari",
-    label: "iPhone · Safari iOS 17",
-    group: "Mobile",
-    value:
-      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-  },
+  IPHONE_SAFARI_PRESET,
   {
     id: "android-chrome",
     label: "Android · Chrome 126",
@@ -201,8 +203,8 @@ export const DEFAULT_CORS_CONFIG: CorsConfig = {
 
 export const DEFAULT_USER_AGENT_CONFIG: UserAgentConfig = {
   enabled: false,
-  presetId: "iphone-safari",
-  value: USER_AGENT_PRESETS[0]?.value ?? "",
+  presetId: IPHONE_SAFARI_PRESET.id,
+  value: IPHONE_SAFARI_PRESET.value,
   spoofClientHints: true,
   spoofNavigator: false,
   scope: createEmptyScope(),

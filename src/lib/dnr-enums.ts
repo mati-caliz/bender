@@ -12,7 +12,7 @@ interface EnumNarrower<Enum extends string> {
   readonly narrow: (value: string) => Enum;
 }
 
-const createEnumNarrower = <Enum extends string>(members: EnumMembers<Enum>): EnumNarrower<Enum> => {
+export const createEnumNarrower = <Enum extends string>(members: EnumMembers<Enum>): EnumNarrower<Enum> => {
   const memberValues: ReadonlySet<string> = new Set(Object.keys(members));
   const isMember = (value: string): value is Enum => memberValues.has(value);
   const narrow = (value: string): Enum => {
