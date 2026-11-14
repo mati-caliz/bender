@@ -3,7 +3,8 @@
 //
 // Todo test corre en node, salvo los que usan el DOM: esos son *.tsx aunque no tengan JSX y corren
 // en jsdom, en todos los repos. La config de cada repo lo arma con standardTestConfig() y le suma con
-// mergeConfig sólo lo propio (alias, cobertura, setup), nunca un `environment` ni los workers.
+// mergeConfig sólo lo propio (alias, setup), nunca un `environment`, los workers ni la cobertura:
+// lo que la cobertura mide o deja afuera de más se pasa con coverageInclude y coverageExclude.
 import path from "node:path";
 
 import {
@@ -30,6 +31,13 @@ export interface StandardTestOptions {
    * la migra con `DATABASE_URL` del dueño y, si la app lo usa en producción, el script de
    * `docker-entrypoint-initdb.d` (extensiones). Ver test-database.mts.
    */
+  /** Lo que mide la cobertura, si no es el TypeScript de src (paquetes con scripts o varias fuentes). */
+  readonly coverageInclude?: readonly string[];
+  /**
+   * Lo que la cobertura deja afuera además de los tests, los `.d.ts`, `src/test` y los tipos
+   * generados: fixtures o un punto de entrada que sólo monta la app.
+   */
+  readonly coverageExclude?: readonly string[];
   readonly database?: {
     readonly image: string;
     readonly migrate: string;
@@ -50,6 +58,16 @@ const DOM_PROJECT = "dom";
 const DOM_ENVIRONMENT = "jsdom";
 const DATABASE_PROJECT = "database";
 const DATABASE_SETUP = "./test-database.mts";
+
+const COVERAGE_PROVIDER = "v8";
+const COVERAGE_REPORTERS = ["text-summary", "json-summary"];
+const COVERAGE_SOURCES = ["src/**/*.{ts,tsx}"];
+const COVERAGE_ALWAYS_EXCLUDED = [
+  "**/*.{test,spec}.{ts,tsx,mts}",
+  "**/*.d.ts",
+  "src/test/**",
+  "**/lib/api/generated/**",
+];
 
 // "server-only" sólo deja importarse con la condición react-server, la del bundle de servidor de Next.
 // Los tests corren en Node y prueban justamente esos módulos: ahí es un módulo vacío.
@@ -110,6 +128,12 @@ export function standardTestConfig(options: StandardTestOptions = {}): ViteUserC
       maxWorkers: TEST_WORKERS,
       testTimeout: TEST_TIMEOUT_MS,
       deps: { optimizer: { client: { enabled: true } } },
+      coverage: {
+        provider: COVERAGE_PROVIDER,
+        include: [...(options.coverageInclude ?? COVERAGE_SOURCES)],
+        exclude: [...COVERAGE_ALWAYS_EXCLUDED, ...(options.coverageExclude ?? [])],
+        reporter: COVERAGE_REPORTERS,
+      },
       projects: [
         {
           extends: true,

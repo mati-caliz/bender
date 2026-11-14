@@ -7,19 +7,14 @@ const resolveFromRoot = (relativePath: string): string =>
   fileURLToPath(new URL(relativePath, import.meta.url));
 
 export default mergeConfig(
-  standardTestConfig({ testRoots: ["tests"] }),
+  standardTestConfig({
+    // main.tsx sólo monta <App /> en #root: no tiene lógica propia que probar.
+    coverageExclude: ["src/ui/main.tsx"],
+    testRoots: ["tests"],
+  }),
   defineConfig({
     resolve: {
       alias: { "@": resolveFromRoot("src") },
-    },
-    test: {
-      coverage: {
-        provider: "v8",
-        include: ["src/**/*.{ts,tsx}"],
-        // main.tsx sólo monta <App /> en #root: no tiene lógica propia que probar.
-        exclude: ["src/ui/main.tsx"],
-        reporter: ["text", "json-summary"],
-      },
     },
   }),
 );
