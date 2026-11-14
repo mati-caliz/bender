@@ -54,6 +54,7 @@ const NEXT_PLUGIN = "@next/next";
 
 const DEFAULT_IGNORES = [
   "**/node_modules/**",
+  "**/src/lib/api/generated/**",
   "**/dist/**",
   "**/build/**",
   "**/out/**",

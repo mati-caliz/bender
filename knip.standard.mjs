@@ -20,6 +20,11 @@ const STANDARD_COPIES = [
 const SERVICE_WORKER = "public/sw.js";
 const BROWSER_ENTRIES = existsSync(SERVICE_WORKER) ? [SERVICE_WORKER] : [];
 
+// Los tipos que genera quality/openapi/generate-types.sh desde la spec (QS-501): se exportan todos
+// aunque el front use una parte. Va sólo si el paquete los tiene: un ignore sin coincidencias es un aviso.
+const OPENAPI_GENERATED = "src/lib/api/generated";
+const GENERATED = existsSync(OPENAPI_GENERATED) ? [`${OPENAPI_GENERATED}/**`] : [];
+
 /**
  * @param {{ entry?: string[], ignore?: string[], ignoreDependencies?: string[] }} options
  */
@@ -30,7 +35,7 @@ export function standardKnipConfig({
 } = {}) {
   return {
     entry: [...BROWSER_ENTRIES, ...entry],
-    ignore: [...STANDARD_COPIES, ...ignore],
+    ignore: [...STANDARD_COPIES, ...GENERATED, ...ignore],
     ignoreDependencies,
   };
 }
