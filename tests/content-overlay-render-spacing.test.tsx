@@ -56,7 +56,12 @@ describe("overlay-render: spacing without a base", () => {
     expect(layerNodes(root).map((node) => node.className)).toEqual(["outline", "tag accent"]);
     expect(tagTexts(root)).toEqual(["Click para fijar el elemento base"]);
     expect(panelTitle(root)).toBe("Espaciado");
-    expect(panelRows(root)).toEqual({ Base: "sin fijar", Ayuda: "Click fija · click de nuevo libera" });
+    expect(panelRows(root)).toEqual(
+      Object.fromEntries([
+        ["Base", "sin fijar"],
+        ["Ayuda", "Click fija · click de nuevo libera"],
+      ]),
+    );
   });
 });
 
@@ -70,7 +75,12 @@ describe("overlay-render: spacing with a pinned base", () => {
 
     expect(layerNodes(root).map((node) => node.className)).toEqual(["outline pinned"]);
     expect(panelTitle(root)).toBe("body > div");
-    expect(panelRows(root)).toEqual({ Base: "100 × 50", Ayuda: "Pasá el mouse por otro elemento" });
+    expect(panelRows(root)).toEqual(
+      Object.fromEntries([
+        ["Base", "100 × 50"],
+        ["Ayuda", "Pasá el mouse por otro elemento"],
+      ]),
+    );
 
     overlayState.hoveredElement = null;
     render();
@@ -86,14 +96,16 @@ describe("overlay-render: spacing with a pinned base", () => {
     const guide = gapGuide();
     expect([guide?.style.left, guide?.style.top, guide?.style.width]).toEqual(["100px", "20px", "30px"]);
     expect(tagTexts(root)).toEqual(["30px"]);
-    expect(panelRows(root)).toEqual({
-      Base: "body > div",
-      Destino: "body > span",
-      "Gap horizontal": "30px · 1.9rem",
-      "Gap vertical": "se solapan",
-      "Δ izquierda": "130px",
-      "Δ arriba": "10px",
-    });
+    expect(panelRows(root)).toEqual(
+      Object.fromEntries([
+        ["Base", "body > div"],
+        ["Destino", "body > span"],
+        ["Gap horizontal", "30px · 1.9rem"],
+        ["Gap vertical", "se solapan"],
+        ["Δ izquierda", "130px"],
+        ["Δ arriba", "10px"],
+      ]),
+    );
   });
 
   it("measures a horizontal gap to an element on the left", () => {

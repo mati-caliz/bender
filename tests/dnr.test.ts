@@ -268,7 +268,7 @@ describe("compileRules con reglas de trafico", () => {
   });
 
   it("falla con regex invalida, patron vacio, destino vacio o destino relativo", () => {
-    const regexInvalida = stateWith({
+    const invalidRegex = stateWith({
       trafficRules: [
         trafficRuleWith(
           { kind: "redirect", target: "https://destino.com/", useRegex: true },
@@ -276,20 +276,20 @@ describe("compileRules con reglas de trafico", () => {
         ),
       ],
     });
-    const patronVacio = stateWith({
+    const emptyPattern = stateWith({
       trafficRules: [trafficRuleWith({ kind: "redirect", target: "https://destino.com/", useRegex: true })],
     });
-    const destinoVacio = stateWith({
+    const emptyTarget = stateWith({
       trafficRules: [trafficRuleWith({ kind: "redirect", target: "  ", useRegex: false })],
     });
-    const destinoRelativo = stateWith({
+    const relativeTarget = stateWith({
       trafficRules: [trafficRuleWith({ kind: "redirect", target: "/local", useRegex: false })],
     });
 
-    expect(errorMessages(regexInvalida)[0]).toContain("regex");
-    expect(errorMessages(patronVacio)[0]).toContain("patron de URL");
-    expect(errorMessages(destinoVacio)[0]).toContain("destino");
-    expect(errorMessages(destinoRelativo)[0]).toContain("URL absoluta");
+    expect(errorMessages(invalidRegex)[0]).toContain("regex");
+    expect(errorMessages(emptyPattern)[0]).toContain("patron de URL");
+    expect(errorMessages(emptyTarget)[0]).toContain("destino");
+    expect(errorMessages(relativeTarget)[0]).toContain("URL absoluta");
   });
 });
 

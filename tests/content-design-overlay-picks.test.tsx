@@ -74,7 +74,12 @@ describe("design overlay: eyedropper", () => {
       expect.objectContaining({ detail: `Cuentagotas en ${window.location.hostname}` }),
     ]);
     expect(panelTitle()).toBe("Color guardado");
-    expect(panelRows()).toEqual({ Hex: "#ffffff", Luminancia: "clara" });
+    expect(panelRows()).toEqual(
+      Object.fromEntries([
+        ["Hex", "#ffffff"],
+        ["Luminancia", "clara"],
+      ]),
+    );
     expect(writeText).toHaveBeenCalledWith("#ffffff");
   });
 

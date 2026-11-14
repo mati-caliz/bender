@@ -20,10 +20,10 @@ describe("withoutKey", () => {
 
 describe("computeToggleRows", () => {
   it("marca prendido lo que esta vivo y apagado lo que solo esta guardado", () => {
-    const rows = computeToggleRows([item("vivo")], { apagado: item("apagado") }, keyOf);
+    const rows = computeToggleRows([item("vivo")], { stored: item("stored") }, keyOf);
     expect(rows).toEqual([
       { key: "vivo", item: item("vivo"), off: false, reappeared: false },
-      { key: "apagado", item: item("apagado"), off: true, reappeared: false },
+      { key: "stored", item: item("stored"), off: true, reappeared: false },
     ]);
   });
 

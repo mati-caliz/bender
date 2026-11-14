@@ -170,7 +170,12 @@ describe("design overlay: spacing pointer", () => {
 
     mouse("mousemove", target);
 
-    expect(panelRows()).toMatchObject({ Base: "body > section", Destino: "body > aside" });
+    expect(panelRows()).toMatchObject(
+      Object.fromEntries([
+        ["Base", "body > section"],
+        ["Destino", "body > aside"],
+      ]),
+    );
   });
 
   it("releases the base when clicking it again", () => {

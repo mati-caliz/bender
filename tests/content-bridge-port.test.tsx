@@ -97,7 +97,7 @@ describe("bridge: config updates", () => {
   });
 
   it("ignores other keys and other storage areas", async () => {
-    await fakeChrome.storage.local.set({ otraClave: 1 });
+    await fakeChrome.storage.local.set({ otherKey: 1 });
     await fakeChrome.storage.session.set({ [MOCKS_STORAGE_KEY]: EMPTY_CONFIG });
     await flushPromises();
     await flushPromises();

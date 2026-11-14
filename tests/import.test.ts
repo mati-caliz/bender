@@ -265,10 +265,10 @@ describe("mergeProfiles", () => {
   });
 
   it("no toca los perfiles que no vienen en el archivo", () => {
-    const intacto = profile("b", "intacto");
-    const merged = mergeProfiles([profile("a"), intacto], [profile("a", "cambiado")]);
+    const untouched = profile("b", "intacto");
+    const merged = mergeProfiles([profile("a"), untouched], [profile("a", "cambiado")]);
 
-    expect(merged[1]).toBe(intacto);
+    expect(merged[1]).toBe(untouched);
   });
 
   it("colapsa ids repetidos dentro del propio import", () => {

@@ -64,19 +64,19 @@ describe("snapshots de cookies", () => {
 
   it("borra por id y deja el resto", async () => {
     await saveCookieSnapshotSet("app.local", "admin", [cookie("sid", "uno")]);
-    const [guardado] = await saveCookieSnapshotSet("app.local", "lector", [cookie("sid", "dos")]);
-    const restantes = await deleteCookieSnapshotSet("app.local", guardado?.id ?? "");
+    const [saved] = await saveCookieSnapshotSet("app.local", "lector", [cookie("sid", "dos")]);
+    const remaining = await deleteCookieSnapshotSet("app.local", saved?.id ?? "");
 
-    expect(restantes).toHaveLength(1);
-    expect(restantes[0]?.name).not.toBe(guardado?.name);
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0]?.name).not.toBe(saved?.name);
   });
 
   it("descarta lo guardado que no tiene forma de snapshot", async () => {
     store.set("benderCookieSnapshots", {
       "app.local": {
         roto: "no soy un set",
-        sinNombre: { id: "sinNombre", name: "   ", createdAt: 1, cookies: [] },
-        valido: { id: "valido", name: "admin", createdAt: 1, cookies: [cookie("sid", "uno"), "basura"] },
+        withoutName: { id: "sinNombre", name: "   ", createdAt: 1, cookies: [] },
+        valid: { id: "valido", name: "admin", createdAt: 1, cookies: [cookie("sid", "uno"), "basura"] },
       },
     });
     const sets = await listCookieSnapshotSets("app.local");

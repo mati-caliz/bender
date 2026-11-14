@@ -93,7 +93,13 @@ describe("overlay-dom: panel", () => {
 
     expect(panelVisible(root)).toBe(true);
     expect(panelTitle(root)).toBe("div.card");
-    expect(panelRows(root)).toEqual({ Texto: "#fff", Display: "block", Fondo: "transparent" });
+    expect(panelRows(root)).toEqual(
+      Object.fromEntries([
+        ["Texto", "#fff"],
+        ["Display", "block"],
+        ["Fondo", "transparent"],
+      ]),
+    );
     expect(panel().querySelectorAll(".swatch")).toHaveLength(2);
   });
 
