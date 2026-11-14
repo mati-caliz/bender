@@ -24,6 +24,9 @@ const BROWSER_ENTRIES = existsSync(SERVICE_WORKER) ? [SERVICE_WORKER] : [];
 // aunque el front use una parte. Va sólo si el paquete los tiene: un ignore sin coincidencias es un aviso.
 const OPENAPI_GENERATED = "src/lib/api/generated";
 const GENERATED = existsSync(OPENAPI_GENERATED) ? [`${OPENAPI_GENERATED}/**`] : [];
+// Ese script corre `pnpm exec openapi-typescript` desde el front: la dependencia es del paquete
+// aunque ningún archivo suyo la importe.
+const GENERATOR_DEPENDENCIES = existsSync(OPENAPI_GENERATED) ? ["openapi-typescript"] : [];
 
 /**
  * @param {{ entry?: string[], ignore?: string[], ignoreDependencies?: string[] }} options
@@ -32,6 +35,6 @@ export function standardKnipConfig({ entry = [], ignore = [], ignoreDependencies
   return {
     entry: [...BROWSER_ENTRIES, ...entry],
     ignore: [...STANDARD_COPIES, ...GENERATED, ...ignore],
-    ignoreDependencies,
+    ignoreDependencies: [...GENERATOR_DEPENDENCIES, ...ignoreDependencies],
   };
 }
