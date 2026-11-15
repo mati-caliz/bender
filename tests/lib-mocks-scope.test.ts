@@ -1,13 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ALL_RESOURCE_TYPES, createEmptyScope } from "@/lib/constants";
 import { MOCKS_STORAGE_KEY, publishPageConfig, readPageConfig, toPageConfig } from "@/lib/mocks";
-import {
-  describeScope,
-  isScopeRestricted,
-  requestMatchesScope,
-  resolveResourceTypes,
-  urlFilterToRegExp,
-} from "@/lib/scope";
+import { describeScope, requestMatchesScope, resolveResourceTypes, urlFilterToRegExp } from "@/lib/scope";
 import type { Scope } from "@/types";
 import { stateWith, trafficRuleWith } from "./support/dnr-fixtures";
 import { installFakeChrome } from "./support/fake-chrome";
@@ -102,27 +96,6 @@ describe("describeScope", () => {
     expect(describeScope(scope)).toBe(
       "solo pestaña activa · GET/POST · a.com, b.com · excepto c.com · desde d.com · no desde e.com · url ~ /api/ · 2 tipo(s)",
     );
-  });
-});
-
-describe("isScopeRestricted", () => {
-  const restrictions: [string, Partial<Scope>][] = [
-    ["active tab", { activeTabOnly: true }],
-    ["included domains", { includeDomains: ["a.com"] }],
-    ["excluded domains", { excludeDomains: ["a.com"] }],
-    ["initiator domains", { initiatorDomains: ["a.com"] }],
-    ["excluded initiators", { excludedInitiatorDomains: ["a.com"] }],
-    ["url filter", { urlFilter: "/api" }],
-    ["resource types", { resourceTypes: ["script"] }],
-    ["request methods", { requestMethods: ["get"] }],
-  ];
-
-  it.each(restrictions)("is restricted by %s", (_label, overrides) => {
-    expect(isScopeRestricted(scopeWith(overrides))).toBe(true);
-  });
-
-  it("is not restricted when empty or with a blank url filter", () => {
-    expect(isScopeRestricted(scopeWith({ urlFilter: "   " }))).toBe(false);
   });
 });
 

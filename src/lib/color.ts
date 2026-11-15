@@ -143,8 +143,3 @@ export const contrastRatio = (foreground: RgbColor, background: RgbColor): numbe
 
 export const isLightColor = (color: RgbColor): boolean =>
   relativeLuminance(color) > READABLE_ON_DARK_THRESHOLD;
-
-export const normalizeCssColor = (input: string): string | null => {
-  const parsed = parseCssColor(input);
-  return parsed && parsed.alpha > 0 ? toHex(parsed) : null;
-};

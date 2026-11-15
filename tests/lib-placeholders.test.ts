@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { hasPlaceholders, hasTabPlaceholders, resolvePlaceholders } from "@/lib/placeholders";
+import { hasTabPlaceholders, resolvePlaceholders } from "@/lib/placeholders";
 
 const NOW = Date.UTC(2026, 8, 25, 12, 30, 15, 250);
 const TAB_URL = "https://app.example.com:8443/panel?x=1";
@@ -8,23 +8,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("hasPlaceholders", () => {
-  it("detects placeholders with or without inner spaces", () => {
-    expect(hasPlaceholders("Bearer {{ uuid }}")).toBe(true);
-    expect(hasPlaceholders("{{timestamp}}")).toBe(true);
-    expect(hasPlaceholders("sin nada {uuid}")).toBe(false);
-  });
-
-  it("gives the same answer on repeated calls with the global pattern", () => {
-    expect(hasPlaceholders("{{uuid}}")).toBe(true);
-    expect(hasPlaceholders("{{uuid}}")).toBe(true);
-  });
-});
-
 describe("hasTabPlaceholders", () => {
   it("only reacts to placeholders that need the active tab", () => {
     expect(hasTabPlaceholders("{{tabOrigin}}/api")).toBe(true);
     expect(hasTabPlaceholders("{{uuid}} {{unix}}")).toBe(false);
+  });
+
+  it("gives the same answer on repeated calls with the global pattern", () => {
+    expect(hasTabPlaceholders("{{ tabUrl }}")).toBe(true);
+    expect(hasTabPlaceholders("{{ tabUrl }}")).toBe(true);
   });
 });
 

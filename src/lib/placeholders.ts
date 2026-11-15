@@ -71,8 +71,6 @@ const placeholderNamesIn = (value: string): string[] => {
   return Array.from(value.matchAll(PLACEHOLDER_PATTERN), (match) => match[1] ?? "");
 };
 
-export const hasPlaceholders = (value: string): boolean => placeholderNamesIn(value).length > 0;
-
 export const hasTabPlaceholders = (value: string): boolean =>
   placeholderNamesIn(value).some((name) => TAB_PLACEHOLDER_NAMES.has(name));
 

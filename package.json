@@ -26,7 +26,7 @@
     "quality:check": "bash ../infra/quality/sync.sh . --check",
     "verify": "pnpm run quality:check && pnpm run format:check && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run deps && pnpm run audit && pnpm run test:coverage",
     "test:changed": "vitest run --changed --passWithNoTests",
-    "knip": "knip --no-progress",
+    "knip": "knip --no-progress && knip --production --no-progress",
     "deps": "depcruise --config dependency-cruiser.standard.mjs src tests e2e scripts",
     "audit": "pnpm audit --audit-level high --prod",
     "test:mutation": "timeout --signal=INT 3h stryker run"

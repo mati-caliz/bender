@@ -1,13 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  contrastRatio,
-  isLightColor,
-  normalizeCssColor,
-  parseCssColor,
-  toHex,
-  toHslString,
-  toRgbString,
-} from "@/lib/color";
+import { contrastRatio, isLightColor, parseCssColor, toHex, toHslString, toRgbString } from "@/lib/color";
 
 const WHITE = { red: 255, green: 255, blue: 255, alpha: 1 };
 const BLACK = { red: 0, green: 0, blue: 0, alpha: 1 };
@@ -49,11 +41,6 @@ describe("formatos de salida", () => {
     const color = parseCssColor("rgba(0, 0, 0, 0.4)") ?? BLACK;
     expect(toRgbString(color)).toBe("rgba(0, 0, 0, 0.4)");
     expect(toHslString(color)).toBe("hsla(0, 0%, 0%, 0.4)");
-  });
-
-  it("normaliza a hex solo colores visibles", () => {
-    expect(normalizeCssColor("rgb(0, 0, 0)")).toBe("#000000");
-    expect(normalizeCssColor("rgba(0, 0, 0, 0)")).toBeNull();
   });
 });
 

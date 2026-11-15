@@ -1,14 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatBytes,
-  formatDateTime,
-  formatDuration,
-  formatTime,
-  hostnameOf,
-  prettyJson,
-  shortUrl,
-  truncate,
-} from "@/lib/format";
+import { formatBytes, formatDateTime, formatDuration, formatTime, prettyJson, shortUrl } from "@/lib/format";
 
 const localTimestamp = new Date(2026, 0, 2, 14, 5, 9).getTime();
 
@@ -58,19 +49,6 @@ describe("formatTime and formatDateTime", () => {
   });
 });
 
-describe("truncate", () => {
-  it("returns the value untouched when it fits", () => {
-    expect(truncate("abc", 3)).toBe("abc");
-  });
-
-  it("cuts and appends an ellipsis keeping the max length", () => {
-    const truncated = truncate("abcdef", 4);
-
-    expect(truncated).toBe("abc…");
-    expect(truncated).toHaveLength(4);
-  });
-});
-
 describe("shortUrl", () => {
   it("keeps path and query string", () => {
     expect(shortUrl("https://api.example.com/v1/users?page=2")).toBe("/v1/users?page=2");
@@ -86,16 +64,6 @@ describe("shortUrl", () => {
 
   it("returns the input when it is not a url", () => {
     expect(shortUrl("no es una url")).toBe("no es una url");
-  });
-});
-
-describe("hostnameOf", () => {
-  it("extracts the hostname", () => {
-    expect(hostnameOf("https://sub.example.com:8080/path")).toBe("sub.example.com");
-  });
-
-  it("returns an empty string for invalid urls", () => {
-    expect(hostnameOf("::::")).toBe("");
   });
 });
 

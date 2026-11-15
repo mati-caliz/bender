@@ -110,16 +110,6 @@ export const describeScope = (scope: Scope): string => {
   return parts.length > 0 ? parts.join(" · ") : "todas las requests";
 };
 
-export const isScopeRestricted = (scope: Scope): boolean =>
-  scope.activeTabOnly ||
-  scope.includeDomains.length > 0 ||
-  scope.excludeDomains.length > 0 ||
-  scope.initiatorDomains.length > 0 ||
-  scope.excludedInitiatorDomains.length > 0 ||
-  scope.urlFilter.trim().length > 0 ||
-  scope.resourceTypes.length > 0 ||
-  scope.requestMethods.length > 0;
-
 const URL_FILTER_WILDCARD = "*";
 const URL_FILTER_SEPARATOR = "^";
 const SEPARATOR_SOURCE = "(?:[^a-zA-Z0-9._%\\-]|$)";

@@ -24,9 +24,6 @@ export const formatTime = (timestamp: number): string =>
 export const formatDateTime = (timestamp: number): string =>
   new Date(timestamp).toLocaleString("es-AR", { hour12: false });
 
-export const truncate = (value: string, maxLength: number): string =>
-  value.length <= maxLength ? value : `${value.slice(0, maxLength - 1)}…`;
-
 /** Nombre apto para un archivo: sin acentos, espacios ni caracteres que Windows rechaza. */
 export const slugify = (value: string): string => {
   const slug = value
@@ -44,14 +41,6 @@ export const shortUrl = (url: string): string => {
     return `${parsed.pathname}${parsed.search}` || parsed.hostname;
   } catch {
     return url;
-  }
-};
-
-export const hostnameOf = (url: string): string => {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return "";
   }
 };
 
