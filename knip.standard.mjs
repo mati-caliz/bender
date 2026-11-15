@@ -3,7 +3,9 @@
 // arma con standardKnipConfig() y le suma sólo lo propio: las entradas que knip no descubre solo y
 // lo generado.
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+import process from "node:process";
 
 // eslint.standard.mjs exporta los límites del estándar para quien los quiera leer, aunque el paquete
 // no los use: sin esto knip los marca, y con --fix les sacaría el export a una copia que no se edita.
@@ -30,12 +32,122 @@ const GENERATED = existsSync(OPENAPI_GENERATED) ? [`${OPENAPI_GENERATED}/**`] : 
 // aunque ningún archivo suyo la importe.
 const GENERATOR_DEPENDENCIES = existsSync(OPENAPI_GENERATED) ? ["openapi-typescript"] : [];
 
+// QS-209: el gate corre knip también con --production, que no cuenta los tests como uso: un archivo o
+// export que sólo usa su test está muerto. En ese modo knip sólo mira los archivos de project marcados
+// con «!», así que el patrón lleva el sufijo (vale en los dos modos), y suma las extensiones que compila
+// algún plugin del paquete para seguir sus imports. Quedan afuera de producción, con «!…!», las
+// carpetas de apoyo de los tests, los scripts, las copias del estándar y las configs de la raíz; lo
+// propio de cada repo (scripts a mano, evals) va en nonProduction.
+const PACKAGE_MANIFEST = "package.json";
+const COMPILED_EXTENSIONS = {
+  css: ["tailwindcss"],
+  astro: ["astro"],
+  mdx: ["@astrojs/mdx", "@mdx-js/react", "@next/mdx"],
+  prisma: ["prisma", "@prisma/client"],
+};
+const CODE_EXTENSIONS = ["js", "jsx", "mjs", "cjs", "ts", "tsx", "mts", "cts"];
+const declaredIn = (manifestPath) => {
+  if (!existsSync(manifestPath)) {
+    return [];
+  }
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  return Object.keys({ ...manifest.dependencies, ...manifest.devDependencies });
+};
+const workspaceManifests = () =>
+  workspaceGlobs().flatMap((glob) => {
+    const parent = glob.replace(/\/\*$/, "");
+    if (parent === glob) {
+      return [path.join(glob, PACKAGE_MANIFEST)];
+    }
+    return existsSync(parent)
+      ? readdirSync(parent, { withFileTypes: true })
+          .filter((entry) => entry.isDirectory())
+          .map((entry) => path.join(parent, entry.name, PACKAGE_MANIFEST))
+      : [];
+  });
+const projectExtensions = (directory) => {
+  const declared = new Set(declaredIn(path.join(directory, PACKAGE_MANIFEST)));
+  const compiled = Object.entries(COMPILED_EXTENSIONS)
+    .filter(([, compilers]) => compilers.some((compiler) => declared.has(compiler)))
+    .map(([extension]) => extension);
+  return [...CODE_EXTENSIONS, ...compiled];
+};
+const NOT_PRODUCTION = [
+  "**/test/**",
+  "**/tests/**",
+  "**/__tests__/**",
+  "**/__mocks__/**",
+  "**/__fixtures__/**",
+  "e2e/**",
+  "scripts/**",
+  "*.standard.*",
+  "*.config.*",
+];
+const productionOnlyExclusion = (pattern) => `!${pattern}!`;
+// En producción knip no toma como entrada la que descubre solo (src/index.ts de una app de Node): va
+// marcada con «!». En modo normal sí la descubre y la misma línea es un aviso de entrada redundante, así
+// que sólo se agrega cuando corre con --production.
+const PRODUCTION_FLAG = "--production";
+const NODE_ENTRY_CANDIDATES = ["src/index.ts", "src/main.ts", "src/server.ts", "index.ts", "main.ts"];
+const productionEntries = () =>
+  process.argv.includes(PRODUCTION_FLAG)
+    ? NODE_ENTRY_CANDIDATES.filter((candidate) => existsSync(candidate)).map((candidate) => `${candidate}!`)
+    : [];
+
+// Un paquete que es raíz de un workspace de pnpm (atlas) corre knip una vez para todos: ahí el project
+// va por workspace, no arriba, o knip avisa que el de arriba no lo usa nadie.
+const WORKSPACE_MANIFEST = "pnpm-workspace.yaml";
+const WORKSPACE_PACKAGE_LINE = /^\s+-\s+["']?([^"'\s]+)["']?\s*$/;
+const workspaceGlobs = () => {
+  if (!existsSync(WORKSPACE_MANIFEST)) {
+    return [];
+  }
+  const globs = [];
+  let inPackages = false;
+  for (const line of readFileSync(WORKSPACE_MANIFEST, "utf8").split("\n")) {
+    if (/^\S/.test(line)) {
+      inPackages = line.startsWith("packages:");
+      continue;
+    }
+    const match = inPackages ? WORKSPACE_PACKAGE_LINE.exec(line) : null;
+    if (match !== null) {
+      globs.push(match[1]);
+    }
+  }
+  return globs;
+};
+
 /**
- * @param {{ entry?: string[], ignore?: string[], ignoreDependencies?: string[] }} options
+ * @param {{ entry?: string[], ignore?: string[], ignoreDependencies?: string[], nonProduction?: string[] }} options
  */
-export function standardKnipConfig({ entry = [], ignore = [], ignoreDependencies = [] } = {}) {
+export function standardKnipConfig({
+  entry = [],
+  ignore = [],
+  ignoreDependencies = [],
+  nonProduction = [],
+} = {}) {
+  const projectOf = (directory) => [
+    `**/*.{${projectExtensions(directory).join(",")}}!`,
+    ...[...NOT_PRODUCTION, ...nonProduction].map(productionOnlyExclusion),
+  ];
+  const entries = [...BROWSER_ENTRIES, ...productionEntries(), ...entry];
+  const workspaceDirectories = workspaceManifests()
+    .filter((manifest) => existsSync(manifest))
+    .map((manifest) => path.dirname(manifest))
+    .filter((directory) => directory !== ".");
+  const scope =
+    workspaceDirectories.length === 0
+      ? { entry: entries, project: projectOf(".") }
+      : {
+          workspaces: {
+            ".": { entry: entries, project: projectOf(".") },
+            ...Object.fromEntries(
+              workspaceDirectories.map((directory) => [directory, { project: projectOf(directory) }]),
+            ),
+          },
+        };
   return {
-    entry: [...BROWSER_ENTRIES, ...entry],
+    ...scope,
     ignore: [...STANDARD_COPIES, ...GENERATED, ...ignore],
     ignoreDependencies: [...GENERATOR_DEPENDENCIES, ...ignoreDependencies],
   };
