@@ -28,7 +28,8 @@
     "test:changed": "vitest run --changed --passWithNoTests",
     "knip": "knip --no-progress",
     "deps": "depcruise --config dependency-cruiser.standard.mjs src tests e2e scripts",
-    "audit": "pnpm audit --audit-level high --prod"
+    "audit": "pnpm audit --audit-level high --prod",
+    "test:mutation": "timeout --signal=INT 3h stryker run"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.4",
@@ -45,6 +46,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.1",
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/chrome": "^0.3.6",
