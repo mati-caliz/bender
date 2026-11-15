@@ -12,6 +12,7 @@ import process from "node:process";
 const SELF = `scripts${sep}check-coverage.mjs`;
 const MIN_TOTAL = { lines: 80, branches: 70 };
 const MIN_PER_FILE = { lines: 50, branches: 45 };
+const NEXT_PER_FILE = { lines: 70, branches: 60 };
 const FULL_PERCENT = 100;
 const KINDS = ["lines", "branches"];
 const KIND_NAMES = { lines: "líneas", branches: "ramas" };
@@ -56,6 +57,10 @@ for (const scope of scopes) {
       if (percent < MIN_PER_FILE[kind]) {
         failures.push(
           `${file.name}: ${percent.toFixed(1)} % de ${KIND_NAMES[kind]} (mínimo por archivo ${MIN_PER_FILE[kind]} %)`,
+        );
+      } else if (percent < NEXT_PER_FILE[kind]) {
+        process.stdout.write(
+          `vara siguiente (QS-303): ${file.name} con ${percent.toFixed(1)} % de ${KIND_NAMES[kind]}\n`,
         );
       }
     }
