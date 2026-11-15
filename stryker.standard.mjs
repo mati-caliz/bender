@@ -107,12 +107,23 @@ const shardsOf = (files) => {
 };
 
 const LINE_RANGE = /:\d+-\d+$/;
+const GLOB_CHARACTER = /[()[\]{}*?!]/;
+const EVERY_GLOB_CHARACTER = new RegExp(GLOB_CHARACTER.source, "g");
 
-const changedFiles = () =>
-  (process.env.MUTATION_FILES ?? "").split(FILE_LIST_SEPARATOR).filter((entry) => {
+// Stryker toma como glob una ruta con paréntesis o corchetes (las de Next: (public)/loyalty/[slug]) y no
+// deja combinar un glob con un rango de líneas: ese archivo se muta entero, con cada carácter como clase.
+const toStrykerPattern = (entry) => {
+  const file = entry.replace(LINE_RANGE, "");
+  return GLOB_CHARACTER.test(file) ? file.replace(EVERY_GLOB_CHARACTER, (character) => `[${character}]`) : entry;
+};
+
+const changedFiles = () => {
+  const entries = (process.env.MUTATION_FILES ?? "").split(FILE_LIST_SEPARATOR).filter((entry) => {
     const file = entry.replace(LINE_RANGE, "");
     return TYPESCRIPT_SOURCE.test(file) && !NOT_LOGIC.test(file) && existsSync(file);
   });
+  return [...new Set(entries.map(toStrykerPattern))];
+};
 
 const selection = (mutate) => {
   if (process.env.MUTATION_FILES !== undefined) {

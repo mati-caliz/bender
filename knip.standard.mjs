@@ -171,11 +171,7 @@ export function standardKnipConfig({
   const scope =
     workspaceDirectories.length === 0
       ? scopeOf(".")
-      : {
-          workspaces: Object.fromEntries(
-            [".", ...workspaceDirectories].map((directory) => [directory, scopeOf(directory)]),
-          ),
-        };
+      : { workspaces: Object.fromEntries([".", ...workspaceDirectories].map((directory) => [directory, scopeOf(directory)])) };
   return {
     ...scope,
     ignoreExportsUsedInFile: isProductionRun(),
