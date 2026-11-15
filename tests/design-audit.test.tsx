@@ -127,9 +127,13 @@ describe("fetchDesignAudit", () => {
   it("runs the audits in the tab and joins them", async () => {
     render('<p style="color: rgb(255, 0, 0)">hola</p>');
     const executeScript = vi.fn(
-      async ({ func, args }: { func: (...values: (number | string[])[]) => unknown; args: (number | string[])[] }) => [
-        { result: func(...args) },
-      ],
+      ({
+        func,
+        args,
+      }: {
+        func: (...values: (number | string[])[]) => unknown;
+        args: (number | string[])[];
+      }) => Promise.resolve([{ result: func(...args) }]),
     );
     vi.stubGlobal("chrome", { scripting: { executeScript } });
 
@@ -144,7 +148,7 @@ describe("fetchDesignAudit", () => {
   });
 
   it("gives up when an audit returns nothing", async () => {
-    vi.stubGlobal("chrome", { scripting: { executeScript: vi.fn(async () => []) } });
+    vi.stubGlobal("chrome", { scripting: { executeScript: vi.fn(() => Promise.resolve([])) } });
 
     expect(await fetchDesignAudit(7)).toBeNull();
   });

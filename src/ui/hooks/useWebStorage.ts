@@ -109,7 +109,11 @@ interface StorageContext {
 }
 
 /** Apagar un item lo guarda aparte y lo saca de la página; prenderlo lo vuelve a escribir. */
-const applyToggle = async (context: StorageContext, row: ToggleRow<StoredItem>, enabled: boolean): Promise<void> => {
+const applyToggle = async (
+  context: StorageContext,
+  row: ToggleRow<StoredItem>,
+  enabled: boolean,
+): Promise<void> => {
   const { tabId, area, disabled, persistDisabled } = context;
   if (enabled) {
     await runInTab(tabId, pageSet, [area, row.item.key, row.item.value]);
@@ -131,11 +135,16 @@ const applySave = async (
     await persistDisabled({ ...withoutKey(disabled, originalKey), [item.key]: item });
     return;
   }
-  if (originalKey !== null && originalKey !== item.key) await runInTab(tabId, pageRemove, [area, originalKey]);
+  if (originalKey !== null && originalKey !== item.key)
+    await runInTab(tabId, pageRemove, [area, originalKey]);
   await runInTab(tabId, pageSet, [area, item.key, item.value]);
 };
 
-const importAll = async (tabId: ActiveTab["id"], area: StorageArea, incoming: StoredItem[]): Promise<number> => {
+const importAll = async (
+  tabId: ActiveTab["id"],
+  area: StorageArea,
+  incoming: StoredItem[],
+): Promise<number> => {
   let failed = 0;
   for (const item of incoming) {
     try {
@@ -148,11 +157,14 @@ const importAll = async (tabId: ActiveTab["id"], area: StorageArea, incoming: St
 };
 
 export const useWebStorage = (activeTab: ActiveTab, area: StorageArea): WebStorageController => {
-  const { tabId, scope, items, disabled, error, setDisabled, setError, reload } = useStorageState(activeTab, area);
+  const { tabId, scope, items, disabled, error, setDisabled, setError, reload } = useStorageState(
+    activeTab,
+    area,
+  );
 
   const { persistDisabled, runAndReload } = useDisabledItemActions<StoredItem>({
     storageKey: DISABLED_STORAGE_KEY,
-    scope: scope,
+    scope,
     setDisabled,
     setError,
     reload,
