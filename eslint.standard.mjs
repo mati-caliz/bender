@@ -65,6 +65,8 @@ const DEFAULT_IGNORES = [
   "**/next-env.d.ts",
   "**/playwright-report/**",
   "**/test-results/**",
+  "**/.stryker-tmp/**",
+  "**/reports/mutation/**",
 ];
 
 const FUNCTION_NODE_TYPES = new Set(["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"]);
