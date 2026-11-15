@@ -7,5 +7,5 @@ store/screenshots/raw/
 .DS_Store
 .idea/
 coverage/
-.stryker-tmp/
+.stryker-tmp*/
 **/reports/mutation/

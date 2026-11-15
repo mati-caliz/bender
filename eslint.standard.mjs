@@ -66,6 +66,7 @@ const DEFAULT_IGNORES = [
   "**/playwright-report/**",
   "**/test-results/**",
   "**/.stryker-tmp/**",
+  "**/.stryker-tmp-*/**",
   "**/reports/mutation/**",
 ];
 

@@ -78,10 +78,18 @@ const NOT_PRODUCTION = [
   "**/__tests__/**",
   "**/__mocks__/**",
   "**/__fixtures__/**",
+  "**/testing/**",
+  "**/test-doubles/**",
+  "**/test-support.*",
+  "**/*-fixtures.*",
+  "**/*.fixture.*",
+  "**/*.fixtures.*",
+  "test-*.*",
   "e2e/**",
   "scripts/**",
+  "**/tenant-leak.*",
   "*.standard.*",
-  "*.config.*",
+  "vitest.setup.*",
 ];
 const productionOnlyExclusion = (pattern) => `!${pattern}!`;
 // En producción knip no toma como entrada la que descubre solo (src/index.ts de una app de Node): va
@@ -89,9 +97,14 @@ const productionOnlyExclusion = (pattern) => `!${pattern}!`;
 // que sólo se agrega cuando corre con --production.
 const PRODUCTION_FLAG = "--production";
 const NODE_ENTRY_CANDIDATES = ["src/index.ts", "src/main.ts", "src/server.ts", "index.ts", "main.ts"];
-const productionEntries = () =>
-  process.argv.includes(PRODUCTION_FLAG)
-    ? NODE_ENTRY_CANDIDATES.filter((candidate) => existsSync(candidate)).map((candidate) => `${candidate}!`)
+// En producción se busca código muerto: un export que también se usa en su archivo corre en la app
+// aunque sólo el test lo importe de afuera. El modo normal sigue marcando los exports que no usa nadie.
+const isProductionRun = () => process.argv.includes(PRODUCTION_FLAG);
+const productionEntries = (directory = ".") =>
+  isProductionRun()
+    ? NODE_ENTRY_CANDIDATES.filter((candidate) => existsSync(path.join(directory, candidate))).map(
+        (candidate) => `${candidate}!`,
+      )
     : [];
 
 // Un paquete que es raíz de un workspace de pnpm (atlas) corre knip una vez para todos: ahí el project
@@ -118,36 +131,54 @@ const workspaceGlobs = () => {
 };
 
 /**
- * @param {{ entry?: string[], ignore?: string[], ignoreDependencies?: string[], nonProduction?: string[] }} options
+ * productionEntry son entradas que en modo normal knip ya descubre (un script del package.json) pero que en
+ * producción hay que marcar: sólo se suman con --production, para no dejar un aviso de redundante.
+ *
+ * @param {{ entry?: string[], productionEntry?: string[], ignore?: string[], ignoreDependencies?: string[], nonProduction?: string[] }} options
  */
 export function standardKnipConfig({
   entry = [],
+  productionEntry = [],
   ignore = [],
   ignoreDependencies = [],
   nonProduction = [],
 } = {}) {
-  const projectOf = (directory) => [
-    `**/*.{${projectExtensions(directory).join(",")}}!`,
-    ...[...NOT_PRODUCTION, ...nonProduction].map(productionOnlyExclusion),
-  ];
-  const entries = [...BROWSER_ENTRIES, ...productionEntries(), ...entry];
   const workspaceDirectories = workspaceManifests()
     .filter((manifest) => existsSync(manifest))
     .map((manifest) => path.dirname(manifest))
     .filter((directory) => directory !== ".");
+  // Los patrones del repo van con la ruta desde la raíz; en un workspace cada uno pasa al suyo.
+  const ownerOf = (pattern) =>
+    workspaceDirectories.find((directory) => pattern.replace(/^!/, "").startsWith(`${directory}/`)) ?? ".";
+  const within = (patterns, directory) =>
+    patterns
+      .filter((pattern) => ownerOf(pattern) === directory)
+      .map((pattern) => (directory === "." ? pattern : pattern.replace(`${directory}/`, "")));
+  const projectOf = (directory) => [
+    `**/*.{${projectExtensions(directory).join(",")}}!`,
+    ...[...NOT_PRODUCTION, ...within(nonProduction, directory)].map(productionOnlyExclusion),
+  ];
+  const productionOnly = isProductionRun() ? productionEntry.map((pattern) => `${pattern}!`) : [];
+  const entriesOf = (directory) => [
+    ...(directory === "." ? BROWSER_ENTRIES : []),
+    ...productionEntries(directory),
+    ...within([...productionOnly, ...entry], directory),
+  ];
+  const scopeOf = (directory) => {
+    const entries = entriesOf(directory);
+    return { ...(entries.length > 0 ? { entry: entries } : {}), project: projectOf(directory) };
+  };
   const scope =
     workspaceDirectories.length === 0
-      ? { entry: entries, project: projectOf(".") }
+      ? scopeOf(".")
       : {
-          workspaces: {
-            ".": { entry: entries, project: projectOf(".") },
-            ...Object.fromEntries(
-              workspaceDirectories.map((directory) => [directory, { project: projectOf(directory) }]),
-            ),
-          },
+          workspaces: Object.fromEntries(
+            [".", ...workspaceDirectories].map((directory) => [directory, scopeOf(directory)]),
+          ),
         };
   return {
     ...scope,
+    ignoreExportsUsedInFile: isProductionRun(),
     ignore: [...STANDARD_COPIES, ...GENERATED, ...ignore],
     ignoreDependencies: [...GENERATOR_DEPENDENCIES, ...ignoreDependencies],
   };

@@ -22,6 +22,11 @@ import path from "node:path";
 import process from "node:process";
 
 const CONCURRENCY = 2;
+const TEMP_DIR = ".stryker-tmp";
+// Stryker copia el paquete a <temp>/sandbox-x: en un paquete de monorepo (apps/core-api de respondi) el
+// tsconfig extiende ../../tsconfig.base.json y desde ahí ya no lo encuentra. La carpeta temporal va a la
+// profundidad que deja la sandbox a la misma altura que el paquete, así las rutas relativas resuelven igual.
+const PACKAGE_DEPTH_WITH_OWN_TEMP = 2;
 const DRY_RUN_TIMEOUT_MINUTES = 20;
 const REPORT_DIR = "reports/mutation";
 const SHARD_LINES = 1500;
@@ -72,6 +77,16 @@ const testedLogicFiles = () => {
     .filter((file) => file.endsWith(".ts") && !NOT_LOGIC.test(file) && !TEST_FOLDER.test(file))
     .filter((file) => imported.has(file) || testedKeys.has(keyOf(file)))
     .sort();
+};
+
+const tempDirName = () => {
+  const root = spawnSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).stdout.trim();
+  const parts = path.relative(root, process.cwd()).split(path.sep).filter(Boolean);
+  if (root === "" || parts.length < PACKAGE_DEPTH_WITH_OWN_TEMP) {
+    return TEMP_DIR;
+  }
+  const anchor = path.join(root, ...parts.slice(0, parts.length - PACKAGE_DEPTH_WITH_OWN_TEMP));
+  return path.relative(process.cwd(), path.join(anchor, `${TEMP_DIR}-${parts.join("-")}`));
 };
 
 const linesOf = (file) => readFileSync(file, "utf8").split("\n").length;
@@ -127,7 +142,7 @@ export function standardMutationConfig({ mutate, vitestConfig }) {
     dryRunTimeoutMinutes: DRY_RUN_TIMEOUT_MINUTES,
     reporters: ["clear-text", "json", "progress"],
     jsonReporter: { fileName: `${REPORT_DIR}/mutation.json` },
-    tempDirName: ".stryker-tmp",
+    tempDirName: tempDirName(),
     cleanTempDir: "always",
     thresholds: { high: 80, low: 60, break: null },
   };
