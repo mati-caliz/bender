@@ -10,9 +10,11 @@ import { existsSync } from "node:fs";
 // El extractor de identificadores lo lanza scripts/check_identifiers.py, no un import ni un script
 // del package.json. Sólo existe en la raíz del repo.
 const IDENTIFIERS_EXTRACTOR = "scripts/identifiers.mjs";
+// El tope de JS por ruta (QS-602) lo corre el Dockerfile después de next build. Sólo en apps de Next.
+const ROUTE_JS_CHECK = "scripts/check-route-js.mjs";
 const STANDARD_COPIES = [
   "eslint.standard.mjs",
-  ...(existsSync(IDENTIFIERS_EXTRACTOR) ? [IDENTIFIERS_EXTRACTOR] : []),
+  ...[IDENTIFIERS_EXTRACTOR, ROUTE_JS_CHECK].filter((copy) => existsSync(copy)),
 ];
 
 // El navegador pide el service worker de una PWA al registrarlo: nadie lo importa. Va sólo si el
