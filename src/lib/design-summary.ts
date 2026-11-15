@@ -69,10 +69,12 @@ const styleOf = (element: ElementStyle, property: string): string => element.sty
 const clampChannel = (channel: number): number => Math.max(0, Math.min(MAX_CHANNEL, Math.round(channel)));
 const toHexDigits = (channel: number): string => clampChannel(channel).toString(HEX_RADIX).padStart(2, "0");
 const channelsOf = (value: string): number[] =>
-  value.startsWith("rgb") || value.startsWith("color(") ? (value.match(NUMBER_PATTERN) ?? []).map(Number) : [];
+  value.startsWith("rgb") || value.startsWith("color(")
+    ? (value.match(NUMBER_PATTERN) ?? []).map(Number)
+    : [];
 
 /** Un color computado (`rgb()`, `rgba()` o `color(srgb …)`) en hexadecimal; null si es transparente. */
-export const toHexColor = (input: string): string | null => {
+const toHexColor = (input: string): string | null => {
   const value = input.trim().toLowerCase();
   const [red, green, blue, alpha = 1] = channelsOf(value);
   if (red === undefined || green === undefined || blue === undefined || alpha === 0) return null;
@@ -132,7 +134,11 @@ const summarizeFonts = (elements: ElementStyle[], maxResults: number): FontUsage
   return topResults(fonts, maxResults);
 };
 
-const summarizeValues = (elements: ElementStyle[], properties: string[], maxResults: number): ValueUsage[] => {
+const summarizeValues = (
+  elements: ElementStyle[],
+  properties: string[],
+  maxResults: number,
+): ValueUsage[] => {
   const counts = new Map<string, number>();
   for (const element of elements) {
     for (const property of properties) {

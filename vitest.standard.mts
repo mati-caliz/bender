@@ -60,7 +60,7 @@ const DATABASE_PROJECT = "database";
 const DATABASE_SETUP = "./test-database.mts";
 
 const COVERAGE_PROVIDER = "v8";
-const COVERAGE_REPORTERS = ["text-summary", "json-summary"];
+const COVERAGE_REPORTERS = ["text-summary", "json-summary", "json"];
 const COVERAGE_SOURCES = ["src/**/*.{ts,tsx}"];
 const COVERAGE_ALWAYS_EXCLUDED = [
   "**/*.{test,spec}.{ts,tsx,mts}",

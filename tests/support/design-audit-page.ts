@@ -12,7 +12,8 @@ const COLOR_PROPERTY_BY_ROLE: Record<ColorRole, string> = {
   border: "border-top-color",
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
 
 const toComputedColor = (hex: string): string => {
   const [red, green, blue, alpha] = (hex.slice(1).match(HEX_PAIR) ?? []).map((pair) =>
@@ -56,7 +57,7 @@ const valueElements = (property: string, { value, count }: ValueUsage): ElementS
   repeated(count, { hasOwnText: false, styles: { [property]: value } });
 
 /** Estilos de elementos que, resumidos, dan exactamente la auditoría pedida. */
-export const styleSampleFor = (audit: DesignAudit): PageStyleSample => ({
+const styleSampleFor = (audit: DesignAudit): PageStyleSample => ({
   elementCount: audit.elementCount,
   visibleElements: [
     ...audit.colors.flatMap(colorElements),
