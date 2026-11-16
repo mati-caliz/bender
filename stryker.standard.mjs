@@ -9,7 +9,8 @@
 //
 // Qué se muta:
 // - MUTATION_FILES (separados por espacios o saltos de línea, cada uno archivo o archivo:inicio-fin):
-//   sólo esos, o sólo esas líneas. Es la mutación de lo cambiado que corre validate-changes (QS-403).
+//   sólo esos, o sólo esas líneas, sin lo que vive en una carpeta de tests. Es la mutación de lo
+//   cambiado que corre validate-changes (QS-403).
 // - Si no, la lista del repo (mutate) o, sin lista, la lógica con test propio: un .ts versionado que no
 //   es test ni declaración y que algún test importa, o que tiene un .test/.spec con su mismo camino
 //   (al lado, en tests/ o en src/__tests__/, las tres formas que usan los repos). Mutar código sin
@@ -33,7 +34,7 @@ const SHARD_LINES = 1500;
 const TYPESCRIPT_SOURCE = /\.tsx?$/;
 const NOT_LOGIC = /\.(test|spec)\.tsx?$|\.d\.ts$|\.stories\.tsx?$|\.config\.ts$/;
 const TEST_FILE = /\.(test|spec)\.tsx?$/;
-const TEST_FOLDER = /(^|\/)(tests?|__tests__)\//;
+const TEST_FOLDER = /(^|\/)(tests?|testing|__tests__)\//;
 const EVERY_TEST_FOLDER = new RegExp(TEST_FOLDER.source, "g");
 const UP_TO_SOURCE_FOLDER = /^.*?(^|\/)src\//;
 const FILE_LIST_SEPARATOR = /\s+/;
@@ -114,26 +115,38 @@ const EVERY_GLOB_CHARACTER = new RegExp(GLOB_CHARACTER.source, "g");
 // deja combinar un glob con un rango de líneas: ese archivo se muta entero, con cada carácter como clase.
 const toStrykerPattern = (entry) => {
   const file = entry.replace(LINE_RANGE, "");
-  return GLOB_CHARACTER.test(file) ? file.replace(EVERY_GLOB_CHARACTER, (character) => `[${character}]`) : entry;
+  return GLOB_CHARACTER.test(file)
+    ? file.replace(EVERY_GLOB_CHARACTER, (character) => `[${character}]`)
+    : entry;
 };
 
 const changedFiles = () => {
   const entries = (process.env.MUTATION_FILES ?? "").split(FILE_LIST_SEPARATOR).filter((entry) => {
     const file = entry.replace(LINE_RANGE, "");
-    return TYPESCRIPT_SOURCE.test(file) && !NOT_LOGIC.test(file) && existsSync(file);
+    return (
+      TYPESCRIPT_SOURCE.test(file) && !NOT_LOGIC.test(file) && !TEST_FOLDER.test(file) && existsSync(file)
+    );
   });
   return [...new Set(entries.map(toStrykerPattern))];
 };
 
 const selection = (mutate) => {
   if (process.env.MUTATION_FILES !== undefined) {
-    return { files: changedFiles(), incrementalName: "incremental-changed.json" };
+    return { files: changedFiles(), incrementalName: null };
   }
   const shards = shardsOf(mutate ?? testedLogicFiles());
   const round = Number.parseInt(process.env.MUTATION_ROUND ?? "0", 10) || 0;
   const index = round % shards.length;
   return { files: shards[index], incrementalName: `incremental-${index + 1}-of-${shards.length}.json` };
 };
+
+// La mutación de lo cambiado no es incremental: Stryker guarda en el informe incremental los archivos
+// de corridas anteriores aunque ya no se muten, y sus vivos seguían contando en el puntaje después
+// de que un test nuevo los matara (conseguilo, 2026-11-16: 50 vivos que ya no existían).
+const incrementalOptions = (incrementalName) =>
+  incrementalName === null
+    ? { incremental: false }
+    : { incremental: true, incrementalFile: `${REPORT_DIR}/${incrementalName}` };
 
 /**
  * @param {{ mutate?: string[], vitestConfig: string }} options
@@ -148,8 +161,7 @@ export function standardMutationConfig({ mutate, vitestConfig }) {
     concurrency: CONCURRENCY,
     coverageAnalysis: "perTest",
     ignoreStatic: true,
-    incremental: true,
-    incrementalFile: `${REPORT_DIR}/${incrementalName}`,
+    ...incrementalOptions(incrementalName),
     dryRunTimeoutMinutes: DRY_RUN_TIMEOUT_MINUTES,
     reporters: ["clear-text", "json", "progress"],
     jsonReporter: { fileName: `${REPORT_DIR}/mutation.json` },
