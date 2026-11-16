@@ -13,7 +13,7 @@ import tseslint from "typescript-eslint";
 
 export const LIMITS = Object.freeze({
   linesPerFile: 400,
-  linesPerFunction: 120,
+  linesPerFunction: 80,
   complexity: 10,
   cognitiveComplexity: 12,
   nestingDepth: 4,
