@@ -40,7 +40,7 @@ const SOURCE_FOLDER = "src/";
 const NESTED_SOURCE_FOLDER = "/src/";
 const GIT_BINARY = "/usr/bin/git";
 const FILE_LIST_SEPARATOR = /\s+/;
-const IMPORT_SPECIFIER = /(?:from|import)\s*\(?\s*["']([^"']+)["']/g;
+const IMPORT_SPECIFIER = /(?:from|import)[\s(]*["']([^"']+)["']/g;
 const SOURCE_ALIAS = "@/";
 const RESOLVED_SUFFIXES = ["", ".ts", "/index.ts"];
 
