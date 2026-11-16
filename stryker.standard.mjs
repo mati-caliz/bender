@@ -35,26 +35,30 @@ const TYPESCRIPT_SOURCE = /\.tsx?$/;
 const NOT_LOGIC = /\.(test|spec)\.tsx?$|\.d\.ts$|\.stories\.tsx?$|\.config\.ts$/;
 const TEST_FILE = /\.(test|spec)\.tsx?$/;
 const TEST_FOLDER = /(^|\/)(tests?|testing|__tests__)\//;
-const EVERY_TEST_FOLDER = new RegExp(TEST_FOLDER.source, "g");
-const UP_TO_SOURCE_FOLDER = /^.*?(^|\/)src\//;
+const EVERY_TEST_FOLDER = /(^|\/)(tests?|testing|__tests__)\//g;
+const SOURCE_FOLDER = "src/";
+const NESTED_SOURCE_FOLDER = "/src/";
+const GIT_BINARY = "/usr/bin/git";
 const FILE_LIST_SEPARATOR = /\s+/;
 const IMPORT_SPECIFIER = /(?:from|import)\s*\(?\s*["']([^"']+)["']/g;
 const SOURCE_ALIAS = "@/";
 const RESOLVED_SUFFIXES = ["", ".ts", "/index.ts"];
 
 const versionedFiles = () =>
-  spawnSync("git", ["ls-files", "--cached", "--others", "--exclude-standard", "*.ts", "*.tsx"], {
+  spawnSync(GIT_BINARY, ["ls-files", "--cached", "--others", "--exclude-standard", "*.ts", "*.tsx"], {
     encoding: "utf8",
   })
     .stdout.split("\n")
     .filter(Boolean);
 
+const afterSourceFolder = (file) => {
+  if (file.startsWith(SOURCE_FOLDER)) return file.slice(SOURCE_FOLDER.length);
+  const nested = file.indexOf(NESTED_SOURCE_FOLDER);
+  return nested === -1 ? file : file.slice(nested + NESTED_SOURCE_FOLDER.length);
+};
+
 const keyOf = (file) =>
-  file
-    .replace(TEST_FILE, "")
-    .replace(/\.tsx?$/, "")
-    .replace(UP_TO_SOURCE_FOLDER, "")
-    .replace(EVERY_TEST_FOLDER, "$1");
+  afterSourceFolder(file.replace(TEST_FILE, "").replace(/\.tsx?$/, "")).replace(EVERY_TEST_FOLDER, "$1");
 
 const importedBy = (testFile) => {
   const directory = path.dirname(testFile);
@@ -81,7 +85,7 @@ const testedLogicFiles = () => {
 };
 
 const tempDirName = () => {
-  const root = spawnSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).stdout.trim();
+  const root = spawnSync(GIT_BINARY, ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).stdout.trim();
   const parts = path.relative(root, process.cwd()).split(path.sep).filter(Boolean);
   if (root === "" || parts.length < PACKAGE_DEPTH_WITH_OWN_TEMP) {
     return TEMP_DIR;
@@ -109,7 +113,7 @@ const shardsOf = (files) => {
 
 const LINE_RANGE = /:\d+-\d+$/;
 const GLOB_CHARACTER = /[()[\]{}*?!]/;
-const EVERY_GLOB_CHARACTER = new RegExp(GLOB_CHARACTER.source, "g");
+const EVERY_GLOB_CHARACTER = /[()[\]{}*?!]/g;
 
 // Stryker toma como glob una ruta con paréntesis o corchetes (las de Next: (public)/loyalty/[slug]) y no
 // deja combinar un glob con un rango de líneas: ese archivo se muta entero, con cada carácter como clase.
