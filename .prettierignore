@@ -5,3 +5,4 @@ coverage/
 store/
 playwright-report/
 test-results/
+reports/mutation/
