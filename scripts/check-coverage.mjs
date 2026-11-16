@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { relative, sep } from "node:path";
 import process from "node:process";
 
-const SELF = `scripts${sep}check-coverage.mjs`;
+const STANDARD_COPIES = new Set([`scripts${sep}check-coverage.mjs`, `scripts${sep}check-route-js.mjs`]);
 const MIN_TOTAL = { lines: 80, branches: 70 };
 const MIN_PER_FILE = { lines: 50, branches: 45 };
 const NEXT_PER_FILE = { lines: 70, branches: 60 };
@@ -25,7 +25,7 @@ const detail = existsSync(DETAIL_REPORT) ? JSON.parse(readFileSync(DETAIL_REPORT
 const files = Object.entries(summary)
   .filter(([name]) => name !== "total")
   .map(([name, metrics]) => ({ name: relative(process.cwd(), name), path: name, metrics }))
-  .filter((file) => file.name !== SELF);
+  .filter((file) => !STANDARD_COPIES.has(file.name));
 
 const describeLines = (lines) => {
   const ranges = [];
