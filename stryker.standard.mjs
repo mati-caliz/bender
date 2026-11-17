@@ -21,6 +21,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const CONCURRENCY = 2;
 const TEMP_DIR = ".stryker-tmp";
@@ -152,6 +153,44 @@ const incrementalOptions = (incrementalName) =>
     ? { incremental: false }
     : { incremental: true, incrementalFile: `${REPORT_DIR}/${incrementalName}` };
 
+// Un arreglo de dependencias vacío no se puede matar: Stryker lo cambia por ["Stryker was here"], otro
+// arreglo que tampoco cambia nunca entre renders, y el hook se comporta igual. Contaban como vivos
+// (29 de los 129 arreglos vivos de la web de gastronova, 2026-11-17). Sólo los hooks de React que
+// reciben dependencias: en uno propio el arreglo puede ser un dato.
+const EMPTY_HOOK_DEPENDENCIES = "empty-hook-dependencies";
+const HOOKS_WITH_DEPENDENCIES = new Set([
+  "useCallback",
+  "useEffect",
+  "useImperativeHandle",
+  "useInsertionEffect",
+  "useLayoutEffect",
+  "useMemo",
+]);
+const ARGUMENTS_WITH_DEPENDENCIES = 2;
+
+const calledName = (callee) => (callee.type === "MemberExpression" ? callee.property.name : callee.name);
+
+const isEmptyHookDependencies = ({ node, parent }) =>
+  node.type === "ArrayExpression" &&
+  node.elements.length === 0 &&
+  parent?.type === "CallExpression" &&
+  parent.arguments.length >= ARGUMENTS_WITH_DEPENDENCIES &&
+  parent.arguments.at(-1) === node &&
+  HOOKS_WITH_DEPENDENCIES.has(calledName(parent.callee));
+
+export const strykerPlugins = [
+  {
+    kind: "Ignore",
+    name: EMPTY_HOOK_DEPENDENCIES,
+    value: {
+      shouldIgnore: (nodePath) =>
+        isEmptyHookDependencies(nodePath)
+          ? "el arreglo de dependencias vacío es un mutante equivalente"
+          : undefined,
+    },
+  },
+];
+
 /**
  * @param {{ mutate?: string[], vitestConfig: string }} options
  */
@@ -159,7 +198,8 @@ export function standardMutationConfig({ mutate, vitestConfig }) {
   const { files, incrementalName } = selection(mutate);
   return {
     testRunner: "vitest",
-    plugins: ["@stryker-mutator/vitest-runner"],
+    plugins: ["@stryker-mutator/vitest-runner", fileURLToPath(import.meta.url)],
+    ignorers: [EMPTY_HOOK_DEPENDENCIES],
     vitest: { configFile: vitestConfig },
     mutate: files,
     concurrency: CONCURRENCY,
