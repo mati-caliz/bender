@@ -16,7 +16,9 @@ let fake: FakeChrome;
 beforeEach(() => {
   fake = installFakeChrome();
   fake.scripting.executeScript.mockImplementation((injection) =>
-    Promise.resolve(injectsFiles(injection) ? [] : [{ result: auditInjectionResult(injection, EMPTY_DESIGN_AUDIT) }]),
+    Promise.resolve(
+      injectsFiles(injection) ? [] : [{ result: auditInjectionResult(injection, EMPTY_DESIGN_AUDIT) }],
+    ),
   );
 });
 

@@ -93,7 +93,13 @@ interface EnvironmentRowProps {
   onRemove: () => void;
 }
 
-const EnvironmentRow = ({ environment, state, isActive, onApply, onRemove }: EnvironmentRowProps): ReactElement => (
+const EnvironmentRow = ({
+  environment,
+  state,
+  isActive,
+  onApply,
+  onRemove,
+}: EnvironmentRowProps): ReactElement => (
   <div className="env-row" data-active={isActive}>
     <button
       type="button"

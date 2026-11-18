@@ -164,12 +164,31 @@ const useCookieState = (activeTab: ActiveTab): CookieState => {
 
   useEffect(reload, [reload]);
 
-  return { domain, liveCookies, disabled, snapshotSets, error, setDisabled, setSnapshotSets, setError, reload };
+  return {
+    domain,
+    liveCookies,
+    disabled,
+    snapshotSets,
+    error,
+    setDisabled,
+    setSnapshotSets,
+    setError,
+    reload,
+  };
 };
 
 export const useCookies = (activeTab: ActiveTab): CookiesController => {
-  const { domain, liveCookies, disabled, snapshotSets, error, setDisabled, setSnapshotSets, setError, reload } =
-    useCookieState(activeTab);
+  const {
+    domain,
+    liveCookies,
+    disabled,
+    snapshotSets,
+    error,
+    setDisabled,
+    setSnapshotSets,
+    setError,
+    reload,
+  } = useCookieState(activeTab);
 
   const { persistDisabled, runAndReload } = useDisabledItemActions<CookieSnapshot>({
     storageKey: DISABLED_COOKIES_KEY,

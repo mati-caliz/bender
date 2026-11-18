@@ -10,7 +10,10 @@ interface DiagnosticNoticesProps {
 export const DiagnosticNotices = ({ diagnostics }: DiagnosticNoticesProps): ReactElement => (
   <>
     {diagnostics.map((diagnostic, index) => (
-      <Notice key={`${diagnostic.message}-${index}`} tone={diagnostic.level === "error" ? "danger" : "warning"}>
+      <Notice
+        key={`${diagnostic.message}-${index}`}
+        tone={diagnostic.level === "error" ? "danger" : "warning"}
+      >
         {diagnostic.message}
       </Notice>
     ))}

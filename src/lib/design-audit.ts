@@ -19,11 +19,16 @@ export const readVisibleElementStyles = (maxElements: number, properties: string
 
   // lib.dom tipa document.body como no nulo, pero es null mientras el documento no tiene <body>.
   const bodyOrNull = (): HTMLElement | null => document.body;
-  const elements = Array.from((bodyOrNull() ?? document.documentElement).querySelectorAll("*")).slice(0, maxElements);
+  const elements = Array.from((bodyOrNull() ?? document.documentElement).querySelectorAll("*")).slice(
+    0,
+    maxElements,
+  );
   const visibleElements = elements.flatMap((element) => {
     const styles = window.getComputedStyle(element);
     if (isHidden(styles)) return [];
-    const values = Object.fromEntries(properties.map((property) => [property, styles.getPropertyValue(property)]));
+    const values = Object.fromEntries(
+      properties.map((property) => [property, styles.getPropertyValue(property)]),
+    );
     return [{ hasOwnText: hasOwnText(element), styles: values }];
   });
   return { elementCount: elements.length, visibleElements };

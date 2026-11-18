@@ -27,7 +27,6 @@ const blankCookie = (hostname: string, secure: boolean): CookieSnapshot => ({
   expirationDate: null,
 });
 
-
 interface CookiesHeaderActionsProps {
   cookies: CookiesController;
   activeTab: ActiveTab;

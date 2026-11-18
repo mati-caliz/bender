@@ -48,7 +48,7 @@ describe("auditPageDesign", () => {
     render(
       [
         '<div style="padding-top: 8px; margin-left: 0px; border-top-left-radius: 4px; box-shadow: 0 1px 2px black"></div>',
-        '<div style="padding-top: 8px; border-top-left-radius: 4px"></div>',
+        '<div style="padding-top: 8px; border-top-left-radius: 4px; box-shadow: none"></div>',
       ].join(""),
     );
     const audit = auditPageDesign(MAX_ELEMENTS, MAX_RESULTS);

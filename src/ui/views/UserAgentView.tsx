@@ -44,27 +44,27 @@ const PresetsCard = ({ userAgent, mutate }: UserAgentPartProps): ReactElement =>
   }, new Map());
 
   return (
-      <Card title="Presets">
-        {Array.from(groups.entries()).map(([group, presets]) => (
-          <div key={group} className="field">
-            <span className="field-label">{group}</span>
-            <div className="row wrap">
-              {presets.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={preset.id === userAgent.presetId ? "btn primary small" : "btn small"}
-                  onClick={() => {
-                    mutate((config) => ({ ...config, presetId: preset.id, value: preset.value }));
-                  }}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
+    <Card title="Presets">
+      {Array.from(groups.entries()).map(([group, presets]) => (
+        <div key={group} className="field">
+          <span className="field-label">{group}</span>
+          <div className="row wrap">
+            {presets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className={preset.id === userAgent.presetId ? "btn primary small" : "btn small"}
+                onClick={() => {
+                  mutate((config) => ({ ...config, presetId: preset.id, value: preset.value }));
+                }}
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
-        ))}
-      </Card>
+        </div>
+      ))}
+    </Card>
   );
 };
 
@@ -72,9 +72,7 @@ const SentValueCard = ({ userAgent, mutate }: UserAgentPartProps): ReactElement 
   <Card
     title="Valor enviado"
     actions={
-      userAgent.presetId === CUSTOM_USER_AGENT_PRESET_ID ? (
-        <Badge tone="accent">personalizado</Badge>
-      ) : null
+      userAgent.presetId === CUSTOM_USER_AGENT_PRESET_ID ? <Badge tone="accent">personalizado</Badge> : null
     }
   >
     <TextArea
@@ -110,9 +108,9 @@ const SentValueCard = ({ userAgent, mutate }: UserAgentPartProps): ReactElement 
     </label>
     {userAgent.spoofNavigator ? (
       <Notice>
-        El spoof de <code>navigator</code> se registra como userscript en <code>document_start</code>, asi
-        que necesita el modo desarrollador. Se aplica por dominio: ignora el filtro de URL y "solo la
-        pestaña activa".
+        El spoof de <code>navigator</code> se registra como userscript en <code>document_start</code>, asi que
+        necesita el modo desarrollador. Se aplica por dominio: ignora el filtro de URL y "solo la pestaña
+        activa".
       </Notice>
     ) : (
       <Notice>

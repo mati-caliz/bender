@@ -86,7 +86,13 @@ const dragProps = (drag: DragState, index: number, onMove: (from: number) => voi
   };
 };
 
-const RowActions = ({ onDuplicate, onRemove }: { onDuplicate: () => void; onRemove: () => void }): ReactElement => (
+const RowActions = ({
+  onDuplicate,
+  onRemove,
+}: {
+  onDuplicate: () => void;
+  onRemove: () => void;
+}): ReactElement => (
   <div className="row" style={{ gap: 2 }}>
     <IconButton icon="copy" title="Duplicar (la copia queda apagada)" small onClick={onDuplicate} />
     <IconButton icon="trash" title="Eliminar header" tone="danger" small onClick={onRemove} />

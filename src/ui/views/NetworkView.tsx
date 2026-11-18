@@ -82,7 +82,6 @@ const copyToClipboard = (value: string, message: string, notify: Notify): void =
     });
 };
 
-
 interface NetworkEntryRowProps {
   entry: NetworkEntry;
   selected: boolean;
@@ -157,7 +156,14 @@ interface NetworkEntryItemProps {
   onCreateMock: () => void;
 }
 
-const NetworkEntryItem = ({ entry, selected, captureBodies, notify, onSelect, onCreateMock }: NetworkEntryItemProps): ReactElement => (
+const NetworkEntryItem = ({
+  entry,
+  selected,
+  captureBodies,
+  notify,
+  onSelect,
+  onCreateMock,
+}: NetworkEntryItemProps): ReactElement => (
   <div>
     <NetworkEntryRow entry={entry} selected={selected} onSelect={onSelect} />
     {selected ? (
@@ -200,7 +206,12 @@ interface NetworkToolbarProps {
   onOnlyModified: (onlyModified: boolean) => void;
 }
 
-const NetworkToolbar = ({ filter, onFilter, onlyModified, onOnlyModified }: NetworkToolbarProps): ReactElement => (
+const NetworkToolbar = ({
+  filter,
+  onFilter,
+  onlyModified,
+  onOnlyModified,
+}: NetworkToolbarProps): ReactElement => (
   <div className="toolbar">
     <SearchInput value={filter} onChange={onFilter} placeholder="Filtrar por URL o regla…" />
     <label className="checkbox">

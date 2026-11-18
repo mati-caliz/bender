@@ -21,7 +21,6 @@ import { ProfileRail } from "@/ui/views/headers/ProfileRail";
 import type { UpdateState, ViewProps } from "@/ui/views/types";
 import type { Profile, ToolkitState } from "@/types";
 
-
 const duplicateProfile = (current: ToolkitState, profile: Profile): ToolkitState => {
   const clone: Profile = { ...profile, id: createId(), name: `${profile.name} (copia)` };
   return { ...current, profiles: [...current.profiles, clone], selectedProfileId: clone.id };

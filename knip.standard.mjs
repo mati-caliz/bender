@@ -31,6 +31,13 @@ const GENERATED = existsSync(OPENAPI_GENERATED) ? [`${OPENAPI_GENERATED}/**`] : 
 // Ese script corre `pnpm exec openapi-typescript` desde el front: la dependencia es del paquete
 // aunque ningún archivo suyo la importe.
 const GENERATOR_DEPENDENCIES = existsSync(OPENAPI_GENERATED) ? ["openapi-typescript"] : [];
+// El plugin de Astro llega a Prettier por `--plugin` en los scripts de formato (.prettierrc.json es
+// copia del estándar y no lo nombra): knip 6.45 dejó de verlo ahí.
+const ASTRO_FORMAT_PLUGIN = "prettier-plugin-astro";
+const FORMAT_PLUGINS =
+  JSON.parse(readFileSync("package.json", "utf8")).devDependencies?.[ASTRO_FORMAT_PLUGIN] === undefined
+    ? []
+    : [ASTRO_FORMAT_PLUGIN];
 
 // QS-209: el gate corre knip también con --production, que no cuenta los tests como uso: un archivo o
 // export que sólo usa su test está muerto. En ese modo knip sólo mira los archivos de project marcados
@@ -180,6 +187,6 @@ export function standardKnipConfig({
     ...scope,
     ignoreExportsUsedInFile: isProductionRun(),
     ignore: [...STANDARD_COPIES, ...GENERATED, ...ignore],
-    ignoreDependencies: [...GENERATOR_DEPENDENCIES, ...ignoreDependencies],
+    ignoreDependencies: [...GENERATOR_DEPENDENCIES, ...FORMAT_PLUGINS, ...ignoreDependencies],
   };
 }

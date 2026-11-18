@@ -198,6 +198,12 @@ export const CookieForm = ({
       </Field>
     ) : null}
 
-    <FormButtons canSave={draft.name.trim() !== ""} isNew={isNew} onSave={onSave} onDelete={onDelete} onCancel={onCancel} />
+    <FormButtons
+      canSave={draft.name.trim() !== ""}
+      isNew={isNew}
+      onSave={onSave}
+      onDelete={onDelete}
+      onCancel={onCancel}
+    />
   </>
 );

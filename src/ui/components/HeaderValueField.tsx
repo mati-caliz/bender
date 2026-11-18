@@ -25,7 +25,11 @@ const VariantRow = ({ variant, onActivate, onRemove }: VariantRowProps): ReactEl
 );
 
 /** Cierra con un clic fuera del contenedor o con Escape, mientras está abierto. */
-const useDismiss = (open: boolean, containerRef: RefObject<HTMLDivElement | null>, close: () => void): void => {
+const useDismiss = (
+  open: boolean,
+  containerRef: RefObject<HTMLDivElement | null>,
+  close: () => void,
+): void => {
   useEffect(() => {
     if (!open) return undefined;
     const closeOutside = (event: MouseEvent): void => {
@@ -54,7 +58,14 @@ interface VariantMenuProps {
   onStore: () => void;
 }
 
-const VariantMenu = ({ entry, canStoreValue, onKeep, onActivate, onRemove, onStore }: VariantMenuProps): ReactElement => (
+const VariantMenu = ({
+  entry,
+  canStoreValue,
+  onKeep,
+  onActivate,
+  onRemove,
+  onStore,
+}: VariantMenuProps): ReactElement => (
   <div className="header-value-menu">
     <button type="button" className="header-value-option" data-active="true" onClick={onKeep}>
       <Icon name="check" size={12} />
@@ -76,7 +87,11 @@ const VariantMenu = ({ entry, canStoreValue, onKeep, onActivate, onRemove, onSto
       type="button"
       className="header-value-add"
       disabled={!canStoreValue}
-      title={canStoreValue ? "Deja el valor actual guardado para volver a usarlo" : "Escribi un valor nuevo primero"}
+      title={
+        canStoreValue
+          ? "Deja el valor actual guardado para volver a usarlo"
+          : "Escribi un valor nuevo primero"
+      }
       onClick={onStore}
     >
       <Icon name="plus" size={12} />

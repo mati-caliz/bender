@@ -41,6 +41,10 @@ const JAVASCRIPT_FILES = ["**/*.{js,mjs,cjs}"];
 // navegador.
 const COMMAND_LINE_SCRIPTS = ["scripts/**"];
 
+// Corren en Node, también en un paquete cuyo código es del navegador: sin esto no-undef marca process
+// en las copias del estándar (check-route-js.mjs, identifiers.mjs).
+const NODE_SCRIPT_GLOBALS = Object.freeze({ process: "readonly", console: "readonly", Buffer: "readonly" });
+
 const JSON_SHAPE_HELPER = ["src/lib/assume-json-shape.ts"];
 
 // El logger de cada paquete: el único módulo que escribe en la consola. Lo demás lo importa.
@@ -362,6 +366,7 @@ export function standardConfig({
     { files: TEST_FILES, rules: testRelaxations },
     {
       files: COMMAND_LINE_SCRIPTS,
+      languageOptions: { globals: NODE_SCRIPT_GLOBALS },
       rules: { "no-console": "off" },
     },
     { files: LOG_MODULE, rules: { "no-console": "off" } },

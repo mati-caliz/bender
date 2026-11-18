@@ -149,7 +149,15 @@ interface ScriptCardProps {
   onDismissErrors: () => void;
 }
 
-const ScriptCard = ({ script, expanded, hostname, runtimeError, patternDraft, notify, ...handlers }: ScriptCardProps): ReactElement => (
+const ScriptCard = ({
+  script,
+  expanded,
+  hostname,
+  runtimeError,
+  patternDraft,
+  notify,
+  ...handlers
+}: ScriptCardProps): ReactElement => (
   <div className="item-card" data-expanded={expanded} data-off={!script.enabled}>
     <ScriptHead
       script={script}

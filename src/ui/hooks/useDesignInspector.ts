@@ -23,7 +23,11 @@ export interface DesignInspectorController {
 }
 
 /** Pregunta a la página en qué quedó el overlay, cada vez que cambia la pestaña o su URL. */
-const useOverlayPing = (tabId: number | null, url: string, setOverlay: (state: DesignOverlayState) => void): void => {
+const useOverlayPing = (
+  tabId: number | null,
+  url: string,
+  setOverlay: (state: DesignOverlayState) => void,
+): void => {
   useEffect(() => {
     if (tabId === null) return;
     void sendCommand(tabId, { channel: "bender-design", type: "ping" })
